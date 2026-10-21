@@ -1,9 +1,30 @@
+# Phụ thuộc và build
 node_modules/
 .next/
+.turbo/
 dist/
+build/
 coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Môi trường: chỉ .env.example được commit
 .env
 .env.*
 !.env.example
+
+# Kiểm thử
+playwright-report/
+test-results/
+
+# Expo
+.expo/
+
+# Bản sao tài sản thiết kế sinh khi chạy (script predev/prebuild)
+apps/web/public/brand/
+
+# Khác
 *.zip
+*.log
 .DS_Store
+Thumbs.db
