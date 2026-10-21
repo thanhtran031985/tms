@@ -5,7 +5,7 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | Bước | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
 | 1 | Khởi tạo pnpm workspace và TypeScript strict | ✅ | |
-| 2 | Docker Compose, kết nối DB/Redis/S3 và lệnh migration | ⬜ | |
+| 2 | Docker Compose, kết nối DB/Redis/S3 và lệnh migration | ✅ | |
 | 3 | Vitest, Testcontainers và test mẫu | ⬜ | |
 | 4 | apps/web: Next.js, token, font, Tailwind và Playwright | ⬜ | |
 | 5 | apps/worker, apps/driver-app và lệnh pnpm dev | ⬜ | |
@@ -24,3 +24,15 @@ Kiểm tra:
 - `pnpm lint`: mã 0; thử file `packages/core/modules/_tmp/bad.ts` import `../../lib/db/client` thì lint báo lỗi `no-restricted-imports` (mã 1), đã xóa file thử, lint lại mã 0.
 - `pnpm format:check`: sạch.
 Việc cần làm thủ công: không có.
+
+### Bước 2 — 21/10/2026
+Đã làm: `docker-compose.yml` (MariaDB 11.4 utf8mb4, Redis 7 AOF, MinIO + hai container một lần tạo bucket `tms-dev` và bật versioning); `packages/shared/enums.ts` (5 mảng đúng spec 02); `packages/core/lib/db/{client,migrate,seed}.ts`, `schema/_helpers.ts`, `schema/index.ts` (rỗng), `drizzle.config.ts`, `migrations/meta/_journal.json` (do drizzle-kit sinh); `lib/redis/client.ts` (quy ước key `t:{tenantId}:…` ghi đầu file); `lib/storage/s3.ts` (client, `tenantObjectKey`, Signed URL tải lên/xuống); `lib/env.ts`; `.gitattributes` (eol=lf); script `db:generate`, `db:migrate`, `db:seed` ở gốc và `core`.
+Kiểm tra (chạy với `DATABASE_URL` đặt trực tiếp ở dòng lệnh):
+- `docker compose up -d`: mariadb và redis `healthy`; minio chạy, hai container tạo bucket thoát mã 0 ("Bucket created", "versioning is enabled").
+- `pnpm db:generate`: "No schema changes", mã 0.
+- `pnpm db:migrate` lần 1 và lần 2: mã 0; bảng `__drizzle_migrations` có trong DB; `@@time_zone` = +00:00.
+- `pnpm db:seed`: mã 0 (0 seeder, khung chạy lại được).
+- `redis-cli ping` = PONG, `CONFIG GET appendonly` = yes.
+- Console MinIO http://localhost:9001 trả 200; `mc ls` thấy bucket `tms-dev`.
+- `pnpm typecheck`, `pnpm lint`, `pnpm format:check`: sạch.
+Việc anh/chị cần làm thủ công: file `.env` của anh/chị hiện chỉ có `DATABASE_URL` (tôi chỉ liệt kê tên biến, không đọc giá trị). Hãy cập nhật theo `.env.example`: cổng MariaDB của Compose là **3307** vì XAMPP MySQL đang chiếm 3306, và thêm các biến `REDIS_URL`, `S3_*`, `MINIO_*`, `MARIADB_*`.

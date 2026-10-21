@@ -1,0 +1,81 @@
+name: tms
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+00:00
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-change-me-root}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-tms}
+      MARIADB_USER: ${MARIADB_USER:-tms}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-change-me}
+    ports:
+      - '${MARIADB_PORT:-3307}:3306'
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Ảnh minio/minio trên Docker Hub và quay.io không kéo được nữa; dùng bản Chainguard.
+  # Ảnh này không có shell nên không có healthcheck; minio-init tự đợi MinIO sẵn sàng.
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    restart: unless-stopped
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-change-me-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me-minio-secret}
+    ports:
+      - '${MINIO_API_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+
+  # Hai bước chạy một lần (ảnh không có shell nên dùng MC_HOST_local thay cho alias set):
+  # tạo bucket dev (tự thử lại tới khi MinIO sẵn sàng) rồi bật versioning (spec 08 mục 3).
+  # Key file có tiền tố tenants/{tenantId}/ (ADR-002).
+  minio-bucket:
+    image: cgr.dev/chainguard/minio-client:latest
+    depends_on:
+      - minio
+    restart: on-failure
+    environment:
+      MC_HOST_local: http://${MINIO_ROOT_USER:-change-me-minio}:${MINIO_ROOT_PASSWORD:-change-me-minio-secret}@minio:9000
+    command: ['mb', '--ignore-existing', 'local/${S3_BUCKET:-tms-dev}']
+
+  minio-versioning:
+    image: cgr.dev/chainguard/minio-client:latest
+    depends_on:
+      minio-bucket:
+        condition: service_completed_successfully
+    restart: 'no'
+    environment:
+      MC_HOST_local: http://${MINIO_ROOT_USER:-change-me-minio}:${MINIO_ROOT_PASSWORD:-change-me-minio-secret}@minio:9000
+    command: ['version', 'enable', 'local/${S3_BUCKET:-tms-dev}']
+
+volumes:
+  mariadb_data:
+  redis_data:
+  minio_data:

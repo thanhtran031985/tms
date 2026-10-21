@@ -12,7 +12,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build": "pnpm -r --if-present build"
+    "build": "pnpm -r --if-present build",
+    "db:generate": "pnpm --filter core db:generate",
+    "db:migrate": "pnpm --filter core db:migrate",
+    "db:seed": "pnpm --filter core db:seed"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
