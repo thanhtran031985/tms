@@ -6,7 +6,7 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 |---|---|---|---|
 | 1 | Khởi tạo pnpm workspace và TypeScript strict | ✅ | |
 | 2 | Docker Compose, kết nối DB/Redis/S3 và lệnh migration | ✅ | |
-| 3 | Vitest, Testcontainers và test mẫu | ⬜ | |
+| 3 | Vitest, Testcontainers và test mẫu | ✅ | |
 | 4 | apps/web: Next.js, token, font, Tailwind và Playwright | ⬜ | |
 | 5 | apps/worker, apps/driver-app và lệnh pnpm dev | ⬜ | |
 | 6 | CI GitHub Actions | ⬜ | |
@@ -36,3 +36,11 @@ Kiểm tra (chạy với `DATABASE_URL` đặt trực tiếp ở dòng lệnh):
 - Console MinIO http://localhost:9001 trả 200; `mc ls` thấy bucket `tms-dev`.
 - `pnpm typecheck`, `pnpm lint`, `pnpm format:check`: sạch.
 Việc anh/chị cần làm thủ công: file `.env` của anh/chị hiện chỉ có `DATABASE_URL` (tôi chỉ liệt kê tên biến, không đọc giá trị). Hãy cập nhật theo `.env.example`: cổng MariaDB của Compose là **3307** vì XAMPP MySQL đang chiếm 3306, và thêm các biến `REDIS_URL`, `S3_*`, `MINIO_*`, `MARIADB_*`.
+
+### Bước 3 — 21/10/2026
+Đã làm: viết `lib/money/money.test.ts` (7 test) và `lib/time/time.test.ts` (5 test) trước, thấy đỏ, rồi viết `lib/money/index.ts` (`toMoney`, `add`, `sub`, `mul`, `div`, `roundToDong`, `toDbString`; từ chối `number`, chia 0 báo lỗi) và `lib/time/index.ts` (`toTenantDate`, mặc định `Asia/Ho_Chi_Minh`); `test/containers.ts` (`startTestInfra`: MariaDB 11.4 + Redis 7 qua Testcontainers, chạy migration, trả db/pool/redis/stop); `test/smoke.int.test.ts` (4 test: SELECT 1, múi giờ +00:00, bảng `__drizzle_migrations`, PING); `packages/core/vitest.config.ts` với hai project `unit` và `int`; `scripts/test.mjs` để `pnpm test --filter core -- money` hoạt động.
+Kiểm tra:
+- `pnpm test --filter core -- money`: đỏ (5/7 test hỏng, `add is not a function`) trước khi có code, xanh sau khi có code.
+- `pnpm test`: 3 file, 16 test xanh; chạy lại khi `docker compose stop` (không có container nào của Compose) vẫn xanh, 16 giây.
+- `pnpm typecheck`, `pnpm lint`, `pnpm format:check`: sạch.
+Việc anh/chị cần làm thủ công: không có.

@@ -7,7 +7,10 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "node --env-file-if-exists=../../.env --import tsx lib/db/migrate.ts",
-    "db:seed": "node --env-file-if-exists=../../.env --import tsx lib/db/seed.ts"
+    "db:seed": "node --env-file-if-exists=../../.env --import tsx lib/db/seed.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:int": "vitest run --project int"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1153.0",
@@ -18,7 +21,10 @@
     "mysql2": "^3.24.6"
   },
   "devDependencies": {
+    "@testcontainers/mariadb": "^12.2.1",
     "drizzle-kit": "^0.31.11",
-    "tsx": "^4.23.15"
+    "testcontainers": "^12.2.1",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.5"
   }
 }

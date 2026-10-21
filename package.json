@@ -15,7 +15,8 @@
     "build": "pnpm -r --if-present build",
     "db:generate": "pnpm --filter core db:generate",
     "db:migrate": "pnpm --filter core db:migrate",
-    "db:seed": "pnpm --filter core db:seed"
+    "db:seed": "pnpm --filter core db:seed",
+    "test": "node scripts/test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
