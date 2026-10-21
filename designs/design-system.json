@@ -1,0 +1,43 @@
+{
+  "v": 3,
+  "layout": "files",
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-21T00:00:00Z"
+  },
+  "title": "TMS Container",
+  "namespace": "Tms",
+  "libraries": [],
+  "sections": {},
+  "groups": [
+    "Logos"
+  ],
+  "assetGroups": {
+    "Logos": {
+      "name": "Logos",
+      "tile": "m",
+      "order": [
+        "tms-mark.svg"
+      ],
+      "files": {
+        "tms-mark.svg": {
+          "name": "tms-mark.svg",
+          "blob": "16377118c50a11c7be885540961355d0",
+          "size": 366,
+          "type": "image/svg+xml"
+        }
+      }
+    }
+  },
+  "blobs": {},
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "lastChange": {
+    "by": "Thanh",
+    "at": "2026-10-21T09:20:00Z",
+    "via": "Claude (Projects)",
+    "note": "Chuyển sang hướng xanh dương theo ui-ux-pro-max: token mới, chữ Fira, 11 thành phần, DeadlineTimeline thay DeadlineSign, logo mới, thêm 9 màn Screen01–Screen09 có 4 trạng thái dữ liệu."
+  }
+}

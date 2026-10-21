@@ -1,0 +1,36 @@
+<!-- @dsCard group="Nhập liệu" height=310 -->
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>Field — xem trước</title></head>
+<body>
+<div class="tms">
+<div class="tms-preview" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+  <div class="tms-field">
+    <label for="f-email">Email</label>
+    <input id="f-email" class="tms-input" type="email" autocomplete="username" value="hung.dv@phucan.vn">
+    <span class="tms-hint">Dùng email công việc mà công ty đã cấp.</span>
+  </div>
+  <div class="tms-field">
+    <label for="f-pw">Mật khẩu</label>
+    <div class="tms-input-wrap">
+      <input id="f-pw" class="tms-input" type="password" autocomplete="current-password" value="matkhau123" aria-invalid="true" aria-describedby="f-pw-err">
+      <button type="button" class="tms-icon-btn" aria-label="Hiện mật khẩu" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+    </div>
+    <p id="f-pw-err" class="tms-error-text"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16.5v.01"></path></svg><span>Sai mật khẩu. Còn 2 lần thử trước khi tài khoản bị khóa 15 phút.</span></p>
+  </div>
+  <div class="tms-field">
+    <label for="f-q">Lọc Kanban</label>
+    <div class="tms-search" style="max-width: none;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <input id="f-q" class="tms-input" type="search" placeholder="Số cont, Order, khách hàng" value="EXP-2610-044">
+    </div>
+  </div>
+  <div class="tms-field">
+    <label for="f-plate">Đầu kéo</label>
+    <input id="f-plate" class="tms-input tms-mono" value="51C-482.17" disabled>
+    <span class="tms-hint">Đã gán cho chuyến, không đổi được.</span>
+  </div>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+# Phân hệ Điều vận, Chống Đụng độ & Ràng buộc Vật lý
+
+## 1. Xử lý Concurrency với Pessimistic Locking (Backend Rules)
+Nhiều Điều vận viên (Dispatchers) cùng kéo thả trên một bảng Kanban. Để ngăn chặn 2 người gán cùng 1 Tài xế, Đầu kéo **hoặc Rơ moóc [SỬA]** cho 2 chuyến chồng lấn thời gian:
+
+1. Bắt buộc bọc toàn bộ logic trong `await db.transaction(async (tx) => { ... })`.
+2. **[SỬA] Khóa theo thứ tự cố định để tránh deadlock:** luôn khóa theo thứ tự `drivers` → `tractors` → `trailers`, và trong cùng một bảng thì sắp theo `id` tăng dần (khi ghép chuyến có nhiều tài nguyên).
+   ```typescript
+   const [driver] = await tx.select().from(drivers)
+     .where(and(eq(drivers.id, driverId), eq(drivers.tenantId, ctx.tenantId)))
+     .for('update');
+   ```
+3. **[SỬA] Điều kiện gán không chỉ dựa vào `status`.** Sau khi khóa dòng tài nguyên, kiểm tra:
+   - Tài nguyên tồn tại, cùng tenant, không `INACTIVE`, không bị xóa mềm.
+   - **Không có assignment chồng lấn thời gian** (status không thuộc `CANCELLED`, `COMPLETED`, `ABORTED_MIDWAY`):
+     ```sql
+     planned_start < :newEnd AND planned_end > :newStart
+     ```
+     Kiểm tra cho cả `driverId`, `tractorId`, `trailerId`.
+   - Không có `maintenance_orders` (PLANNED/IN_PROGRESS) chồng lấn khoảng thời gian.
+   - **[BỔ SUNG] Giấy tờ còn hạn tại `plannedEnd`:** GPLX tài xế, đăng kiểm/bảo hiểm/phù hiệu đầu kéo, kiểm định rơ moóc. Hết hạn → chặn với mã lỗi `DOCUMENT_EXPIRED`. Sắp hết hạn trong 15 ngày → cho gán nhưng cảnh báo.
+   - **[BỔ SUNG] Thời gian lái xe:** Tổng thời gian kế hoạch của tài xế trong ngày không vượt giới hạn giờ lái theo quy định hiện hành (cấu hình theo tenant, mặc định 10 giờ/ngày, liên tục không quá 4 giờ). Vượt → cảnh báo, chỉ role `ADMIN` mới được ghi đè (ghi audit lý do).
+   - Nếu chuyến bắt đầu ngay (`plannedStart <= now + 30 phút`) thì thêm điều kiện `status = 'AVAILABLE'`.
+4. Nếu vi phạm, trả `{ ok: false, code: 'DRIVER_NOT_AVAILABLE' | 'TRACTOR_NOT_AVAILABLE' | 'TRAILER_NOT_AVAILABLE' | 'RESOURCE_TIME_CONFLICT' | 'DOCUMENT_EXPIRED' }` và rollback (Rule 5 file 01).
+5. Lưu `dispatch_assignments`, đồng bộ cột `primary*` của `consolidated_trips`, tăng `version`, ghi `audit_logs`.
+6. **[SỬA]** `status` của Tài xế/Đầu kéo chỉ chuyển sang `ON_DUTY` / `IN_USE` khi chuyến thực sự bắt đầu (tài xế bấm "Bắt đầu chuyến" hoặc geofence rời bãi), không chuyển ngay lúc lên kế hoạch.
+7. Sau commit: `revalidatePath('/dispatch')` và **[BỔ SUNG]** publish sự kiện `dispatch.updated` lên Redis Pub/Sub để các Điều vận viên khác đang mở Kanban nhận cập nhật qua SSE.
+8. **[BỔ SUNG] Timeout khóa:** đặt `innodb_lock_wait_timeout` ngắn (ví dụ 5 giây) cho transaction điều vận; khi timeout trả lỗi `RESOURCE_BUSY_RETRY` để UI rollback optimistic và báo người dùng thử lại.
+9. **[BỔ SUNG] Khóa lạc quan cho thao tác sửa chuyến:** client gửi kèm `version` đã đọc; `UPDATE ... WHERE id = ? AND version = ?` không ảnh hưởng dòng nào → trả `STALE_DATA` và UI tải lại thẻ.
+
+## 2. Ràng buộc Vật lý đối với Ghép Cont (TWIN_20) & Kết hợp 2 chiều (COMBINED)
+Khi tạo hoặc gán tài nguyên vào consolidated_trips, Service phải kiểm tra các Hard Rules sau:
+
+- **Rule 1 (Rơ moóc cho TWIN_20) [SỬA]:** Nếu `tripMode === 'TWIN_20'`, bắt buộc `trailer.canCarryTwin20 === true` (khung 40ft/45ft có chốt khóa giữa). Rơ moóc `20FT` hoặc khung không có chốt giữa → chặn và trả lỗi ngay. Cả 2 container phải là cont 20ft (có thể cùng 1 Order hoặc thuộc 2 Order khác nhau).
+- **Rule 2 (Tải trọng) [SỬA]:** Dùng khối lượng toàn bộ của container (`vgmTons`, nếu chưa có thì `cargoWeightTons` + vỏ cont tiêu chuẩn) chứ không chỉ khối lượng hàng:
+  - Tổng khối lượng các cont ≤ `trailer.maxPayloadTons`.
+  - Tổng khối lượng cont + `trailer.tareWeightTons` + đầu kéo ≤ `tractor.permittedGrossWeightTons` (khối lượng toàn bộ cho phép theo giấy kiểm định).
+  - Thiếu dữ liệu khối lượng → cảnh báo bắt buộc xác nhận, không âm thầm bỏ qua.
+- **Rule 3 (Đảo vỏ STREET_TURN):** Nếu ghép 1 container của Order Nhập (IMPORT) và 1 container của Order Xuất (EXPORT) dùng chung vỏ, bắt buộc kiểm tra `importOrder.shippingLineId === exportOrder.shippingLineId` và `importContainer.containerType === exportContainer.containerType`. **[SỬA]** Liên kết lưu ở `order_containers.linkedContainerId` (từng cont), không phải ở cấp Order. **[BỔ SUNG]** Thêm:
+  - `shippingLine.allowsStreetTurn === true` và đã có `streetTurnApprovalRef` (số chấp thuận/lệnh đổi của hãng tàu) trước khi chuyển trạng thái chuyến sang `DISPATCHED`.
+  - Thời gian: Stop `UNSTUFFING` của đơn Nhập phải kết thúc trước Stop `STUFFING` của đơn Xuất.
+  - Sau khi đảo vỏ, `exportContainer.containerNo = importContainer.containerNo`; đồng hồ DET của vỏ chuyển sang theo dõi trên cont Xuất; cont Nhập không còn Stop `RETURN_EMPTY` (Stop đó chuyển `SKIPPED`).
+  - Ghi phí `STREET_TURN_FEE` (nếu hãng tàu thu) dạng `PASS_THROUGH` hoặc chi phí, theo cấu hình.
+- **Rule 4 (COMBINED không có Street Turn) [BỔ SUNG]:** Chuyến kết hợp chiều Nhập và chiều Xuất dùng 2 vỏ khác nhau (trả rỗng cont Nhập rồi lấy rỗng cho cont Xuất). Không áp Rule 3, nhưng vẫn kiểm tra thứ tự Stop hợp lệ về vật lý (không thể chở quá 1 cont 40 cùng lúc).
+- **Rule 5 (Cont lạnh) [BỔ SUNG]:** Container loại `*RF` → rơ moóc phải `hasGensetPower = true` (hoặc có máy phát rời được khai báo).
+- **Rule 6 (Hàng nguy hiểm) [BỔ SUNG]:** `isDangerousGoods = true` → tài xế phải có chứng chỉ chở hàng nguy hiểm (thêm vào danh mục giấy tờ tài xế) và không được ghép TWIN_20 với đơn của khách khác.
+- **Rule 7 (Trạng thái sẵn sàng tại cảng) [BỔ SUNG]:** Không cho chuyến bắt đầu nếu Stop đầu tiên tại cảng/depot mà container đang `HOLD_CUSTOMS` / `HOLD_LINE` hoặc chưa `READY_EDO` / `READY_EMPTY_RELEASE` (cho lưu kế hoạch, chặn lúc Dispatch).
+- **Rule 8 (Cut-off) [BỔ SUNG]:** Với hàng Xuất, nếu `plannedEnd` của Stop `PORT_IN` sau `order.cutOffAt` → cảnh báo đỏ trên thẻ Kanban.
+
+## 3. Nghiệp vụ Drop & Hook (Tách rời Đầu kéo và Rơ moóc)
+Khi tài xế kéo cont tới kho khách nhưng khách giữ lại đóng/rút hàng lâu, Điều vận bấm "Drop Trailer".
+
+- Hệ thống cập nhật `trailers.status = 'DROPPED'` và `trailers.currentLocationId = stop.locationId`.
+- Giải phóng ngay lập tức `tractors.status = 'AVAILABLE'` và `drivers.status = 'AVAILABLE'` để Điều vận kéo thả sang chuyến khác.
+- **[BỔ SUNG]** Assignment hiện tại kết thúc ở Stop `DROP_TRAILER` với status `COMPLETED`; hệ thống tự sinh Stop `HOOK_TRAILER` (status `PENDING`, chưa có đầu kéo) xuất hiện trong cột "Chờ móc rơ moóc" của Kanban.
+- **[BỔ SUNG]** Khi Điều vận gán đầu kéo + tài xế cho Stop `HOOK_TRAILER`, áp đầy đủ kiểm tra mục 1 và rơ moóc phải đang `DROPPED` tại đúng `locationId`.
+- **[BỔ SUNG]** Lương: chặng trước Drop và chặng sau Hook là 2 assignment riêng, mỗi assignment được tính lương theo bảng phí của chặng tương ứng (cấu hình mã phí `DRIVER_SALARY_DROP` / `DRIVER_SALARY_HOOK` hoặc theo tỷ lệ `completionPercentage`).
+- **[BỔ SUNG]** Màn hình "Rơ moóc đang thả" liệt kê rơ moóc `DROPPED` kèm số giờ đã nằm tại kho để Điều vận đòi phí lưu rơ moóc (nếu có thỏa thuận với khách).
+
+## 4. Hủy & Tách chuyến [BỔ SUNG]
+- **Hủy assignment:** chuyển `CANCELLED`, không xóa. Nếu tài nguyên đang `IN_USE`/`ON_DUTY` vì assignment này thì trả về `AVAILABLE`.
+- **Tách chuyến ghép (un-consolidate):** gỡ 1 container khỏi `trip_containers`, đổi `tripMode` về `SINGLE` nếu chỉ còn 1 cont, và phát sự kiện `pricing.reprice_required` cho các container bị ảnh hưởng (xem file 06 mục 4). Nếu Kế toán đã sửa tay phân bổ của chuyến thì phân bổ bị đặt lại về số hệ thống và báo cho Kế toán.
+- **Hủy container / hủy Order [SỬA]:** Hủy được từng container (`order_containers.status = CANCELLED`) mà không hủy cả Order. Container chỉ hủy tự do khi chưa có Stop nào `COMPLETED`; nếu đã chạy một phần thì phải nhập phí hủy (`CANCELLATION_FEE`) và lý do. Hủy Order = hủy mọi container chưa hoàn thành; Order chỉ chuyển `CANCELLED` khi không còn container nào đang hoạt động.
+- **Phí hủy nhà xe ngoài:** nếu assignment `SUB_CONTRACTOR` bị hủy sau khi đã xác nhận, cho phép ghi chi phí hủy vào `trip_costs`.
+
+## 5. Giao diện Kanban [BỔ SUNG]
+- Cột mặc định: `Chờ điều` (container của Order CONFIRMED chưa có trip) → `Đã lên kế hoạch` → `Đã điều` → `Đang chạy` → `Chờ móc rơ moóc` → `Hoàn thành chờ chứng từ`.
+- **[SỬA]** Mỗi thẻ trên Kanban là **một container** (hiển thị số Order, số cont, khách). Thẻ của cùng một Order có thể gom nhóm/thu gọn để Điều vận thấy cả lô. Kéo thẻ container vào thẻ Tài xế/Đầu kéo trên lane thời gian (theo ngày) để tạo assignment.
+- Bảng Kanban phải phân trang/lọc theo ngày, khu vực, khách hàng; không tải toàn bộ đơn của tenant.
+- Hiển thị nhãn: trạng thái cảng (`portReadinessStatus`), đếm ngược DEM/DET/cut-off, xe sắp đến kỳ bảo dưỡng, giấy tờ sắp hết hạn.

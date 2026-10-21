@@ -1,0 +1,592 @@
+<!-- @dsCard group="Màn hình" height=1320 width=1440 subtitle="Trang chủ Điều vận: việc cần xử lý theo độ gấp, mốc hạn cut-off và DEM/DET sắp tới, đội xe và container theo trạng thái." -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Trang chủ Điều vận – TMS Container</title>
+<style>
+body{margin:0;background:var(--bg)}
+.tms{font-family:var(--font-ui);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg)}
+.tms [hidden]{display:none!important}
+.tms .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tms .state-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 24px;background:var(--surface);border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-soft)}
+.tms .state-bar button{min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.tms .state-bar button:hover{background:var(--surface-2)}
+.tms .state-bar button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tms .s-normal,.tms .s-data,.tms .s-loading,.tms .s-empty,.tms .s-error{display:none}
+.tms[data-state="normal"] .s-normal,.tms[data-state="normal"] .s-data,.tms[data-state="error"] .s-data,.tms[data-state="loading"] .s-loading,.tms[data-state="empty"] .s-empty,.tms[data-state="error"] .s-error{display:contents}
+.tms .sk{display:block;background:var(--surface-2);border-radius:6px;animation:tms-sk 1.4s ease-in-out infinite}
+.tms .sk-on2{background:var(--line)}
+@keyframes tms-sk{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.tms .sk{animation:none}}
+
+.tms .mono{font-family:var(--font-mono);font-weight:500;letter-spacing:0}
+.tms :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tms a{color:var(--primary);text-underline-offset:3px}
+.tms a:hover{color:var(--primary-hover)}
+.tms button{font-family:inherit}
+.tms .nav-item{transition:background-color .15s ease-out}
+.tms .nav-item:hover{background:var(--surface-2)}
+.tms .ghost{transition:background-color .15s ease-out}
+.tms .ghost:hover{background:var(--surface-2)}
+.tms .btn-primary{transition:background-color .15s ease-out}
+.tms .btn-primary:hover{background:var(--primary-hover)}
+.tms .row:hover{background:var(--surface-2)}
+.tms .tab{transition:background-color .15s ease-out,color .15s ease-out}
+.tms .tab:hover{background:var(--surface-2)}
+.tms .tab[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.tms .tab[aria-selected="true"] .count{background:var(--surface);color:var(--ink)}
+.tms .live-dot{animation:tms-pulse 2s ease-in-out infinite}
+@keyframes tms-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.tms table{border-collapse:collapse;width:100%}
+.tms th{font-size:13px;font-weight:600;color:var(--ink-soft);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+.tms td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}
+@media (prefers-reduced-motion:reduce){.tms *{transition:none!important}.tms .live-dot{animation:none}}
+
+</style>
+</head>
+<body>
+<div class="tms" id="root" data-state="normal">
+<div role="group" aria-label="Trạng thái dữ liệu" class="state-bar">
+  <span style="margin-right: 4px;">Trạng thái:</span>
+  <button type="button" data-set="normal" aria-pressed="true">Bình thường</button>
+  <button type="button" data-set="loading" aria-pressed="false">Đang tải</button>
+  <button type="button" data-set="empty" aria-pressed="false">Trống</button>
+  <button type="button" data-set="error" aria-pressed="false">Lỗi</button>
+</div>
+<div class="screen" style="min-height: calc(100vh - 53px); display: flex; flex-wrap: wrap; background: var(--bg); color: var(--ink);">
+
+  <nav aria-label="Điều hướng chính" style="flex: 1 1 240px; max-width: 240px; min-width: 200px; box-sizing: border-box; padding: 16px 12px; background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px;">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="6" fill="var(--primary)"></rect><rect x="7" y="10" width="18" height="12" rx="1.5" stroke="var(--on-primary)" stroke-width="2"></rect><path d="M11.5 13v6M16 13v6M20.5 13v6" stroke="var(--on-primary)" stroke-width="2" stroke-linecap="round"></path></svg>
+      <span style="font-weight: 700;">TMS Container</span>
+    </div>
+    
+      <a href="Home.dc.html" class="nav-item" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; color: var(--info); background: var(--info-soft); font-weight: 600; font-size: 15px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+        <span style="flex: 1;">Trang chủ</span>
+        
+      </a>
+    
+      <a href="Dispatch.dc.html" class="nav-item" aria-current="false" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; color: var(--ink); background: transparent; font-weight: 500; font-size: 15px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v13h-4z"></path></svg>
+        <span style="flex: 1;">Điều vận</span>
+        <span style="min-width: 24px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--crit-soft); color: var(--crit); font-size: 13px; font-weight: 700; text-align: center;">14</span>
+      </a>
+    
+      <a href="#don-hang" class="nav-item" aria-current="false" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; color: var(--ink); background: transparent; font-weight: 500; font-size: 15px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8l4 4v12H4V4h4M14 4v4h4M8 12h8M8 16h5"></path></svg>
+        <span style="flex: 1;">Đơn hàng</span>
+        
+      </a>
+    
+      <a href="#ban-do" class="nav-item" aria-current="false" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; color: var(--ink); background: transparent; font-weight: 500; font-size: 15px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"></path></svg>
+        <span style="flex: 1;">Bản đồ đội xe</span>
+        
+      </a>
+    
+      <a href="#phieu-dau" class="nav-item" aria-current="false" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; color: var(--ink); background: transparent; font-weight: 500; font-size: 15px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"></path></svg>
+        <span style="flex: 1;">Phiếu dầu</span>
+        
+      </a>
+    
+      <a href="#doi-soat" class="nav-item" aria-current="false" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; color: var(--ink); background: transparent; font-weight: 500; font-size: 15px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"></path></svg>
+        <span style="flex: 1;">Đối soát</span>
+        
+      </a>
+    
+      <a href="#phan-bo" class="nav-item" aria-current="false" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; color: var(--ink); background: transparent; font-weight: 500; font-size: 15px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.7 5 3.2 5 1.3 5 3.3-2.2 3.3-5 3.3-5-1.2-5-3.1"></path></svg>
+        <span style="flex: 1;">Phân bổ chi phí</span>
+        
+      </a>
+    
+      <a href="#bao-cao" class="nav-item" aria-current="false" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; color: var(--ink); background: transparent; font-weight: 500; font-size: 15px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"></path></svg>
+        <span style="flex: 1;">Báo cáo</span>
+        
+      </a>
+    
+  </nav>
+
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--line);">
+      <button type="button" class="ghost" style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 15px; cursor: pointer;" aria-label="Đổi công ty, đang ở Vận tải Phúc An">
+        <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 6px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">PA</span>
+        <span style="font-weight: 600;">Vận tải Phúc An</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+      <div style="flex: 1 1 280px; min-width: 0; max-width: 480px; position: relative;">
+        <label for="q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Tìm container, Order, biển số</label>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 14px; top: 13px; color: var(--ink-soft);"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input id="q" type="search" placeholder="Tìm container, Order, biển số" style="width: 100%; height: 44px; box-sizing: border-box; padding: 0 48px 0 42px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 15px;">
+        <kbd style="position: absolute; right: 12px; top: 11px; padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; font-family: inherit; font-size: 13px; color: var(--ink-soft);">/</kbd>
+      </div>
+      <span class="s-normal"><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft);"><span class="live-dot" aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--ok);"></span>Trực tiếp · cập nhật 14:20</span></span><span class="s-loading"><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft);"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--off);"></span>Đang kết nối…</span></span><span class="s-empty"><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft);"><span class="live-dot" aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--ok);"></span>Trực tiếp · cập nhật 14:20</span></span><span class="s-error"><span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M8.5 15.5a5 5 0 0 1 7 0M3 3l18 18"></path></svg>Mất kết nối · dữ liệu lúc 14:20</span></span>
+      <button type="button" class="ghost" aria-label="Chế độ tối" style="width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg>
+      </button>
+      <button type="button" class="ghost" aria-label="Tài khoản Nguyễn Văn Hùng, Điều vận" style="height: 44px; padding: 0 8px; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); cursor: pointer;">
+        <span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">H</span>
+        <span style="font-size: 15px; text-align: left; line-height: 1.2;"><span style="display: block; font-weight: 600;">Nguyễn Văn Hùng</span><span style="font-size: 13px; color: var(--ink-soft);">Điều vận</span></span>
+      </button>
+    </header>
+
+    <main style="box-sizing: border-box; width: 100%; max-width: 1240px; padding: 24px; display: flex; flex-direction: column; gap: 24px;">
+      <div class="s-error"><div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; background: var(--crit-soft); color: var(--crit);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>
+        <span style="flex: 1; min-width: 240px; color: var(--ink);"><strong style="font-weight: 600; color: var(--crit);">Không cập nhật được từ 14:20.</strong> Máy chủ không phản hồi. Số liệu bên dưới là bản lúc 14:20, mốc hạn vẫn đếm theo giờ máy.</span>
+        <button type="button" class="ghost" style="height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 15px; font-weight: 600; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"></path></svg>Thử lại</button>
+      </div></div>
+      <div class="s-data">
+      <div>
+        <h1 style="margin: 0; font-size: 28px; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em;">9 việc cần xử lý. Hạn gần nhất: cut-off ONE HARMONY lúc 16:35, còn 2 giờ 15</h1>
+        <p style="margin: 4px 0 0; color: var(--ink-soft);">Chào Hùng · 91 container trong kế hoạch hôm nay</p>
+      </div>
+
+      <section aria-label="Chỉ số hôm nay" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        
+          <a href="Dispatch.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none;">
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft);">
+              <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 6px; background: var(--info-soft); color: var(--info); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9"></path></svg></span>
+              Chờ điều
+            </span>
+            <span style="font-size: 32px; line-height: 1.15; font-weight: 700; color: var(--ink);">14</span>
+            <span style="font-size: 14px; color: var(--ink-soft);">2 cont dính cut-off hôm nay</span>
+          </a>
+        
+          <a href="#ban-do" style="display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none;">
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft);">
+              <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 6px; background: var(--info-soft); color: var(--info); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h11v9H2zM13 10h4l3 3v3h-7M6 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01"></path></svg></span>
+              Đang chạy
+            </span>
+            <span style="font-size: 32px; line-height: 1.15; font-weight: 700; color: var(--ink);">31</span>
+            <span style="font-size: 14px; color: var(--ink-soft);">Vị trí cập nhật trực tiếp</span>
+          </a>
+        
+          <a href="#cutoff" style="display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none;">
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft);">
+              <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 6px; background: var(--crit-soft); color: var(--crit); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg></span>
+              Cut-off trong 6 giờ
+            </span>
+            <span style="font-size: 32px; line-height: 1.15; font-weight: 700; color: var(--crit);">2 cont</span>
+            <span style="font-size: 14px; color: var(--ink-soft);">ONE HARMONY 042S lúc 16:35</span>
+          </a>
+        
+          <a href="#ban-do" style="display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none;">
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft);">
+              <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19v.01M3 3l18 18"></path></svg></span>
+              Mất tín hiệu GPS
+            </span>
+            <span style="font-size: 32px; line-height: 1.15; font-weight: 700; color: var(--warn);">3 xe</span>
+            <span style="font-size: 14px; color: var(--ink-soft);">Lâu nhất 22 phút</span>
+          </a>
+        
+      </section>
+
+      <section aria-labelledby="dl-title" style="padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px;">
+          <h2 id="dl-title" style="margin: 0; font-size: 20px; font-weight: 600;">Mốc hạn sắp tới</h2>
+          <span style="font-size: 14px; color: var(--ink-soft);">Từ bây giờ đến 08:00 ngày 18/10</span>
+        </div>
+        <div aria-hidden="true" style="position: relative; height: 56px; margin: 0 8px;">
+          <div style="position: absolute; left: 0; right: 0; top: 22px; height: 4px; border-radius: 2px; background: var(--surface-2);"></div>
+          <div style="position: absolute; left: 0; width: 1.9%; top: 22px; height: 4px; border-radius: 2px; background: var(--primary);"></div>
+          
+            <span style="position: absolute; left: 0%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">14:00</span>
+          
+            <span style="position: absolute; left: 11.1%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">16:00</span>
+          
+            <span style="position: absolute; left: 22.2%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">18:00</span>
+          
+            <span style="position: absolute; left: 33.3%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">20:00</span>
+          
+            <span style="position: absolute; left: 44.4%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">22:00</span>
+          
+            <span style="position: absolute; left: 55.6%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">0:00</span>
+          
+            <span style="position: absolute; left: 66.7%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">2:00</span>
+          
+            <span style="position: absolute; left: 77.8%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">4:00</span>
+          
+            <span style="position: absolute; left: 88.9%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">6:00</span>
+          
+            <span style="position: absolute; left: 99%; top: 34px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft); white-space: nowrap;">8:00</span>
+          
+          <span style="position: absolute; left: 1.9%; top: 10px; width: 2px; height: 28px; background: var(--primary); transform: translateX(-1px);"></span>
+          
+            <span style="position: absolute; left: 14.4%; top: 10px; width: 28px; height: 28px; transform: translateX(-50%); border-radius: 50%; background: #B91C1C; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px var(--surface);">1</span>
+          
+            <span style="position: absolute; left: 27.8%; top: 10px; width: 28px; height: 28px; transform: translateX(-50%); border-radius: 50%; background: #C2410C; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px var(--surface);">2</span>
+          
+            <span style="position: absolute; left: 44.4%; top: 10px; width: 28px; height: 28px; transform: translateX(-50%); border-radius: 50%; background: #C2410C; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px var(--surface);">3</span>
+          
+            <span style="position: absolute; left: 100%; top: 10px; width: 28px; height: 28px; transform: translateX(-50%); border-radius: 50%; background: #2563EB; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px var(--surface);">4</span>
+          
+        </div>
+        <ol style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+          
+            <li style="display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: var(--crit-soft);">
+              <span aria-hidden="true" style="flex: none; width: 28px; height: 28px; border-radius: 50%; background: #B91C1C; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">1</span>
+              <span style="min-width: 0; display: flex; flex-direction: column;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">Cut-off</span>
+                <span class="" style="font-weight: 600;">Tàu ONE HARMONY 042S</span>
+                <span style="font-size: 14px; color: var(--ink-soft);">2 cont chưa có xe · Cát Lái</span>
+                <span style="margin-top: 4px; font-size: 15px;"><strong style="font-weight: 700; color: var(--crit);">Còn 2 giờ 15</strong> <span style="color: var(--ink-soft);">lúc 16:35</span></span>
+              </span>
+            </li>
+          
+            <li style="display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2);">
+              <span aria-hidden="true" style="flex: none; width: 28px; height: 28px; border-radius: 50%; background: #C2410C; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">2</span>
+              <span style="min-width: 0; display: flex; flex-direction: column;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">DET hết miễn phí</span>
+                <span class="mono" style="font-weight: 600;">TGHU8812348</span>
+                <span style="font-size: 14px; color: var(--ink-soft);">Chưa trả rỗng · depot Phước Long</span>
+                <span style="margin-top: 4px; font-size: 15px;"><strong style="font-weight: 700; color: var(--warn);">Còn 4 giờ 40</strong> <span style="color: var(--ink-soft);">lúc 19:00</span></span>
+              </span>
+            </li>
+          
+            <li style="display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2);">
+              <span aria-hidden="true" style="flex: none; width: 28px; height: 28px; border-radius: 50%; background: #C2410C; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">3</span>
+              <span style="min-width: 0; display: flex; flex-direction: column;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">Cut-off</span>
+                <span class="" style="font-weight: 600;">Tàu WAN HAI 316</span>
+                <span style="font-size: 14px; color: var(--ink-soft);">2 cont chờ điều · Cát Lái</span>
+                <span style="margin-top: 4px; font-size: 15px;"><strong style="font-weight: 700; color: var(--warn);">Còn 7 giờ 40</strong> <span style="color: var(--ink-soft);">lúc 22:00</span></span>
+              </span>
+            </li>
+          
+            <li style="display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2);">
+              <span aria-hidden="true" style="flex: none; width: 28px; height: 28px; border-radius: 50%; background: #2563EB; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center;">4</span>
+              <span style="min-width: 0; display: flex; flex-direction: column;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">DEM hết miễn phí</span>
+                <span class="mono" style="font-weight: 600;">MSKU1234565</span>
+                <span style="font-size: 14px; color: var(--ink-soft);">Chưa lấy hàng · Cát Lái</span>
+                <span style="margin-top: 4px; font-size: 15px;"><strong style="font-weight: 700; color: var(--ink);">Còn 17 giờ 40</strong> <span style="color: var(--ink-soft);">mai 08:00</span></span>
+              </span>
+            </li>
+          
+        </ol>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+        <section aria-labelledby="work-title" style="flex: 999 1 560px; min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden;">
+          <div style="padding: 16px 20px 12px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+              <h2 id="work-title" style="margin: 0; font-size: 20px; font-weight: 600;">Việc cần xử lý</h2>
+              <span style="font-size: 14px; color: var(--ink-soft);">Sắp theo độ gấp</span>
+            </div>
+            <div role="tablist" aria-label="Lọc theo loại việc" style="display: flex; flex-wrap: wrap; gap: 6px;">
+              
+                <button type="button" role="tab" class="tab" data-tab="all" aria-selected="true" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  Tất cả <span class="count" style="min-width: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 700;">9</span>
+                </button>
+              
+                <button type="button" role="tab" class="tab" data-tab="cutoff" aria-selected="false" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  Cut-off <span class="count" style="min-width: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 700;">4</span>
+                </button>
+              
+                <button type="button" role="tab" class="tab" data-tab="demdet" aria-selected="false" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  DEM/DET <span class="count" style="min-width: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 700;">1</span>
+                </button>
+              
+                <button type="button" role="tab" class="tab" data-tab="hold" aria-selected="false" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  HOLD <span class="count" style="min-width: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 700;">1</span>
+                </button>
+              
+                <button type="button" role="tab" class="tab" data-tab="doc" aria-selected="false" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  Giấy tờ <span class="count" style="min-width: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 700;">2</span>
+                </button>
+              
+                <button type="button" role="tab" class="tab" data-tab="gps" aria-selected="false" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  Mất tín hiệu <span class="count" style="min-width: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 700;">1</span>
+                </button>
+              
+                <button type="button" role="tab" class="tab" data-tab="st" aria-selected="false" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  Street Turn <span class="count" style="min-width: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 700;">0</span>
+                </button>
+              
+            </div>
+          </div>
+          
+            <div id="work-table" style="overflow-x: auto;">
+              <table>
+                <thead><tr><th scope="col">Việc</th><th scope="col">Đối tượng</th><th scope="col">Order · khách</th><th scope="col">Hạn</th><th scope="col">Tình trạng</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Hành động</span></th></tr></thead>
+                <tbody>
+                  
+                    <tr class="row" data-cat="cutoff">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--crit-soft); color: var(--crit); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off</span></td>
+                      <td><span class="mono" style="display: block; font-weight: 600; white-space: nowrap;">OOLU8842105</span><span style="font-size: 14px; color: var(--ink-soft);">40HC · VGM 26,4 t</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">EXP-2610-044</span><span style="font-size: 14px; color: var(--ink-soft);">May mặc Phúc Thịnh</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">16:35</span><span style="font-size: 14px; font-weight: 600; color: var(--crit);">còn 2 giờ 15</span></td>
+                      <td style="min-width: 180px;">Chưa có xe</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        <a href="Dispatch.dc.html" class="btn-primary" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 600; text-decoration: none;">Điều xe</a>
+                        
+                      </td>
+                    </tr>
+                  
+                    <tr class="row" data-cat="cutoff">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--crit-soft); color: var(--crit); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off</span></td>
+                      <td><span class="mono" style="display: block; font-weight: 600; white-space: nowrap;">OOLU8842110</span><span style="font-size: 14px; color: var(--ink-soft);">40HC · VGM 25,9 t</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">EXP-2610-044</span><span style="font-size: 14px; color: var(--ink-soft);">May mặc Phúc Thịnh</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">16:35</span><span style="font-size: 14px; font-weight: 600; color: var(--crit);">còn 2 giờ 15</span></td>
+                      <td style="min-width: 180px;">Chưa có xe</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        <a href="Dispatch.dc.html" class="btn-primary" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 600; text-decoration: none;">Điều xe</a>
+                        
+                      </td>
+                    </tr>
+                  
+                    <tr class="row" data-cat="demdet">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>DET</span></td>
+                      <td><span class="mono" style="display: block; font-weight: 600; white-space: nowrap;">TGHU8812348</span><span style="font-size: 14px; color: var(--ink-soft);">40HC rỗng</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">IMP-2610-031</span><span style="font-size: 14px; color: var(--ink-soft);">Điện tử Sao Việt</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">19:00</span><span style="font-size: 14px; font-weight: 600; color: var(--warn);">còn 4 giờ 40</span></td>
+                      <td style="min-width: 180px;">Chưa trả rỗng về Phước Long</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        <a href="Dispatch.dc.html" class="btn-primary" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 600; text-decoration: none;">Điều xe trả rỗng</a>
+                        
+                      </td>
+                    </tr>
+                  
+                    <tr class="row" data-cat="cutoff">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off</span></td>
+                      <td><span class="mono" style="display: block; font-weight: 600; white-space: nowrap;">WHSU5203183</span><span style="font-size: 14px; color: var(--ink-soft);">20GP · VGM 18,2 t</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">EXP-2610-046</span><span style="font-size: 14px; color: var(--ink-soft);">Cà phê Đất Đỏ</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">22:00</span><span style="font-size: 14px; font-weight: 600; color: var(--warn);">còn 7 giờ 40</span></td>
+                      <td style="min-width: 180px;">Ghép TWIN_20 được với SEGU9102466</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        
+                        <a href="#chi-tiet" class="ghost" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none;">Ghép chuyến</a>
+                      </td>
+                    </tr>
+                  
+                    <tr class="row" data-cat="cutoff">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off</span></td>
+                      <td><span class="mono" style="display: block; font-weight: 600; white-space: nowrap;">SEGU9102466</span><span style="font-size: 14px; color: var(--ink-soft);">20GP · VGM 17,8 t</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">EXP-2610-046</span><span style="font-size: 14px; color: var(--ink-soft);">Cà phê Đất Đỏ</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">22:00</span><span style="font-size: 14px; font-weight: 600; color: var(--warn);">còn 7 giờ 40</span></td>
+                      <td style="min-width: 180px;">Chờ điều</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        <a href="Dispatch.dc.html" class="btn-primary" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 600; text-decoration: none;">Điều xe</a>
+                        
+                      </td>
+                    </tr>
+                  
+                    <tr class="row" data-cat="hold">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>HOLD hải quan</span></td>
+                      <td><span class="mono" style="display: block; font-weight: 600; white-space: nowrap;">CMAU3077150</span><span style="font-size: 14px; color: var(--ink-soft);">20GP</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">IMP-2610-029</span><span style="font-size: 14px; color: var(--ink-soft);">Nội thất An Bình</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">mai 07:00</span><span style="font-size: 14px; font-weight: 600; color: var(--warn);">chuyến kế hoạch</span></td>
+                      <td style="min-width: 180px;">Chuyến bị chặn đến khi thông quan</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        
+                        <a href="#chi-tiet" class="ghost" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none;">Xem đơn</a>
+                      </td>
+                    </tr>
+                  
+                    <tr class="row" data-cat="doc">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--crit-soft); color: var(--crit); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5"></path></svg>Giấy tờ</span></td>
+                      <td><span class="" style="display: block; font-weight: 600; white-space: nowrap;">Trần Văn Lộc</span><span style="font-size: 14px; color: var(--ink-soft);">Tài xế · GPLX hạng FC</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">—</span><span style="font-size: 14px; color: var(--ink-soft);">Có chuyến 06:00 ngày 19/10</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">19/10</span><span style="font-size: 14px; font-weight: 600; color: var(--crit);">còn 2 ngày</span></td>
+                      <td style="min-width: 180px;">GPLX sắp hết hạn, chuyến sẽ bị chặn</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        
+                        <a href="#chi-tiet" class="ghost" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none;">Xem tài xế</a>
+                      </td>
+                    </tr>
+                  
+                    <tr class="row" data-cat="doc">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5"></path></svg>Giấy tờ</span></td>
+                      <td><span class="mono" style="display: block; font-weight: 600; white-space: nowrap;">51C-482.17</span><span style="font-size: 14px; color: var(--ink-soft);">Đầu kéo</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">—</span><span style="font-size: 14px; color: var(--ink-soft);">6 chuyến kế hoạch tuần này</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">22/10</span><span style="font-size: 14px; font-weight: 600; color: var(--warn);">còn 5 ngày</span></td>
+                      <td style="min-width: 180px;">Đăng kiểm sắp hết hạn</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        
+                        <a href="#chi-tiet" class="ghost" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none;">Xem xe</a>
+                      </td>
+                    </tr>
+                  
+                    <tr class="row" data-cat="gps">
+                      <td style="white-space: nowrap;"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: var(--off-soft); color: var(--off); font-size: 13px; font-weight: 700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19v.01M3 3l18 18"></path></svg>Mất tín hiệu</span></td>
+                      <td><span class="mono" style="display: block; font-weight: 600; white-space: nowrap;">51C-517.06</span><span style="font-size: 14px; color: var(--ink-soft);">Đang chạy · Lê Minh Tâm</span></td>
+                      <td><span class="mono" style="display: block; font-size: 14px; white-space: nowrap;">IMP-2610-027</span><span style="font-size: 14px; color: var(--ink-soft);">Thép Nam Long</span></td>
+                      <td style="white-space: nowrap;"><span style="display: block; font-weight: 600;">—</span><span style="font-size: 14px; font-weight: 600; color: var(--ink-soft);">22 phút không có GPS</span></td>
+                      <td style="min-width: 180px;">Lần cuối gần Ngã tư Vũng Tàu</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        
+                        <a href="#chi-tiet" class="ghost" style="display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none;">Xem bản đồ</a>
+                      </td>
+                    </tr>
+                  
+                </tbody>
+              </table>
+            </div>
+          
+          
+            <div id="work-empty" hidden style="padding: 40px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+              <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9 17.5 20 6.5"></path></svg></span>
+              <strong id="work-empty-title" style="font-weight: 600;">Không còn việc nào trong nhóm này</strong>
+              <span id="work-empty-body" style="max-width: 440px; color: var(--ink-soft);">Việc mới sẽ hiện ở đây ngay khi phát sinh.</span>
+            </div>
+          
+          <p aria-live="polite" style="margin: 0; padding: 12px 20px; font-size: 14px; color: var(--ink-soft); border-top: 1px solid var(--line);">Lan (Điều vận) vừa gán 51C-306.12 cho TCLU6630920 · 2 phút trước</p>
+        </section>
+
+        <aside style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+          <section aria-labelledby="map-title" style="border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden;">
+            <div style="padding: 16px 20px 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px;">
+              <h2 id="map-title" style="margin: 0; font-size: 20px; font-weight: 600;">Đội xe lúc này</h2>
+              <a href="#ban-do" style="font-size: 15px;">Mở bản đồ</a>
+            </div>
+            <svg viewBox="0 0 320 200" role="img" aria-label="Sơ đồ vị trí: 31 xe đang chạy, 3 xe mất tín hiệu GPS gần Ngã tư Vũng Tàu và bãi Tân Vạn" style="display: block; width: 100%; height: auto;">
+              <rect width="320" height="200" fill="var(--map-land)"></rect>
+              <path d="M210 0 C200 50 240 80 230 120 C222 150 250 180 245 200 L320 200 L320 0 Z" fill="var(--map-water)"></path>
+              <path d="M0 150 L120 120 L215 95 M60 0 L95 70 L120 120 L140 200 M120 120 L180 40 L240 0 M180 40 L215 95 L260 140" fill="none" stroke="var(--map-road)" stroke-width="5" stroke-linecap="round"></path>
+              <g font-family="Fira Sans, sans-serif" font-size="11" fill="var(--ink-soft)">
+                <circle cx="225" cy="100" r="5" fill="var(--ink)"></circle><text x="234" y="104" fill="var(--ink)" font-weight="600">Cát Lái</text>
+                <circle cx="95" cy="70" r="4" fill="var(--ink-soft)"></circle><text x="104" y="68">VSIP 1</text>
+                <circle cx="60" cy="10" r="4" fill="var(--ink-soft)"></circle><text x="68" y="18">Tân Uyên</text>
+                <circle cx="150" cy="65" r="4" fill="var(--ink-soft)"></circle><text x="156" y="60">Sóng Thần</text>
+                <circle cx="168" cy="108" r="4" fill="var(--ink-soft)"></circle><text x="124" y="146">Tân Vạn</text>
+              </g>
+              <g>
+                <circle cx="190" cy="98" r="6" fill="var(--primary)" stroke="var(--surface)" stroke-width="2"></circle>
+                <circle cx="110" cy="96" r="6" fill="var(--primary)" stroke="var(--surface)" stroke-width="2"></circle>
+                <circle cx="205" cy="60" r="6" fill="var(--primary)" stroke="var(--surface)" stroke-width="2"></circle>
+                <circle cx="70" cy="140" r="6" fill="var(--primary)" stroke="var(--surface)" stroke-width="2"></circle>
+                <circle cx="240" cy="130" r="6" fill="var(--primary)" stroke="var(--surface)" stroke-width="2"></circle>
+                <rect x="142" y="114" width="12" height="12" transform="rotate(45 148 120)" fill="var(--surface)" stroke="var(--warn)" stroke-width="2.5"></rect>
+                <rect x="160" y="124" width="12" height="12" transform="rotate(45 166 130)" fill="var(--surface)" stroke="var(--warn)" stroke-width="2.5"></rect>
+                <rect x="132" y="88" width="12" height="12" transform="rotate(45 138 94)" fill="var(--surface)" stroke="var(--warn)" stroke-width="2.5"></rect>
+              </g>
+            </svg>
+            <div style="padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; color: var(--ink-soft); border-bottom: 1px solid var(--line);">
+              <span style="display: flex; align-items: center; gap: 6px;"><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="var(--primary)"></circle></svg>Đang chạy 31</span>
+              <span style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" aria-hidden="true"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="none" stroke="var(--warn)" stroke-width="2"></rect></svg>Mất tín hiệu 3</span>
+            </div>
+            <ul style="margin: 0; padding: 4px 0; list-style: none;">
+              
+                <li style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 20px; font-size: 15px;">
+                  <span class="mono" style="font-weight: 600;">51C-517.06</span>
+                  <span style="color: var(--ink-soft); text-align: right;">22 phút · đang chạy</span>
+                </li>
+              
+                <li style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 20px; font-size: 15px;">
+                  <span class="mono" style="font-weight: 600;">51C-390.44</span>
+                  <span style="color: var(--ink-soft); text-align: right;">17 phút · đỗ bãi Tân Vạn</span>
+                </li>
+              
+                <li style="display: flex; justify-content: space-between; gap: 8px; padding: 8px 20px; font-size: 15px;">
+                  <span class="mono" style="font-weight: 600;">51D-028.91</span>
+                  <span style="color: var(--ink-soft); text-align: right;">16 phút · đỗ bãi Tân Vạn</span>
+                </li>
+              
+            </ul>
+          </section>
+
+          <section aria-labelledby="pipe-title" style="padding: 16px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <h2 id="pipe-title" style="margin: 0; font-size: 20px; font-weight: 600;">Container theo trạng thái</h2>
+              <span style="font-size: 14px; color: var(--ink-soft);">91 cont</span>
+            </div>
+            <div aria-hidden="true" style="display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px;">
+              <span style="width: 15.4%; background: #93C5FD;"></span><span style="width: 24.2%; background: #60A5FA;"></span><span style="width: 9.9%; background: #3B82F6;"></span><span style="width: 34.1%; background: #1D4ED8;"></span><span style="width: 3.3%; background: #EA580C;"></span><span style="width: 13.2%; background: #15803D;"></span>
+            </div>
+            <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px;">
+              
+                <li style="display: flex; align-items: center; gap: 10px; font-size: 15px;">
+                  <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 2px; background: #93C5FD;"></span>
+                  <span style="flex: 1;">Chờ điều</span>
+                  <strong style="font-weight: 700;">14</strong>
+                </li>
+              
+                <li style="display: flex; align-items: center; gap: 10px; font-size: 15px;">
+                  <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 2px; background: #60A5FA;"></span>
+                  <span style="flex: 1;">Đã lên kế hoạch</span>
+                  <strong style="font-weight: 700;">22</strong>
+                </li>
+              
+                <li style="display: flex; align-items: center; gap: 10px; font-size: 15px;">
+                  <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 2px; background: #3B82F6;"></span>
+                  <span style="flex: 1;">Đã điều</span>
+                  <strong style="font-weight: 700;">9</strong>
+                </li>
+              
+                <li style="display: flex; align-items: center; gap: 10px; font-size: 15px;">
+                  <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 2px; background: #1D4ED8;"></span>
+                  <span style="flex: 1;">Đang chạy</span>
+                  <strong style="font-weight: 700;">31</strong>
+                </li>
+              
+                <li style="display: flex; align-items: center; gap: 10px; font-size: 15px;">
+                  <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 2px; background: #EA580C;"></span>
+                  <span style="flex: 1;">Chờ móc rơ moóc</span>
+                  <strong style="font-weight: 700;">3</strong>
+                </li>
+              
+                <li style="display: flex; align-items: center; gap: 10px; font-size: 15px;">
+                  <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 2px; background: #15803D;"></span>
+                  <span style="flex: 1;">Hoàn thành chờ chứng từ</span>
+                  <strong style="font-weight: 700;">12</strong>
+                </li>
+              
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </div>
+      <div class="s-loading"><div aria-busy="true" style="display: flex; flex-direction: column; gap: 24px;">
+        <p class="sr-only" role="status">Đang tải việc cần xử lý và vị trí đội xe</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;"><span class="sk" style="width: 62%; height: 32px;"></span><span class="sk" style="width: 34%; height: 18px;"></span></div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;"><div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);"><span class="sk" style="width: 60%; height: 16px;"></span><span class="sk" style="width: 40%; height: 34px;"></span><span class="sk" style="width: 80%; height: 14px;"></span></div><div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);"><span class="sk" style="width: 60%; height: 16px;"></span><span class="sk" style="width: 40%; height: 34px;"></span><span class="sk" style="width: 80%; height: 14px;"></span></div><div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);"><span class="sk" style="width: 60%; height: 16px;"></span><span class="sk" style="width: 40%; height: 34px;"></span><span class="sk" style="width: 80%; height: 14px;"></span></div><div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);"><span class="sk" style="width: 60%; height: 16px;"></span><span class="sk" style="width: 40%; height: 34px;"></span><span class="sk" style="width: 80%; height: 14px;"></span></div></div>
+        <div style="padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: space-between;"><span class="sk" style="width: 180px; height: 22px;"></span><span class="sk" style="width: 220px; height: 16px;"></span></div>
+          <span class="sk" style="width: 100%; height: 4px; margin: 22px 0 30px;"></span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;"><div style="display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2);"><span class="sk sk-on2" style="flex: none; width: 28px; height: 28px; border-radius: 50%;"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 6px;"><span class="sk sk-on2" style="width: 50%; height: 12px;"></span><span class="sk sk-on2" style="width: 80%; height: 16px;"></span><span class="sk sk-on2" style="width: 60%; height: 14px;"></span></span></div><div style="display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2);"><span class="sk sk-on2" style="flex: none; width: 28px; height: 28px; border-radius: 50%;"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 6px;"><span class="sk sk-on2" style="width: 50%; height: 12px;"></span><span class="sk sk-on2" style="width: 80%; height: 16px;"></span><span class="sk sk-on2" style="width: 60%; height: 14px;"></span></span></div><div style="display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2);"><span class="sk sk-on2" style="flex: none; width: 28px; height: 28px; border-radius: 50%;"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 6px;"><span class="sk sk-on2" style="width: 50%; height: 12px;"></span><span class="sk sk-on2" style="width: 80%; height: 16px;"></span><span class="sk sk-on2" style="width: 60%; height: 14px;"></span></span></div><div style="display: flex; gap: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2);"><span class="sk sk-on2" style="flex: none; width: 28px; height: 28px; border-radius: 50%;"></span><span style="flex: 1; display: flex; flex-direction: column; gap: 6px;"><span class="sk sk-on2" style="width: 50%; height: 12px;"></span><span class="sk sk-on2" style="width: 80%; height: 16px;"></span><span class="sk sk-on2" style="width: 60%; height: 14px;"></span></span></div></div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+          <div style="flex: 999 1 560px; min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden;">
+            <div style="padding: 16px 20px 12px; display: flex; flex-direction: column; gap: 12px;"><span class="sk" style="width: 160px; height: 22px;"></span><div style="display: flex; gap: 6px;"><span class="sk" style="width: 84px; height: 36px; border-radius: 999px;"></span><span class="sk" style="width: 84px; height: 36px; border-radius: 999px;"></span><span class="sk" style="width: 100px; height: 36px; border-radius: 999px;"></span><span class="sk" style="width: 72px; height: 36px; border-radius: 999px;"></span><span class="sk" style="width: 90px; height: 36px; border-radius: 999px;"></span></div></div>
+            <div style="overflow-x: auto;"><table><thead><tr><th scope="col">Việc</th><th scope="col">Đối tượng</th><th scope="col">Order · khách</th><th scope="col">Hạn</th><th scope="col">Tình trạng</th><th scope="col"><span class="sr-only">Hành động</span></th></tr></thead><tbody><tr><td><span class="sk" style="width: 84px; height: 22px;"></span></td><td><span class="sk" style="width: 128px; height: 18px;"></span><span class="sk" style="width: 90px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 112px; height: 16px;"></span><span class="sk" style="width: 140px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 56px; height: 18px;"></span><span class="sk" style="width: 80px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 160px; height: 16px;"></span></td><td style="text-align: right;"><span class="sk" style="width: 88px; height: 40px; margin-left: auto; border-radius: 8px;"></span></td></tr><tr><td><span class="sk" style="width: 84px; height: 22px;"></span></td><td><span class="sk" style="width: 128px; height: 18px;"></span><span class="sk" style="width: 90px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 112px; height: 16px;"></span><span class="sk" style="width: 140px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 56px; height: 18px;"></span><span class="sk" style="width: 80px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 160px; height: 16px;"></span></td><td style="text-align: right;"><span class="sk" style="width: 88px; height: 40px; margin-left: auto; border-radius: 8px;"></span></td></tr><tr><td><span class="sk" style="width: 84px; height: 22px;"></span></td><td><span class="sk" style="width: 128px; height: 18px;"></span><span class="sk" style="width: 90px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 112px; height: 16px;"></span><span class="sk" style="width: 140px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 56px; height: 18px;"></span><span class="sk" style="width: 80px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 160px; height: 16px;"></span></td><td style="text-align: right;"><span class="sk" style="width: 88px; height: 40px; margin-left: auto; border-radius: 8px;"></span></td></tr><tr><td><span class="sk" style="width: 84px; height: 22px;"></span></td><td><span class="sk" style="width: 128px; height: 18px;"></span><span class="sk" style="width: 90px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 112px; height: 16px;"></span><span class="sk" style="width: 140px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 56px; height: 18px;"></span><span class="sk" style="width: 80px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 160px; height: 16px;"></span></td><td style="text-align: right;"><span class="sk" style="width: 88px; height: 40px; margin-left: auto; border-radius: 8px;"></span></td></tr><tr><td><span class="sk" style="width: 84px; height: 22px;"></span></td><td><span class="sk" style="width: 128px; height: 18px;"></span><span class="sk" style="width: 90px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 112px; height: 16px;"></span><span class="sk" style="width: 140px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 56px; height: 18px;"></span><span class="sk" style="width: 80px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 160px; height: 16px;"></span></td><td style="text-align: right;"><span class="sk" style="width: 88px; height: 40px; margin-left: auto; border-radius: 8px;"></span></td></tr><tr><td><span class="sk" style="width: 84px; height: 22px;"></span></td><td><span class="sk" style="width: 128px; height: 18px;"></span><span class="sk" style="width: 90px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 112px; height: 16px;"></span><span class="sk" style="width: 140px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 56px; height: 18px;"></span><span class="sk" style="width: 80px; height: 14px; margin-top: 6px;"></span></td><td><span class="sk" style="width: 160px; height: 16px;"></span></td><td style="text-align: right;"><span class="sk" style="width: 88px; height: 40px; margin-left: auto; border-radius: 8px;"></span></td></tr></tbody></table></div>
+          </div>
+          <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+            <div style="border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden;"><div style="padding: 16px 20px 8px;"><span class="sk" style="width: 140px; height: 22px;"></span></div><span class="sk" style="width: 100%; height: 200px; border-radius: 0;"></span><div style="padding: 12px 20px; display: flex; flex-direction: column; gap: 10px;"><span class="sk" style="width: 70%; height: 14px;"></span><span class="sk" style="width: 80%; height: 14px;"></span><span class="sk" style="width: 60%; height: 14px;"></span></div></div>
+            <div style="padding: 16px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;"><span class="sk" style="width: 200px; height: 22px;"></span><span class="sk" style="width: 100%; height: 12px;"></span><div style="display: flex; gap: 10px; align-items: center;"><span class="sk" style="width: 10px; height: 10px;"></span><span class="sk" style="width: 60%; height: 14px;"></span><span style="flex: 1;"></span><span class="sk" style="width: 24px; height: 14px;"></span></div><div style="display: flex; gap: 10px; align-items: center;"><span class="sk" style="width: 10px; height: 10px;"></span><span class="sk" style="width: 60%; height: 14px;"></span><span style="flex: 1;"></span><span class="sk" style="width: 24px; height: 14px;"></span></div><div style="display: flex; gap: 10px; align-items: center;"><span class="sk" style="width: 10px; height: 10px;"></span><span class="sk" style="width: 60%; height: 14px;"></span><span style="flex: 1;"></span><span class="sk" style="width: 24px; height: 14px;"></span></div><div style="display: flex; gap: 10px; align-items: center;"><span class="sk" style="width: 10px; height: 10px;"></span><span class="sk" style="width: 60%; height: 14px;"></span><span style="flex: 1;"></span><span class="sk" style="width: 24px; height: 14px;"></span></div><div style="display: flex; gap: 10px; align-items: center;"><span class="sk" style="width: 10px; height: 10px;"></span><span class="sk" style="width: 60%; height: 14px;"></span><span style="flex: 1;"></span><span class="sk" style="width: 24px; height: 14px;"></span></div><div style="display: flex; gap: 10px; align-items: center;"><span class="sk" style="width: 10px; height: 10px;"></span><span class="sk" style="width: 60%; height: 14px;"></span><span style="flex: 1;"></span><span class="sk" style="width: 24px; height: 14px;"></span></div></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="s-empty"><div style="display: flex; flex-direction: column; gap: 24px;">
+        <div>
+          <h1 style="margin: 0; font-size: 28px; line-height: 1.25; font-weight: 700; letter-spacing: -0.01em;">0 việc cần xử lý. Chưa có container nào trong kế hoạch hôm nay</h1>
+          <p style="margin: 4px 0 0; color: var(--ink-soft);">Chào Hùng · Thứ Sáu 17/10</p>
+        </div>
+        <section aria-labelledby="empty-title" style="padding: 48px 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+          <span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 50%; background: var(--info-soft); color: var(--info); display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l4 4v12H4V4h4M14 4v4h4M8 12h8M8 16h5"></path></svg></span>
+          <h2 id="empty-title" style="margin: 0; font-size: 20px; font-weight: 600;">Chưa có Order nào lấy hoặc trả hàng hôm nay</h2>
+          <p style="margin: 0; max-width: 520px; color: var(--ink-soft);">Trang chủ chỉ hiện container của các Order có ngày lấy hàng, cut-off hoặc hạn DEM/DET trong hôm nay. Khi bạn tạo Order và nhập danh sách container, mốc hạn và việc cần điều sẽ hiện ở đây.</p>
+          <a href="#don-hang" class="btn-primary" style="margin-top: 8px; height: 44px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 600; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Tạo Order</a>
+        </section>
+      </div></div>
+    </main>
+  </div>
+</div>
+
+</div>
+<script>
+(function(){var root=document.getElementById('root');var bs=root.querySelectorAll('.state-bar [data-set]');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){root.setAttribute('data-state',this.getAttribute('data-set'));for(var j=0;j<bs.length;j++)bs[j].setAttribute('aria-pressed',String(bs[j]===this));});}})();
+(function(){var root=document.getElementById('root');var tabs=root.querySelectorAll('[data-tab]');var rows=root.querySelectorAll('tr[data-cat]');var tbl=document.getElementById('work-table'),em=document.getElementById('work-empty');
+var custom={st:["Không có Street Turn nào chờ chấp thuận","Khi bạn ghép cont Nhập với cont Xuất dùng chung vỏ, chuyến cần số chấp thuận của hãng tàu sẽ hiện ở đây."]};
+function pick(id){var n=0;for(var i=0;i<rows.length;i++){var show=id==='all'||rows[i].getAttribute('data-cat')===id;rows[i].hidden=!show;if(show)n++;}
+for(var j=0;j<tabs.length;j++)tabs[j].setAttribute('aria-selected',String(tabs[j].getAttribute('data-tab')===id));
+tbl.hidden=n===0;em.hidden=n>0;var c=custom[id]||['Không còn việc nào trong nhóm này','Việc mới sẽ hiện ở đây ngay khi phát sinh.'];document.getElementById('work-empty-title').textContent=c[0];document.getElementById('work-empty-body').textContent=c[1];}
+for(var k=0;k<tabs.length;k++)tabs[k].addEventListener('click',function(){pick(this.getAttribute('data-tab'));});})();
+</script>
+</body>
+</html>

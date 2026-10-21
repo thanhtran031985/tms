@@ -1,0 +1,254 @@
+<!-- @dsCard group="Màn hình" height=900 width=1440 subtitle="Đăng nhập bằng email công việc rồi chọn công ty để làm việc, có đủ trạng thái đang gửi, chưa có công ty và sai mật khẩu." -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Đăng nhập – TMS Container</title>
+<style>
+body{margin:0;background:var(--bg)}
+.tms{font-family:var(--font-ui);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg)}
+.tms [hidden]{display:none!important}
+.tms .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tms .state-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 24px;background:var(--surface);border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-soft)}
+.tms .state-bar button{min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.tms .state-bar button:hover{background:var(--surface-2)}
+.tms .state-bar button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tms .s-normal,.tms .s-data,.tms .s-loading,.tms .s-empty,.tms .s-error{display:none}
+.tms[data-state="normal"] .s-normal,.tms[data-state="normal"] .s-data,.tms[data-state="error"] .s-data,.tms[data-state="loading"] .s-loading,.tms[data-state="empty"] .s-empty,.tms[data-state="error"] .s-error{display:contents}
+.tms .sk{display:block;background:var(--surface-2);border-radius:6px;animation:tms-sk 1.4s ease-in-out infinite}
+.tms .sk-on2{background:var(--line)}
+@keyframes tms-sk{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.tms .sk{animation:none}}
+
+.tms .mono{font-family:var(--font-mono);font-weight:500}
+.tms :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tms input{caret-color:var(--primary)}
+.tms input::placeholder{color:var(--ink-soft)}
+.tms a{color:var(--primary);text-underline-offset:3px}
+.tms a:hover{color:var(--primary-hover)}
+.tms button{font-family:inherit}
+.tms .btn-primary{transition:background-color .15s ease-out}
+.tms .btn-primary:hover:not(:disabled){background:var(--primary-hover)}
+.tms .btn-primary:disabled{background:var(--surface-2);color:var(--ink-soft);cursor:not-allowed}
+.tms .btn-primary[aria-busy="true"]:disabled{background:var(--primary);color:var(--on-primary);opacity:.85;cursor:progress}
+.tms .ghost{transition:background-color .15s ease-out}
+.tms .ghost:hover{background:var(--surface-2)}
+.tms .field{transition:border-color .15s ease-out}
+.tms .field:hover{border-color:var(--ink-soft)}
+.tms .tenant{transition:border-color .15s ease-out,background-color .15s ease-out}
+.tms .tenant:hover{border-color:var(--primary);background:var(--info-soft)}
+.tms .spin{animation:tms-spin .8s linear infinite}
+@keyframes tms-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.tms *{transition:none!important}.tms .spin{animation-duration:2.4s}}
+
+</style>
+</head>
+<body>
+<div class="tms" id="root" data-state="normal">
+<div role="group" aria-label="Trạng thái dữ liệu" class="state-bar">
+  <span style="margin-right: 4px;">Trạng thái:</span>
+  <button type="button" data-set="normal" aria-pressed="true">Bình thường</button>
+  <button type="button" data-set="loading" aria-pressed="false">Đang tải</button>
+  <button type="button" data-set="empty" aria-pressed="false">Trống</button>
+  <button type="button" data-set="error" aria-pressed="false">Lỗi</button>
+</div>
+<div class="screen" style="min-height: calc(100vh - 53px); display: flex; flex-wrap: wrap; background: var(--bg); color: var(--ink);">
+
+  <section aria-label="Giới thiệu" style="flex: 1 1 520px; min-width: 0; box-sizing: border-box; padding: 48px 64px; display: flex; flex-direction: column; justify-content: space-between; gap: 48px; border-right: 1px solid var(--line);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="6" fill="var(--primary)"></rect><rect x="7" y="10" width="18" height="12" rx="1.5" stroke="var(--on-primary)" stroke-width="2"></rect><path d="M11.5 13v6M16 13v6M20.5 13v6" stroke="var(--on-primary)" stroke-width="2" stroke-linecap="round"></path></svg>
+      <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em;">TMS Container</span>
+    </div>
+
+    <div style="max-width: 520px; display: flex; flex-direction: column; gap: 32px;">
+      <h1 style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em;">Điều hành vận tải container theo từng mốc hạn</h1>
+      <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 20px;">
+        <li style="display: flex; gap: 16px; align-items: flex-start;">
+          <span style="flex: none; width: 40px; height: 40px; border-radius: 8px; background: var(--info-soft); color: var(--info); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="1.5"></rect><path d="M7 10v5M12 10v5M17 10v5"></path></svg></span>
+          <span><strong style="display: block; font-weight: 600;">Điều xe theo từng container</strong><span style="color: var(--ink-soft);">Một Order nhiều container, mỗi cont một thẻ trên bảng điều vận.</span></span>
+        </li>
+        <li style="display: flex; gap: 16px; align-items: flex-start;">
+          <span style="flex: none; width: 40px; height: 40px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5M9 2h6"></path></svg></span>
+          <span><strong style="display: block; font-weight: 600;">Không lỡ cut-off, DEM, DET</strong><span style="color: var(--ink-soft);">Mốc hạn gần nhất luôn hiện đầu trang, kèm giờ còn lại.</span></span>
+        </li>
+        <li style="display: flex; gap: 16px; align-items: flex-start;">
+          <span style="flex: none; width: 40px; height: 40px; border-radius: 8px; background: var(--ok-soft); color: var(--ok); display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg></span>
+          <span><strong style="display: block; font-weight: 600;">Đối soát và phân bổ chi phí</strong><span style="color: var(--ink-soft);">Chi phí chuyến chia theo định mức, Kế toán sửa được khi cần.</span></span>
+        </li>
+      </ul>
+    </div>
+
+    <p style="margin: 0; font-size: 14px; color: var(--ink-soft);">Cần hỗ trợ? Gọi <a href="tel:19001234">1900 1234</a> (7:00–22:00).</p>
+  </section>
+
+  <main style="flex: 1 1 480px; min-width: 0; box-sizing: border-box; padding: 48px 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; position: relative;">
+    <button type="button" class="ghost" aria-label="Chế độ tối" style="position: absolute; top: 24px; right: 24px; height: 44px; padding: 0 14px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 14px; cursor: pointer;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg>
+      <span>Chế độ tối</span>
+    </button>
+
+    <div class="s-normal">
+      <form style="width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px;">
+        <div>
+          <h2 style="margin: 0 0 4px; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em;">Đăng nhập</h2>
+          <p style="margin: 0; color: var(--ink-soft);">Dùng email công việc mà công ty đã cấp.</p>
+        </div>
+
+        
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="email-n" style="font-size: 15px; font-weight: 600;">Email</label>
+          <input id="email-n" class="field" type="email" autocomplete="username" value="hung.dv@phucan.vn" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit;">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <label for="pw-n" style="font-size: 15px; font-weight: 600;">Mật khẩu</label>
+            <a href="#quen" style="font-size: 15px;">Quên mật khẩu?</a>
+          </div>
+          <div style="position: relative;">
+            <input id="pw-n" class="field" type="password" autocomplete="current-password" value="matkhau123" aria-invalid="false" aria-describedby="pw-err-n" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 52px 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit;">
+            <button type="button" aria-label="Hiện mật khẩu" aria-pressed="false" style="position: absolute; right: 2px; top: 2px; width: 44px; height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-soft); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: none;"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>
+              
+            </button>
+          </div>
+          
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer;">
+          <input type="checkbox" checked style="width: 20px; height: 20px; accent-color: var(--primary); margin: 0;">
+          <span>Ghi nhớ trên máy này 30 ngày</span>
+        </label>
+
+        <button type="submit" class="btn-primary" aria-busy="false" style="height: 48px; border: 0; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 17px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+          
+          <span>Đăng nhập</span>
+        </button>
+        <p aria-live="polite" style="margin: 0; min-height: 24px; font-size: 15px; color: var(--ink-soft);"></p>
+      </form>
+    </div>
+    <div class="s-loading">
+      <form style="width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px;">
+        <div>
+          <h2 style="margin: 0 0 4px; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em;">Đăng nhập</h2>
+          <p style="margin: 0; color: var(--ink-soft);">Dùng email công việc mà công ty đã cấp.</p>
+        </div>
+
+        
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="email-l" style="font-size: 15px; font-weight: 600;">Email</label>
+          <input id="email-l" class="field" type="email" autocomplete="username" value="hung.dv@phucan.vn" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit;">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <label for="pw-l" style="font-size: 15px; font-weight: 600;">Mật khẩu</label>
+            <a href="#quen" style="font-size: 15px;">Quên mật khẩu?</a>
+          </div>
+          <div style="position: relative;">
+            <input id="pw-l" class="field" type="password" autocomplete="current-password" value="matkhau123" aria-invalid="false" aria-describedby="pw-err-l" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 52px 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit;">
+            <button type="button" aria-label="Hiện mật khẩu" aria-pressed="false" style="position: absolute; right: 2px; top: 2px; width: 44px; height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-soft); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: none;"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>
+              
+            </button>
+          </div>
+          
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer;">
+          <input type="checkbox" checked style="width: 20px; height: 20px; accent-color: var(--primary); margin: 0;">
+          <span>Ghi nhớ trên máy này 30 ngày</span>
+        </label>
+
+        <button type="submit" class="btn-primary" disabled aria-busy="true" style="height: 48px; border: 0; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 17px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+          <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"></path></svg>
+          <span>Đang đăng nhập…</span>
+        </button>
+        <p aria-live="polite" style="margin: 0; min-height: 24px; font-size: 15px; color: var(--ink-soft);">Đang kiểm tra tài khoản, vui lòng chờ.</p>
+      </form>
+    </div>
+    <div class="s-empty">
+      <div style="width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px;">
+        <div>
+          <button type="button" class="ghost" style="height: 44px; padding: 0 10px; margin-left: -10px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+            <span>Đổi tài khoản</span>
+          </button>
+          <h2 style="margin: 8px 0 4px; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em;">Chọn công ty để làm việc</h2>
+          <p style="margin: 0; color: var(--ink-soft);">Tài khoản hung.dv@phucan.vn đăng nhập đúng nhưng chưa có quyền ở công ty nào.</p>
+        </div>
+        <div role="status" style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-align: center;">
+          <span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 50%; background: var(--surface-2); color: var(--ink-soft); display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1M10 21v-4h4v4"></path></svg></span>
+          <strong style="font-size: 18px; font-weight: 600;">Tài khoản chưa được gán vào công ty nào</strong>
+          <span style="max-width: 380px; color: var(--ink-soft);">Quản trị viên của công ty bạn cần thêm hung.dv@phucan.vn vào danh sách người dùng và chọn vai trò. Sau đó đăng nhập lại là thấy công ty ở đây.</span>
+          <a href="tel:19001234" class="btn-primary" style="margin-top: 6px; height: 48px; padding: 0 20px; display: inline-flex; align-items: center; gap: 10px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 16px; font-weight: 600; text-decoration: none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>
+            Liên hệ quản trị · 1900 1234
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="s-error">
+      <form style="width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px;">
+        <div>
+          <h2 style="margin: 0 0 4px; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em;">Đăng nhập</h2>
+          <p style="margin: 0; color: var(--ink-soft);">Dùng email công việc mà công ty đã cấp.</p>
+        </div>
+
+        
+          <div role="alert" style="display: flex; gap: 12px; padding: 12px 16px; border-radius: 8px; background: var(--crit-soft); color: var(--crit);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 2px;"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+            <span style="font-size: 15px;"><strong style="font-weight: 600;">Tài khoản tạm khóa đến 14:35.</strong> Sai mật khẩu 5 lần liên tiếp. Đặt lại mật khẩu để mở ngay.</span>
+          </div>
+        
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="email-e" style="font-size: 15px; font-weight: 600;">Email</label>
+          <input id="email-e" class="field" type="email" autocomplete="username" value="hung.dv@phucan.vn" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit;">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <label for="pw-e" style="font-size: 15px; font-weight: 600;">Mật khẩu</label>
+            <a href="#quen" style="font-size: 15px;">Quên mật khẩu?</a>
+          </div>
+          <div style="position: relative;">
+            <input id="pw-e" class="field" type="password" autocomplete="current-password" value="matkhau123" aria-invalid="true" aria-describedby="pw-err-e" style="width: 100%; height: 48px; box-sizing: border-box; padding: 0 52px 0 14px; border: 1px solid var(--crit); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit;">
+            <button type="button" aria-label="Hiện mật khẩu" aria-pressed="false" style="position: absolute; right: 2px; top: 2px; width: 44px; height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-soft); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: none;"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>
+              
+            </button>
+          </div>
+          
+            <p id="pw-err-e" role="alert" style="margin: 0; display: flex; gap: 6px; align-items: flex-start; font-size: 15px; color: var(--crit);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 3px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>
+              <span>Sai mật khẩu lần thứ 5. Đặt lại mật khẩu hoặc chờ đến 14:35 để thử lại.</span>
+            </p>
+          
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer;">
+          <input type="checkbox" checked style="width: 20px; height: 20px; accent-color: var(--primary); margin: 0;">
+          <span>Ghi nhớ trên máy này 30 ngày</span>
+        </label>
+
+        <button type="submit" class="btn-primary" disabled aria-busy="false" style="height: 48px; border: 0; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 17px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+          
+          <span>Thử lại sau 14:35</span>
+        </button>
+        <p aria-live="polite" style="margin: 0; min-height: 24px; font-size: 15px; color: var(--ink-soft);"></p>
+      </form>
+    </div>
+  </main>
+</div>
+</div>
+<script>
+(function(){var root=document.getElementById('root');var bs=root.querySelectorAll('.state-bar [data-set]');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){root.setAttribute('data-state',this.getAttribute('data-set'));for(var j=0;j<bs.length;j++)bs[j].setAttribute('aria-pressed',String(bs[j]===this));});}})();
+// Hiện / ẩn mật khẩu
+(function(){var bs=document.querySelectorAll('#root form button[aria-label="Hiện mật khẩu"]');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){var inp=this.parentNode.querySelector('input');var show=inp.type==='password';inp.type=show?'text':'password';this.setAttribute('aria-pressed',String(show));this.setAttribute('aria-label',show?'Ẩn mật khẩu':'Hiện mật khẩu');var sv=this.querySelectorAll('svg');sv[0].style.display=show?'none':'';sv[1].style.display=show?'':'none';});}
+var f=document.querySelectorAll('#root form');for(var j=0;j<f.length;j++)f[j].addEventListener('submit',function(e){e.preventDefault();});})();
+</script>
+</body>
+</html>

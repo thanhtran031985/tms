@@ -1,0 +1,381 @@
+<!-- @dsCard group="Màn hình" height=1560 width=1440 subtitle="Phân bổ chi phí chuyến: Kế toán so số hệ thống với số sửa tay cho từng container, thấy độ lệch trực tiếp, nhập lý do, khôi phục và xem lịch sử." -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Phân bổ chi phí chuyến – TMS Container</title>
+<style>
+body{margin:0;background:var(--bg)}
+.tms{font-family:var(--font-ui);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg)}
+.tms [hidden]{display:none!important}
+.tms .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tms .state-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 24px;background:var(--surface);border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-soft)}
+.tms .state-bar button{min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.tms .state-bar button:hover{background:var(--surface-2)}
+.tms .state-bar button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tms .s-data,.tms .s-loading,.tms .s-empty,.tms .s-error{display:none}
+.tms[data-state="normal"] .s-data,.tms[data-state="error"] .s-data,.tms[data-state="loading"] .s-loading,.tms[data-state="empty"] .s-empty,.tms[data-state="error"] .s-error{display:contents}
+.tms .mono{font-family:var(--font-mono);font-weight:500;letter-spacing:0}
+.tms :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tms a{color:var(--primary);text-underline-offset:3px}
+.tms a:hover{color:var(--primary-hover)}
+.tms button{font-family:inherit}
+.tms .shell{display:flex;min-height:100vh}
+.tms .side{flex:0 0 240px;box-sizing:border-box;padding:16px 12px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.tms .nav-item{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:15px;font-weight:500}
+.tms .nav-item:hover{background:var(--surface-2);color:var(--ink)}
+.tms .nav-item[aria-current="page"]{background:var(--info-soft);color:var(--info);font-weight:600}
+.tms .col{flex:1;min-width:0;display:flex;flex-direction:column}
+.tms .top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tms .icon-btn{width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tms main{box-sizing:border-box;max-width:1240px;width:100%;padding:24px;display:flex;flex-direction:column;gap:20px}
+.tms h1{margin:4px 0 0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.01em}
+.tms h2{margin:0;font-size:20px;font-weight:600}
+.tms .card{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.tms .head{padding:16px 20px 12px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.tms .sub{display:block;font-size:14px;color:var(--ink-soft)}
+.tms .btn{min-height:44px;padding:0 16px;box-sizing:border-box;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap}
+.tms .btn-p{background:var(--primary);color:var(--on-primary);border:1px solid var(--primary)}
+.tms .btn-p:hover{background:var(--primary-hover);color:var(--on-primary)}
+.tms .btn-s{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
+.tms .btn-s:hover{background:var(--surface-2);color:var(--ink)}
+.tms .btn:disabled{background:var(--surface-2);color:var(--ink-soft);border-color:var(--line);cursor:not-allowed}
+.tms .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:6px;font-size:13px;font-weight:700;white-space:nowrap}
+.tms .pill{min-height:40px;padding:0 14px;display:inline-flex;align-items:center;border:1px solid var(--line-strong);border-radius:999px;color:var(--ink);font-size:14px;font-weight:600;text-decoration:none}
+.tms .pill[aria-current="page"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tms .wrap{overflow-x:auto}
+.tms table{border-collapse:collapse;width:100%}
+.tms th{font-size:13px;font-weight:600;color:var(--ink-soft);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+.tms td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}
+.tms .num{text-align:right;white-space:nowrap}
+.tms tr.row:hover{background:var(--surface-2)}
+.tms tr.edited{background:var(--warn-soft)}
+.tms .seg{display:inline-flex;padding:3px;gap:3px;border:1px solid var(--line-strong);border-radius:8px}
+.tms .seg button{min-height:36px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
+.tms .seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.tms .amt{position:relative;display:inline-block}
+.tms .amt input{width:150px;height:44px;box-sizing:border-box;padding:0 30px 0 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font-family:var(--font-mono);font-size:15px;text-align:right}
+.tms .amt input.man{border:2px solid var(--warn)}
+.tms .amt span{position:absolute;right:10px;top:10px;color:var(--ink-soft)}
+.tms .bar{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px;background:var(--surface-2)}
+.tms .bar span{box-sizing:border-box}
+.tms .legend{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px 20px;font-size:14px}
+.tms .legend li{display:flex;align-items:center;gap:6px}
+.tms .sw{width:12px;height:12px;border-radius:3px;box-sizing:border-box}
+.tms textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;resize:vertical}
+.tms textarea[aria-invalid="true"]{border-color:var(--crit)}
+.tms .err{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--crit)}
+.tms .hist{margin:0;padding:0;list-style:none}
+.tms .hist li{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.tms .av{flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.tms .why{margin-top:2px;padding:6px 10px;border-radius:8px;background:var(--surface-2);font-size:14px}
+.tms .link-btn{min-height:32px;padding:0;border:0;background:none;color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.tms .savebar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line-strong)}
+.tms .savebar-in{box-sizing:border-box;max-width:1240px;padding:12px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px}
+.tms .alert{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 16px;border-radius:12px}
+.tms .sk{display:block;background:var(--surface-2);border-radius:6px;animation:tms-sk 1.4s ease-in-out infinite}
+@keyframes tms-sk{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.tms .sk{animation:none}.tms *{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="tms" data-state="normal">
+  <div class="state-bar" role="group" aria-label="Trạng thái dữ liệu">
+    <span>Trạng thái:</span>
+    <button type="button" aria-pressed="true" data-set="normal">Bình thường</button>
+    <button type="button" aria-pressed="false" data-set="loading">Đang tải</button>
+    <button type="button" aria-pressed="false" data-set="empty">Trống</button>
+    <button type="button" aria-pressed="false" data-set="error">Lỗi</button>
+  </div>
+
+  <div class="shell">
+    <nav class="side" aria-label="Điều hướng chính">
+      <div style="display:flex;align-items:center;gap:10px;padding:4px 8px 16px;">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="6" fill="var(--primary)"></rect><rect x="7" y="10" width="18" height="12" rx="1.5" stroke="var(--on-primary)" stroke-width="2"></rect><path d="M11.5 13v6M16 13v6M20.5 13v6" stroke="var(--on-primary)" stroke-width="2" stroke-linecap="round"></path></svg>
+        <span style="font-weight:700;">TMS Container</span>
+      </div>
+      <a class="nav-item" href="#home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Trang chủ</a>
+      <a class="nav-item" href="#dispatch"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v13h-4z"></path></svg>Điều vận</a>
+      <a class="nav-item" href="#orders"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8l4 4v12H4V4h4M14 4v4h4M8 12h8M8 16h5"></path></svg>Đơn hàng</a>
+      <a class="nav-item" href="#map"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"></path></svg>Bản đồ đội xe</a>
+      <a class="nav-item" href="#fuel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"></path></svg>Phiếu dầu</a>
+      <a class="nav-item" href="#reconcile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"></path></svg>Đối soát</a>
+      <a class="nav-item" href="#cost" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.7 5 3.2 5 1.3 5 3.3-2.2 3.3-5 3.3-5-1.2-5-3.1"></path></svg>Phân bổ chi phí</a>
+      <a class="nav-item" href="#report"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"></path></svg>Báo cáo</a>
+    </nav>
+
+    <div class="col">
+      <header class="top">
+        <button type="button" class="btn btn-s" style="border-color:var(--line);" aria-label="Đổi công ty, đang ở Vận tải Phúc An"><span aria-hidden="true" style="width:28px;height:28px;border-radius:6px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">PA</span>Vận tải Phúc An<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <div style="flex:1 1 280px;max-width:480px;position:relative;">
+          <label for="q" class="sr">Tìm số cont, Booking/B/L, biển số, tài xế</label>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;left:14px;top:13px;color:var(--ink-soft);"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <input id="q" type="search" placeholder="Tìm số cont, Booking/B/L, biển số, tài xế" style="width:100%;height:44px;box-sizing:border-box;padding:0 48px 0 42px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;">
+          <kbd style="position:absolute;right:12px;top:11px;padding:0 6px;border:1px solid var(--line);border-radius:4px;font-family:inherit;font-size:13px;color:var(--ink-soft);">/</kbd>
+        </div>
+        <span style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft);"><span aria-hidden="true" style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>Thứ Bảy 17/10/2026 · cập nhật 14:20</span>
+        <button type="button" class="icon-btn" aria-label="Thông báo, 7 chưa đọc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg></button>
+        <span style="display:flex;align-items:center;gap:8px;"><span aria-hidden="true" style="width:32px;height:32px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;">M</span><span style="font-size:15px;line-height:1.2;"><span style="display:block;font-weight:600;">Lê Thị Mai</span><span style="font-size:13px;color:var(--ink-soft);">Kế toán</span></span></span>
+      </header>
+
+      <main>
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;">
+          <div style="flex:1 1 560px;min-width:0;">
+            <nav aria-label="Vị trí" style="font-size:14px;color:var(--ink-soft);">Kế toán / Phân bổ chi phí / <span class="mono" style="color:var(--ink);">TRIP-2610-0912</span></nav>
+            <h1 id="h1">1 việc cần làm: còn lệch 124.500 ₫ trước khi lưu. Hạn khóa chi phí kỳ: 18:00 hôm nay, còn 3 giờ 40</h1>
+            <p style="margin:6px 0 0;color:var(--ink-soft);">Chia chi phí chung của chuyến cho từng container để tính giá vốn. Mặc định chia theo định mức chi phí tuyến (COST_NORM_RATIO); Kế toán được sửa, kèm lý do.</p>
+          </div>
+          <a href="#trip" class="btn btn-s">Mở chi tiết chuyến</a>
+        </div>
+
+        <nav aria-label="Kế toán" style="display:flex;gap:6px;"><a class="pill" href="#cost" aria-current="page">Phân bổ chi phí</a><a class="pill" href="#reconcile">Đối soát</a></nav>
+
+        <section aria-label="Thông tin chuyến" class="card" style="padding:16px 20px;">
+          <dl style="margin:0;display:grid;grid-template-columns:repeat(6,1fr);gap:12px 20px;font-size:15px;">
+            <div><dt class="sub" style="font-size:13px;font-weight:600;">Chế độ chạy</dt><dd style="margin:2px 0 0;"><span class="chip" style="background:var(--info-soft);color:var(--info);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="2" y="7" width="9" height="10" rx="1"></rect><rect x="13" y="7" width="9" height="10" rx="1"></rect></svg>TWIN_20</span> <span style="font-size:14px;color:var(--ink-soft);">2 cont 20'</span></dd></div>
+            <div><dt class="sub" style="font-size:13px;font-weight:600;">Xe</dt><dd style="margin:2px 0 0;"><span class="mono">51C-306.12</span> · moóc <span class="mono">51R-112.84</span></dd></div>
+            <div><dt class="sub" style="font-size:13px;font-weight:600;">Tài xế</dt><dd style="margin:2px 0 0;">Phạm Quốc Bảo</dd></div>
+            <div><dt class="sub" style="font-size:13px;font-weight:600;">Ngày chạy</dt><dd style="margin:2px 0 0;">16/10/2026 · 05:40–13:15</dd></div>
+            <div><dt class="sub" style="font-size:13px;font-weight:600;">Khóa chi phí</dt><dd style="margin:2px 0 0;"><span class="chip" style="background:var(--ok-soft);color:var(--ok);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 7.5-2"></path></svg>Chưa khóa</span></dd></div>
+            <div><dt class="sub" style="font-size:13px;font-weight:600;">Phương pháp phân bổ</dt><dd style="margin:2px 0 0;"><span class="mono" style="font-size:14px;">COST_NORM_RATIO</span> <span id="method" style="font-size:14px;color:var(--ink-soft);">· bản nháp đang sửa tay, chưa lưu</span></dd></div>
+          </dl>
+        </section>
+
+        <div class="s-error">
+          <div role="alert" class="alert" style="border:1px solid var(--crit);background:var(--crit-soft);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--crit)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9Z"></path><path d="M12 8v4M12 16h.01"></path></svg>
+            <span style="flex:1 1 400px;"><strong style="display:block;font-weight:600;color:var(--crit);">Không tải được số mới nhất của chuyến</strong><span style="font-size:15px;">Đang hiện số đã lưu lúc 14:05. Tạm khóa nút Lưu để không ghi đè số người khác vừa sửa.</span></span>
+            <button type="button" class="btn btn-s" data-set="normal">Thử lại</button>
+          </div>
+        </div>
+
+        <div class="s-empty">
+          <section class="card" aria-labelledby="empty-t" style="padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;">
+            <span aria-hidden="true" style="width:48px;height:48px;border-radius:50%;background:var(--info-soft);color:var(--info);display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5"></path></svg></span>
+            <h2 id="empty-t">Chuyến chưa có khoản chi phí nào được duyệt</h2>
+            <p style="margin:0;max-width:560px;color:var(--ink-soft);">Phân bổ chỉ có khi lương chuyến, vé cầu đường, phiếu dầu hoặc chi phí dọc đường của chuyến đã được duyệt. Khi có khoản đầu tiên, hệ thống tự chia theo định mức và hiện ở đây.</p>
+            <a href="#fuel" class="btn btn-p">Mở phiếu dầu của chuyến</a>
+          </section>
+        </div>
+
+        <div class="s-loading">
+          <section class="card" aria-busy="true" aria-label="Đang tải chi phí chuyến" style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+            <span class="sk" style="width:260px;height:22px;"></span>
+            <span class="sk" style="width:100%;height:18px;"></span><span class="sk" style="width:100%;height:18px;"></span><span class="sk" style="width:100%;height:18px;"></span><span class="sk" style="width:100%;height:18px;"></span>
+          </section>
+          <section class="card" aria-busy="true" aria-label="Đang tải phân bổ" style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+            <span class="sk" style="width:280px;height:22px;"></span><span class="sk" style="width:100%;height:14px;"></span>
+            <span class="sk" style="width:100%;height:56px;"></span><span class="sk" style="width:100%;height:56px;"></span>
+          </section>
+        </div>
+
+        <div class="s-data">
+          <section aria-labelledby="cp-khoan" class="card" style="overflow:hidden;">
+            <div class="head"><h2 id="cp-khoan">Chi phí chuyến theo khoản</h2><span class="sub">Lấy từ lương chuyến, vé cầu đường, phiếu dầu và chi phí tài xế đã duyệt</span></div>
+            <div class="wrap">
+              <table style="min-width:820px;">
+                <thead><tr><th scope="col">Khoản</th><th scope="col">Diễn giải</th><th scope="col">Cách tính vào container</th><th scope="col" style="text-align:right;">Số tiền</th></tr></thead>
+                <tbody>
+                  <tr class="row"><td style="font-weight:600;">Lương tài xế</td><td style="color:var(--ink-soft);">Lương chuyến TWIN_20 theo bảng lương 10/2026</td><td>Chia theo phân bổ bên dưới</td><td class="num" style="font-weight:600;">850.000 ₫</td></tr>
+                  <tr class="row"><td style="font-weight:600;">Cầu đường</td><td style="color:var(--ink-soft);">BOT An Sương–An Lạc, Xa lộ Hà Nội (lượt đi)</td><td>Chia theo phân bổ bên dưới</td><td class="num" style="font-weight:600;">420.000 ₫</td></tr>
+                  <tr class="row"><td style="font-weight:600;">Dầu</td><td style="color:var(--ink-soft);">Phiếu PD-2610-0179 · 98 L × 20.000 ₫</td><td>Chia theo phân bổ bên dưới</td><td class="num" style="font-weight:600;">1.960.000 ₫</td></tr>
+                  <tr class="row"><td style="font-weight:600;">Chi phí dọc đường</td><td style="color:var(--ink-soft);">Phí vào cổng KCN VSIP và KCN Sóng Thần</td><td>Chia theo phân bổ bên dưới</td><td class="num" style="font-weight:600;">180.000 ₫</td></tr>
+                  <tr class="row"><td style="font-weight:600;">Chi phí dọc đường</td><td style="color:var(--ink-soft);">Phí cân VGM bổ sung tại cảng</td><td style="font-weight:600;">Gán thẳng <span class="mono" style="font-weight:500;">SEGU9102466</span></td><td class="num" style="font-weight:600;">150.000 ₫</td></tr>
+                  <tr class="row"><td style="font-weight:600;">Thuê xe ngoài</td><td style="color:var(--ink-soft);">Chuyến chạy bằng xe nhà</td><td style="color:var(--ink-soft);">Không tính</td><td class="num" style="color:var(--ink-soft);">Không phát sinh</td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><td colspan="3" style="color:var(--ink-soft);">Phần chia cho các container</td><td class="num">3.410.000 ₫</td></tr>
+                  <tr><td colspan="3" style="color:var(--ink-soft);">Phần gán thẳng</td><td class="num">150.000 ₫</td></tr>
+                  <tr><td colspan="3" style="font-weight:700;border-bottom:0;">Tổng chi phí chuyến</td><td class="num" style="font-weight:700;font-size:17px;border-bottom:0;">3.560.000 ₫</td></tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+
+          <section aria-labelledby="pb-cont" class="card" style="overflow:hidden;">
+            <div class="head">
+              <div style="flex:1 1 420px;"><h2 id="pb-cont">Phân bổ cho từng container</h2><span class="sub">Hệ thống đề xuất theo tỷ lệ định mức chi phí tuyến của từng cont. Cột Áp dụng chỉ nhận số không âm.</span></div>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+                <div class="seg" role="group" aria-label="Nhập theo"><button type="button" aria-pressed="true">Theo số tiền</button><button type="button" aria-pressed="false">Theo %</button></div>
+                <button type="button" class="btn btn-s" id="restore"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"></path></svg>Khôi phục số hệ thống</button>
+              </div>
+            </div>
+            <div style="padding:0 20px 16px;">
+              <div class="bar" aria-hidden="true"><span id="bW" style="width:53.68%;background:var(--primary);"></span><span id="bS" style="width:41.09%;background:var(--info-soft);border:1px solid var(--info);"></span><span style="width:4.03%;background:var(--off-soft);border:1px solid var(--line-strong);"></span><span id="bG" style="width:3.38%;background:var(--crit);"></span></div>
+              <ul class="legend">
+                <li><span class="sw" style="background:var(--primary);"></span><span class="sub" style="display:inline;">WHSU5203183</span><strong class="mono" id="lW">2.000.000 ₫</strong></li>
+                <li><span class="sw" style="background:var(--info-soft);border:1px solid var(--info);"></span><span class="sub" style="display:inline;">SEGU9102466</span><strong class="mono" id="lS">1.534.500 ₫</strong></li>
+                <li><span class="sw" style="background:var(--off-soft);border:1px solid var(--line-strong);"></span><span class="sub" style="display:inline;">Gán thẳng</span><strong class="mono">150.000 ₫</strong></li>
+                <li id="lGli"><span class="sw" style="background:var(--crit);"></span><span class="sub" style="display:inline;" id="lGt">Vượt chi phí chuyến</span><strong class="mono" id="lG">124.500 ₫</strong></li>
+              </ul>
+            </div>
+            <div class="wrap">
+              <table style="min-width:1080px;">
+                <thead><tr><th scope="col">Container</th><th scope="col">Order · khách · tuyến</th><th scope="col" style="text-align:right;">Định mức tuyến</th><th scope="col" style="text-align:right;">Hệ thống đề xuất</th><th scope="col" style="text-align:right;">Kế toán áp dụng (₫)</th><th scope="col" style="text-align:right;">Chênh so với đề xuất</th><th scope="col" style="text-align:right;">Gán thẳng</th><th scope="col" style="text-align:right;">Tổng vào cont</th></tr></thead>
+                <tbody>
+                  <tr id="rW" class="edited">
+                    <td><span class="mono" style="display:block;font-weight:600;">WHSU5203183</span><span class="sub">20GP · VGM 18,2 t</span><button type="button" class="link-btn" aria-expanded="true" data-toggle="tW">Ẩn chi phí các chuyến</button></td>
+                    <td><span class="mono" style="display:block;font-size:14px;">EXP-2610-039</span><span style="display:block;">Cà phê Đất Đỏ</span><span class="sub">Kho KCN VSIP → cảng Cát Lái</span></td>
+                    <td class="num">1.320.000 ₫</td>
+                    <td class="num"><span style="display:block;font-weight:600;">1.875.500 ₫</span><span class="sub">55,00 % định mức</span></td>
+                    <td class="num"><label for="aW" class="sr">Số tiền áp dụng (₫) cho WHSU5203183</label><span class="amt"><input id="aW" data-c="W" class="man" type="text" inputmode="numeric" value="2.000.000"><span aria-hidden="true">₫</span></span>
+                      <span style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:4px;font-size:13px;color:var(--ink-soft);"><span class="chip" id="mW" style="background:var(--warn-soft);color:var(--warn);padding:0 6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Sửa tay</span><span id="pW">= 58,65 %</span></span></td>
+                    <td class="num" id="dW" style="color:var(--warn);font-weight:700;">+124.500 ₫</td>
+                    <td class="num" style="color:var(--ink-soft);">—</td>
+                    <td class="num" id="tW" style="font-weight:700;">2.000.000 ₫</td>
+                  </tr>
+                  <tr id="tWrow"><td colspan="8" style="background:var(--surface-2);">
+                    <div style="max-width:760px;display:flex;flex-direction:column;gap:6px;font-size:14px;">
+                      <strong style="font-weight:600;">Chi phí phân bổ của <span class="mono">WHSU5203183</span> qua mọi chuyến</strong>
+                      <div style="display:flex;gap:16px;padding:6px 0;border-bottom:1px solid var(--line);"><span class="mono" style="min-width:140px;">TRIP-2610-0897</span><span style="flex:1;color:var(--ink-soft);">15/10 · lấy rỗng depot Phước Long → kho VSIP · SINGLE</span><span class="mono">640.000 ₫</span></div>
+                      <div style="display:flex;gap:16px;padding:6px 0;border-bottom:1px solid var(--line);"><span class="mono" style="min-width:140px;">TRIP-2610-0912</span><span style="flex:1;color:var(--ink-soft);">16/10 · chuyến này · TWIN_20, gồm phần gán thẳng</span><span class="mono" id="cW">2.000.000 ₫</span></div>
+                      <div style="display:flex;justify-content:space-between;font-weight:700;"><span>Giá vốn vận chuyển của cont</span><span class="mono" id="gW">2.640.000 ₫</span></div>
+                    </div>
+                  </td></tr>
+                  <tr id="rS" class="row">
+                    <td><span class="mono" style="display:block;font-weight:600;">SEGU9102466</span><span class="sub">20GP · VGM 17,8 t</span><button type="button" class="link-btn" aria-expanded="false">Xem tổng chi phí của cont (2 chuyến)</button></td>
+                    <td><span class="mono" style="display:block;font-size:14px;">EXP-2610-042</span><span style="display:block;">Hạt điều Bình Phước</span><span class="sub">Kho KCN Sóng Thần → cảng Cát Lái</span></td>
+                    <td class="num">1.080.000 ₫</td>
+                    <td class="num"><span style="display:block;font-weight:600;">1.534.500 ₫</span><span class="sub">45,00 % định mức</span></td>
+                    <td class="num"><label for="aS" class="sr">Số tiền áp dụng (₫) cho SEGU9102466</label><span class="amt"><input id="aS" data-c="S" type="text" inputmode="numeric" value="1.534.500"><span aria-hidden="true">₫</span></span>
+                      <span style="display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:4px;font-size:13px;color:var(--ink-soft);"><span class="chip" id="mS" hidden style="background:var(--warn-soft);color:var(--warn);padding:0 6px;">Sửa tay</span><span id="pS">= 45,00 %</span></span></td>
+                    <td class="num" id="dS" style="color:var(--ink-soft);">Đúng đề xuất</td>
+                    <td class="num">150.000 ₫</td>
+                    <td class="num" id="tS" style="font-weight:700;">1.684.500 ₫</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;">
+            <section aria-labelledby="ly-do" class="card" style="flex:1 1 420px;padding:16px 20px;display:flex;flex-direction:column;gap:8px;">
+              <h2 id="ly-do"><label for="reason">Lý do điều chỉnh <span style="color:var(--crit);" aria-hidden="true">*</span><span class="sr">(bắt buộc)</span></label></h2>
+              <p id="reason-hint" style="margin:0;font-size:14px;color:var(--ink-soft);">Bắt buộc khi lưu số khác số đã lưu. Lý do đi kèm lịch sử để kiểm toán và người duyệt kỳ đọc được.</p>
+              <textarea id="reason" rows="3" aria-invalid="true" aria-describedby="reason-hint reason-err" placeholder="Ví dụ: cont WHSU5203183 chờ đóng hàng ở kho VSIP 3 giờ, chịu thêm lương tài xế"></textarea>
+              <span id="reason-err" class="err" aria-live="polite"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>Nhập lý do trước khi lưu.</span>
+            </section>
+            <section aria-labelledby="lich-su" class="card" style="flex:1 1 420px;padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;"><h2 id="lich-su">Lịch sử thay đổi</h2><span class="sub" id="hcount">1 lần ghi</span></div>
+              <ol class="hist" id="hist">
+                <li><span class="av" aria-hidden="true" style="background:var(--info-soft);color:var(--info);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"></path></svg></span>
+                  <span style="flex:1;display:flex;flex-direction:column;gap:2px;"><span style="display:flex;justify-content:space-between;gap:12px;"><strong style="font-weight:600;font-size:15px;">Hệ thống</strong><span class="sub">16/10/2026 18:05</span></span><span style="font-size:14px;">Tạo phân bổ theo định mức (COST_NORM_RATIO): WHSU5203183 55 %, SEGU9102466 45 %</span></span></li>
+              </ol>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      <div class="s-data">
+        <div class="savebar" role="region" aria-label="Cân phân bổ và lưu">
+          <div class="savebar-in">
+            <dl style="margin:0;display:flex;flex-wrap:wrap;gap:8px 24px;">
+              <div><dt class="sub" style="font-size:13px;">Tổng chi phí chuyến</dt><dd class="mono" style="margin:0;font-size:17px;">3.560.000 ₫</dd></div>
+              <div><dt class="sub" style="font-size:13px;">Tổng đã phân bổ</dt><dd class="mono" id="alloc" style="margin:0;font-size:17px;">3.684.500 ₫</dd></div>
+              <div><dt class="sub" style="font-size:13px;">Còn lệch</dt><dd style="margin:0;"><span class="chip" id="gap" style="font-size:16px;padding:2px 10px;background:var(--crit-soft);color:var(--crit);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="gapIcon" d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01"></path></svg><span class="mono" id="gapN">124.500 ₫</span> <span id="gapW">thừa</span></span></dd></div>
+            </dl>
+            <p id="note" aria-live="polite" style="flex:1 1 260px;margin:0;font-size:15px;color:var(--crit);">Đang phân bổ vượt 124.500 ₫ so với chi phí chuyến. Giảm bớt ở một dòng để lưu được.</p>
+            <button type="button" class="btn btn-s" id="fill">Trừ 124.500 ₫ ở SEGU9102466</button>
+            <button type="button" class="btn btn-p" id="save" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v15H5zM8 3v5h7M8 21v-7h8v7"></path></svg>Lưu phân bổ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var root = document.querySelector('.tms');
+  var setBtns = root.querySelectorAll('.state-bar [data-set]');
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-set]');
+    if (!b) return;
+    root.setAttribute('data-state', b.getAttribute('data-set'));
+    setBtns.forEach(function (x) { x.setAttribute('aria-pressed', String(x.getAttribute('data-set') === root.getAttribute('data-state'))); });
+    render();
+  });
+  var POOL = 3410000, DIRECT = { W: 0, S: 150000 }, SYS = { W: 1875500, S: 1534500 }, PREV = { W: 640000 }, TOTAL = 3560000;
+  var val = { W: 2000000, S: 1534500 }, saved = { W: 1875500, S: 1534500 };
+  function fmt(n) { var s = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return (n < 0 ? '-' : '') + s; }
+  function $(id) { return document.getElementById(id); }
+  var OCT = 'M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01', CHECK = 'm5 12 5 5 9-10';
+  function render() {
+    var gap = TOTAL - (val.W + val.S + DIRECT.S);
+    var dirty = val.W !== saved.W || val.S !== saved.S;
+    var reason = $('reason').value.trim();
+    ['W', 'S'].forEach(function (c) {
+      var d = val[c] - SYS[c], man = d !== 0;
+      $('a' + c).value = fmt(val[c]); $('a' + c).className = man ? 'man' : '';
+      $('r' + c).className = man ? 'edited' : 'row';
+      $('m' + c).hidden = !man;
+      $('p' + c).textContent = '= ' + (val[c] / POOL * 100).toFixed(2).replace('.', ',') + ' %';
+      $('d' + c).textContent = man ? (d > 0 ? '+' : '') + fmt(d) + ' ₫' : 'Đúng đề xuất';
+      $('d' + c).style.color = man ? 'var(--warn)' : 'var(--ink-soft)';
+      $('d' + c).style.fontWeight = man ? '700' : '400';
+      $('t' + c).textContent = fmt(val[c] + DIRECT[c]) + ' ₫';
+      $('l' + c).textContent = fmt(val[c]) + ' ₫';
+    });
+    $('cW').textContent = fmt(val.W) + ' ₫'; $('gW').textContent = fmt(val.W + PREV.W) + ' ₫';
+    var max = Math.max(TOTAL, TOTAL - gap);
+    $('bW').style.width = (val.W / max * 100) + '%'; $('bS').style.width = (val.S / max * 100) + '%';
+    $('bG').style.width = (Math.abs(gap) / max * 100) + '%';
+    $('bG').style.background = gap < 0 ? 'var(--crit)' : 'var(--crit-soft)';
+    $('bG').style.border = gap > 0 ? '2px dashed var(--crit)' : '0';
+    $('lGli').hidden = gap === 0; $('lG').textContent = fmt(Math.abs(gap)) + ' ₫';
+    $('lGt').textContent = gap > 0 ? 'Chưa phân bổ' : 'Vượt chi phí chuyến';
+    $('alloc').textContent = fmt(TOTAL - gap) + ' ₫';
+    $('gapN').textContent = fmt(Math.abs(gap)) + ' ₫';
+    $('gapW').textContent = gap === 0 ? 'đã cân' : gap > 0 ? 'thiếu' : 'thừa';
+    $('gap').style.background = gap === 0 ? 'var(--ok-soft)' : 'var(--crit-soft)';
+    $('gap').style.color = gap === 0 ? 'var(--ok)' : 'var(--crit)';
+    $('gapIcon').setAttribute('d', gap === 0 ? CHECK : OCT);
+    var fillTo = val.S + gap;
+    $('fill').hidden = gap === 0 || fillTo < 0;
+    $('fill').textContent = (gap > 0 ? 'Dồn ' + fmt(gap) + ' ₫ vào ' : 'Trừ ' + fmt(-gap) + ' ₫ ở ') + 'SEGU9102466';
+    var errOn = dirty && !reason;
+    $('reason-err').hidden = !errOn; $('reason').setAttribute('aria-invalid', String(errOn));
+    var note = $('note'), col = 'var(--ink-soft)', txt;
+    if (gap > 0) { txt = 'Còn ' + fmt(gap) + ' ₫ chưa phân bổ. Tổng cột Áp dụng phải bằng 3.410.000 ₫ thì mới lưu được.'; col = 'var(--crit)'; }
+    else if (gap < 0) { txt = 'Đang phân bổ vượt ' + fmt(-gap) + ' ₫ so với chi phí chuyến. Giảm bớt ở một dòng để lưu được.'; col = 'var(--crit)'; }
+    else if (!dirty) txt = 'Chưa có thay đổi nào để lưu.';
+    else if (!reason) { txt = 'Đã cân. Nhập lý do điều chỉnh để lưu.'; col = 'var(--warn)'; }
+    else txt = 'Đã cân. Lưu để cập nhật giá vốn của 2 container.';
+    note.textContent = txt; note.style.color = col;
+    $('save').disabled = gap !== 0 || !dirty || !reason || root.getAttribute('data-state') === 'error';
+    $('h1').textContent = (gap !== 0 ? '1 việc cần làm: còn lệch ' + fmt(Math.abs(gap)) + ' ₫ trước khi lưu' : dirty ? '1 thay đổi chưa lưu' : '1 việc cần làm: xác nhận phân bổ 3.560.000 ₫ cho 2 container') + '. Hạn khóa chi phí kỳ: 18:00 hôm nay, còn 3 giờ 40';
+    $('method').textContent = dirty ? '· bản nháp chưa lưu' : (val.W !== SYS.W ? '· Kế toán đã sửa tay' : '· theo định mức tuyến');
+  }
+  ['W', 'S'].forEach(function (c) {
+    $('a' + c).addEventListener('input', function (e) { var d = e.target.value.replace(/\D/g, ''); val[c] = d ? parseInt(d, 10) : 0; render(); });
+  });
+  $('reason').addEventListener('input', render);
+  $('restore').addEventListener('click', function () { val = { W: SYS.W, S: SYS.S }; render(); });
+  $('fill').addEventListener('click', function () { val.S = val.S + (TOTAL - (val.W + val.S + DIRECT.S)); render(); });
+  document.querySelector('[data-toggle="tW"]').addEventListener('click', function (e) {
+    var open = $('tWrow').hidden; $('tWrow').hidden = !open;
+    e.target.setAttribute('aria-expanded', String(open));
+    e.target.textContent = open ? 'Ẩn chi phí các chuyến' : 'Xem tổng chi phí của cont (2 chuyến)';
+  });
+  $('save').addEventListener('click', function () {
+    if ($('save').disabled) return;
+    var li = document.createElement('li');
+    var lines = ['WHSU5203183: ' + fmt(saved.W) + ' → ' + fmt(val.W) + ' ₫', 'SEGU9102466: ' + fmt(saved.S) + ' → ' + fmt(val.S) + ' ₫'];
+    var body = document.createElement('span'); body.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:2px;';
+    var head = document.createElement('span'); head.style.cssText = 'display:flex;justify-content:space-between;gap:12px;';
+    var who = document.createElement('strong'); who.textContent = 'Lê Thị Mai (Kế toán)'; who.style.cssText = 'font-weight:600;font-size:15px;';
+    var at = document.createElement('span'); at.className = 'sub'; at.textContent = '17/10/2026 14:22';
+    head.appendChild(who); head.appendChild(at); body.appendChild(head);
+    lines.forEach(function (t) { var l = document.createElement('span'); l.className = 'mono'; l.style.fontSize = '14px'; l.textContent = t; body.appendChild(l); });
+    var why = document.createElement('span'); why.className = 'why'; why.textContent = 'Lý do: ' + $('reason').value.trim(); body.appendChild(why);
+    var av = document.createElement('span'); av.className = 'av'; av.style.background = 'var(--surface-2)'; av.setAttribute('aria-hidden', 'true'); av.textContent = 'M';
+    li.appendChild(av); li.appendChild(body);
+    $('hist').insertBefore(li, $('hist').firstChild);
+    $('hcount').textContent = $('hist').children.length + ' lần ghi';
+    saved = { W: val.W, S: val.S }; $('reason').value = ''; render();
+    $('note').textContent = 'Đã lưu. Giá vốn 2 container đã cập nhật.'; $('note').style.color = 'var(--ok)';
+  });
+  render();
+})();
+</script>
+</body>
+</html>

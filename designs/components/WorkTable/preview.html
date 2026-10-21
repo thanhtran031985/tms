@@ -1,0 +1,65 @@
+<!-- @dsCard group="Dữ liệu" height=470 -->
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>WorkTable — xem trước</title></head>
+<body>
+<div class="tms">
+<div style="padding: 20px;">
+<section class="tms-card" aria-labelledby="wt-title">
+  <div class="tms-card-head">
+    <div class="tms-card-title">
+      <h2 id="wt-title">Việc cần xử lý</h2>
+      <span class="tms-card-meta">Sắp theo độ gấp</span>
+    </div>
+    <div class="tms-tabs" role="tablist" aria-label="Lọc theo loại việc">
+      <button type="button" role="tab" class="tms-tab" aria-selected="true">Tất cả <span class="n">9</span></button>
+      <button type="button" role="tab" class="tms-tab" aria-selected="false">Cut-off <span class="n">4</span></button>
+      <button type="button" role="tab" class="tms-tab" aria-selected="false">DEM/DET <span class="n">1</span></button>
+      <button type="button" role="tab" class="tms-tab" aria-selected="false">Giấy tờ <span class="n">2</span></button>
+    </div>
+  </div>
+  <div class="tms-table-wrap">
+    <table class="tms-table" style="min-width: 860px;">
+      <thead><tr><th scope="col">Việc</th><th scope="col">Đối tượng</th><th scope="col">Order · khách</th><th scope="col">Hạn</th><th scope="col">Tình trạng</th><th scope="col"><span class="tms-sr">Hành động</span></th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tms-chip tms-chip-crit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off</span></td>
+          <td><span class="tms-main-cell tms-mono">OOLU8842105</span><span class="tms-sub">40HC · VGM 26,4 t</span></td>
+          <td><span class="tms-mono" style="display: block; font-size: 14px;">EXP-2610-044</span><span class="tms-sub">May mặc Phúc Thịnh</span></td>
+          <td style="white-space: nowrap;"><span class="tms-main-cell">16:35</span><span class="tms-sub tms-due-crit">còn 2 giờ 15</span></td>
+          <td>Chưa có xe</td>
+          <td style="text-align: right;"><a href="#dieu-van" class="tms-btn tms-btn-sm tms-btn-primary">Điều xe</a></td>
+        </tr>
+        <tr>
+          <td><span class="tms-chip tms-chip-warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>DET</span></td>
+          <td><span class="tms-main-cell tms-mono">TGHU8812348</span><span class="tms-sub">40HC rỗng</span></td>
+          <td><span class="tms-mono" style="display: block; font-size: 14px;">IMP-2610-031</span><span class="tms-sub">Điện tử Sao Việt</span></td>
+          <td style="white-space: nowrap;"><span class="tms-main-cell">19:00</span><span class="tms-sub tms-due-warn">còn 4 giờ 40</span></td>
+          <td>Chưa trả rỗng về Phước Long</td>
+          <td style="text-align: right;"><a href="#dieu-van" class="tms-btn tms-btn-sm tms-btn-primary">Điều xe trả rỗng</a></td>
+        </tr>
+        <tr>
+          <td><span class="tms-chip tms-chip-warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off</span></td>
+          <td><span class="tms-main-cell tms-mono">WHSU5203183</span><span class="tms-sub">20GP · VGM 18,2 t</span></td>
+          <td><span class="tms-mono" style="display: block; font-size: 14px;">EXP-2610-046</span><span class="tms-sub">Cà phê Đất Đỏ</span></td>
+          <td style="white-space: nowrap;"><span class="tms-main-cell">22:00</span><span class="tms-sub tms-due-warn">còn 7 giờ 40</span></td>
+          <td>Ghép TWIN_20 được với SEGU9102466</td>
+          <td style="text-align: right;"><a href="#ghep" class="tms-btn tms-btn-sm tms-btn-secondary">Ghép chuyến</a></td>
+        </tr>
+        <tr>
+          <td><span class="tms-chip tms-chip-off"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19v.01M3 3l18 18"></path></svg>Mất tín hiệu</span></td>
+          <td><span class="tms-main-cell tms-mono">51C-517.06</span><span class="tms-sub">Đang chạy · Lê Minh Tâm</span></td>
+          <td><span class="tms-mono" style="display: block; font-size: 14px;">IMP-2610-027</span><span class="tms-sub">Thép Nam Long</span></td>
+          <td style="white-space: nowrap;"><span class="tms-main-cell">—</span><span class="tms-sub">22 phút không có GPS</span></td>
+          <td>Lần cuối gần Ngã tư Vũng Tàu</td>
+          <td style="text-align: right;"><a href="#ban-do" class="tms-btn tms-btn-sm tms-btn-secondary">Xem bản đồ</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tms-card-foot" aria-live="polite">Lan (Điều vận) vừa gán 51C-306.12 cho TCLU6630920 · 2 phút trước</p>
+</section>
+</div>
+</div>
+</body>
+</html>

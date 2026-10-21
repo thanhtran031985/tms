@@ -1,0 +1,76 @@
+<!-- @dsCard group="Khung" height=520 -->
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>AppShell — xem trước</title></head>
+<body>
+<div class="tms">
+<div class="tms-shell">
+  <nav class="tms-nav" aria-label="Điều hướng chính">
+    <div class="tms-nav-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="6" fill="var(--primary)"></rect><rect x="7" y="10" width="18" height="12" rx="1.5" stroke="var(--on-primary)" stroke-width="2"></rect><path d="M11.5 13v6M16 13v6M20.5 13v6" stroke="var(--on-primary)" stroke-width="2" stroke-linecap="round"></path></svg>
+      <span>TMS Container</span>
+    </div>
+    <div class="tms-nav-menu">
+      <a href="#trang-chu" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span>Trang chủ</span></a>
+      <a href="#dieu-van"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v13h-4z"></path></svg><span>Điều vận</span><span class="tms-badge">14</span></a>
+      <a href="#don-hang"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8l4 4v12H4V4h4M14 4v4h4M8 12h8M8 16h5"></path></svg><span>Đơn hàng</span></a>
+      <a href="#ban-do"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"></path></svg><span>Bản đồ đội xe</span></a>
+      <a href="#phieu-dau"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"></path></svg><span>Phiếu dầu</span></a>
+      <a href="#doi-soat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"></path></svg><span>Đối soát</span></a>
+      <a href="#phan-bo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.7 5 3.2 5 1.3 5 3.3-2.2 3.3-5 3.3-5-1.2-5-3.1"></path></svg><span>Phân bổ chi phí</span></a>
+      <a href="#bao-cao"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"></path></svg><span>Báo cáo</span></a>
+    </div>
+  </nav>
+  <div class="tms-main">
+    <header class="tms-topbar">
+      <button type="button" class="tms-switch" aria-label="Đổi công ty, đang ở Vận tải Phúc An">
+        <span class="tms-ini" aria-hidden="true">PA</span>
+        <span style="font-weight: 600;">Vận tải Phúc An</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+      <div class="tms-search">
+        <label for="as-q" class="tms-sr">Tìm container, Order, biển số</label>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input id="as-q" class="tms-input" type="search" placeholder="Tìm container, Order, biển số">
+        <kbd class="tms-kbd">/</kbd>
+      </div>
+      <span class="tms-live"><span class="tms-live-dot" aria-hidden="true"></span>Trực tiếp · cập nhật 14:20</span>
+      <button type="button" class="tms-icon-btn" aria-label="Chế độ tối"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg></button>
+      <button type="button" class="tms-user" aria-label="Tài khoản Nguyễn Văn Hùng, Điều vận">
+        <span class="tms-avatar" aria-hidden="true">H</span>
+        <span><span style="display: block; font-weight: 600;">Nguyễn Văn Hùng</span><span style="font-size: 13px; color: var(--ink-soft);">Điều vận</span></span>
+      </button>
+    </header>
+    <main class="tms-content">
+      <div>
+        <h1 class="tms-h1">9 việc cần xử lý. Hạn gần nhất: cut-off ONE HARMONY lúc 16:35, còn 2 giờ 15</h1>
+        <p style="margin: 4px 0 0; color: var(--ink-soft);">Chào Hùng · 91 container trong kế hoạch hôm nay</p>
+      </div>
+      <section aria-label="Chỉ số hôm nay" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <a href="#wait" class="tms-kpi">
+          <span class="tms-kpi-label"><span class="tms-kpi-ico" aria-hidden="true" style="background: var(--info-soft); color: var(--info);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9"></path></svg></span>Chờ điều</span>
+          <span class="tms-kpi-value" style="color: var(--ink);">14</span>
+          <span class="tms-sub">2 cont dính cut-off hôm nay</span>
+        </a>
+        <a href="#truck" class="tms-kpi">
+          <span class="tms-kpi-label"><span class="tms-kpi-ico" aria-hidden="true" style="background: var(--info-soft); color: var(--info);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h11v9H2zM13 10h4l3 3v3h-7M6 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01"></path></svg></span>Đang chạy</span>
+          <span class="tms-kpi-value" style="color: var(--ink);">31</span>
+          <span class="tms-sub">Vị trí cập nhật trực tiếp</span>
+        </a>
+        <a href="#clock" class="tms-kpi">
+          <span class="tms-kpi-label"><span class="tms-kpi-ico" aria-hidden="true" style="background: var(--crit-soft); color: var(--crit);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg></span>Cut-off trong 6 giờ</span>
+          <span class="tms-kpi-value" style="color: var(--crit);">2 cont</span>
+          <span class="tms-sub">ONE HARMONY 042S lúc 16:35</span>
+        </a>
+        <a href="#signal" class="tms-kpi">
+          <span class="tms-kpi-label"><span class="tms-kpi-ico" aria-hidden="true" style="background: var(--warn-soft); color: var(--warn);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19v.01M3 3l18 18"></path></svg></span>Mất tín hiệu GPS</span>
+          <span class="tms-kpi-value" style="color: var(--warn);">3 xe</span>
+          <span class="tms-sub">Lâu nhất 22 phút</span>
+        </a>
+      </section>
+    </main>
+  </div>
+</div>
+</div>
+</body>
+</html>

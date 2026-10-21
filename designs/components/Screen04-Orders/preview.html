@@ -1,0 +1,369 @@
+<!-- @dsCard group="Màn hình" height=1560 width=1440 subtitle="Danh sách Order có container mở rộng, và chi tiết Order với trạng thái, cước, DEM/DET của từng container." -->
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Screen04-Orders — Đơn hàng & container</title><style>
+body{margin:0;background:var(--bg)}
+.tms{font-family:var(--font-ui);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);min-height:100vh}
+.tms *{box-sizing:border-box}
+.tms .mono{font-family:var(--font-mono);font-weight:500}
+.tms :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tms a{color:var(--primary);text-underline-offset:3px}
+.tms button{font-family:inherit}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-soft)}
+.bar b{font-weight:600}
+.pill{min-height:36px;padding:0 12px;border:1px solid var(--line-strong);border-radius:999px;background:var(--surface);color:var(--ink);font-size:14px;cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.shell{display:flex;min-height:calc(100vh - 53px)}
+.nav{flex:0 0 240px;padding:16px 12px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px;font-weight:700}
+.nav a{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-weight:500;font-size:15px}
+.nav a:hover{background:var(--surface-2)}
+.nav a[aria-current="page"]{background:var(--info-soft);color:var(--info);font-weight:600}
+.nav .badge{margin-left:auto;min-width:24px;padding:0 6px;border-radius:999px;background:var(--crit-soft);color:var(--crit);font-size:13px;font-weight:700;text-align:center}
+.col{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tenant{height:44px;padding:0 12px;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:600}
+.tenant span.ab{width:28px;height:28px;border-radius:6px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.search{flex:1 1 280px;max-width:480px;position:relative}
+.search input{width:100%;height:44px;padding:0 48px 0 42px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px}
+.search svg{position:absolute;left:14px;top:13px;color:var(--ink-soft)}
+.search kbd{position:absolute;right:12px;top:11px;padding:0 6px;border:1px solid var(--line);border-radius:4px;font-family:inherit;font-size:13px;color:var(--ink-soft)}
+.live{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.icon-btn{width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.user{display:flex;align-items:center;gap:8px;font-size:15px;line-height:1.2}
+.user .av{width:32px;height:32px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+main{width:100%;max-width:1240px;padding:24px;display:flex;flex-direction:column;gap:24px}
+h1{margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.01em}
+h2{margin:0;font-size:20px;font-weight:600}
+h3{margin:0;font-size:16px;font-weight:700}
+.sub{font-size:14px;color:var(--ink-soft)}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.pad{padding:16px 20px}
+.btn{height:44px;padding:0 16px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.sm{height:40px;padding:0 12px;font-size:14px}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn.pri:hover{background:var(--primary-hover)}
+.btn:disabled{background:var(--surface-2);border-color:var(--line);color:var(--ink-soft);cursor:not-allowed}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-size:14px;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer}
+.tab .n{min-width:20px;padding:0 6px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:700}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.tab[aria-selected="true"] .n{background:var(--surface);color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.lab{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
+.fi{height:44px;width:100%;padding:0 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;font-weight:400}
+.fi[aria-invalid="true"]{border:2px solid var(--crit)}
+.err{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--crit)}
+.seg{display:flex;gap:4px;padding:3px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface)}
+.seg button{min-height:36px;padding:0 14px;border:0;border-radius:6px;background:transparent;color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{font-size:13px;font-weight:600;color:var(--ink-soft);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}
+tr.row:hover{background:var(--surface-2)}
+.nowrap{white-space:nowrap}
+.r{text-align:right}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:6px;font-size:13px;font-weight:700;white-space:nowrap}
+.ok{background:var(--ok-soft);color:var(--ok)}.warn{background:var(--warn-soft);color:var(--warn)}.crit{background:var(--crit-soft);color:var(--crit)}.off{background:var(--off-soft);color:var(--off)}.info{background:var(--info-soft);color:var(--info)}
+.t-crit{color:var(--crit);font-weight:700}.t-warn{color:var(--warn);font-weight:700}.t-ok{color:var(--ok);font-weight:700}.t-info{color:var(--info);font-weight:700}.t-soft{color:var(--ink-soft)}
+.ic{display:inline-flex;align-items:center;gap:4px}
+.small{font-size:13px}
+.prog{margin-top:6px;width:96px;height:6px;border-radius:3px;background:var(--surface-2)}
+.prog i{display:block;height:6px;border-radius:3px;background:var(--ok)}
+.linkbtn{padding:0;border:0;background:transparent;color:var(--primary);font-weight:600;font-size:15px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.exp{width:40px;height:40px;border:0;border-radius:8px;background:transparent;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.exp:hover{background:var(--surface-2)}
+.exp[aria-expanded="true"] svg{transform:rotate(90deg)}
+.chk{display:flex;width:44px;height:44px;align-items:center;justify-content:center;cursor:pointer}
+.chk input{width:18px;height:18px;margin:0;accent-color:var(--primary)}
+.inner td{background:var(--bg)}
+.inner table td{font-size:14px;background:transparent}
+.bulk{display:none;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 20px;background:var(--info-soft);border-bottom:1px solid var(--line);font-weight:600}
+.bulk.on{display:flex}
+.alert{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 20px;font-weight:600}
+.foot{display:flex;justify-content:space-between;gap:8px;padding:12px 20px;font-size:14px;color:var(--ink-soft)}
+.empty{padding:48px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.empty .dot{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.empty p{margin:0;max-width:460px;color:var(--ink-soft)}
+.sk{display:block;height:14px;border-radius:6px;background:var(--surface-2);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}.exp svg{transition:none}}
+.s-loading,.s-empty,.s-error{display:none}
+[data-state=loading] .s-normal,[data-state=empty] .s-normal{display:none}
+[data-state=loading] .s-loading,[data-state=empty] .s-empty,[data-state=error] .s-error{display:block}
+[data-view=list] .v-detail,[data-view=detail] .v-list{display:none}
+dl{margin:0}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 20px}
+.facts dd{margin:2px 0 0;font-size:15px;font-weight:600}
+.money{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.money b{display:block;font-size:22px;font-weight:700;line-height:1.3}
+.split{display:flex;flex-wrap:wrap;gap:24px;align-items:stretch}
+.sel td:first-child{box-shadow:inset 3px 0 0 var(--primary)}
+tr.sel{background:var(--info-soft)}
+.stops{list-style:none;margin:0;padding:0}
+.stops li{display:flex;gap:14px}
+.stops .rail{flex:none;width:24px;display:flex;flex-direction:column;align-items:center}
+.stops .ring{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-strong);background:var(--surface)}
+.stops .ln{flex:1;width:2px;min-height:18px;background:var(--line)}
+.stops .body{flex:1;padding-bottom:16px}
+.price div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.price dd{margin:0;font-weight:600}
+.audit{list-style:none;margin:0;padding:0}
+.audit li{display:flex;flex-wrap:wrap;gap:4px 16px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.audit .at{flex:0 0 110px;color:var(--ink-soft)}.audit .who{flex:0 0 160px;font-weight:600}.audit .what{flex:1 1 320px}
+</style></head><body>
+<div class="tms" id="root" data-state="normal" data-view="list">
+  <div class="bar">
+    <b>Trạng thái dữ liệu</b>
+    <div role="group" aria-label="Trạng thái dữ liệu" style="display:flex;gap:6px;flex-wrap:wrap">
+      <button type="button" class="pill" data-set-state="normal" aria-pressed="true">Bình thường</button>
+      <button type="button" class="pill" data-set-state="loading" aria-pressed="false">Đang tải</button>
+      <button type="button" class="pill" data-set-state="empty" aria-pressed="false">Trống</button>
+      <button type="button" class="pill" data-set-state="error" aria-pressed="false">Lỗi</button>
+    </div>
+    <b style="margin-left:12px">Màn</b>
+    <div role="group" aria-label="Chọn màn" style="display:flex;gap:6px">
+      <button type="button" class="pill" data-set-view="list" aria-pressed="true">Danh sách Order</button>
+      <button type="button" class="pill" data-set-view="detail" aria-pressed="false">Chi tiết EXP-2610-044</button>
+    </div>
+  </div>
+
+  <div class="shell">
+    <nav class="nav" aria-label="Điều hướng chính">
+      <div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="6" fill="var(--primary)"></rect><rect x="7" y="10" width="18" height="12" rx="1.5" stroke="var(--on-primary)" stroke-width="2"></rect><path d="M11.5 13v6M16 13v6M20.5 13v6" stroke="var(--on-primary)" stroke-width="2" stroke-linecap="round"></path></svg>TMS Container</div>
+      <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Trang chủ</a>
+      <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v13h-4z"></path></svg>Điều vận<span class="badge">14</span></a>
+      <a href="#" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8l4 4v12H4V4h4M14 4v4h4M8 12h8M8 16h5"></path></svg>Đơn hàng</a>
+      <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"></path></svg>Bản đồ đội xe</a>
+      <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"></path></svg>Phiếu dầu</a>
+      <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"></path></svg>Đối soát</a>
+      <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.7 5 3.2 5 1.3 5 3.3-2.2 3.3-5 3.3-5-1.2-5-3.1"></path></svg>Phân bổ chi phí</a>
+      <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"></path></svg>Báo cáo</a>
+    </nav>
+
+    <div class="col">
+      <header class="top">
+        <button type="button" class="tenant" aria-label="Đổi công ty, đang ở Vận tải Phúc An"><span class="ab" aria-hidden="true">PA</span>Vận tải Phúc An<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <div class="search"><label for="gq" class="sr">Tìm container, Order, biển số</label><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input id="gq" type="search" placeholder="Tìm container, Order, biển số"><kbd>/</kbd></div>
+        <span class="live"><i aria-hidden="true"></i>Trực tiếp · cập nhật 14:20</span>
+        <button type="button" class="icon-btn" aria-label="Chế độ tối"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg></button>
+        <span class="user"><span class="av" aria-hidden="true">H</span><span><b style="display:block;font-weight:600">Nguyễn Văn Hùng</b><span class="small t-soft">Điều vận</span></span></span>
+      </header>
+
+      <main>
+        <!-- ============ DANH SÁCH ============ -->
+        <div class="v-list" style="display:flex;flex-direction:column;gap:24px">
+          <div class="head">
+            <div>
+              <h1>5 Order có 11 container cần xử lý. Hạn gần nhất: cut-off ONE HARMONY 042S lúc 16:35, còn 2 giờ 15</h1>
+              <p style="margin:4px 0 0;color:var(--ink-soft)">9 Order · 19 container trong 01/10 – 17/10/2026</p>
+            </div>
+            <button type="button" class="btn pri"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Tạo Order</button>
+          </div>
+
+          <section class="card" aria-labelledby="ol">
+            <div class="pad" style="display:flex;flex-direction:column;gap:14px;border-bottom:1px solid var(--line)">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><h2 id="ol">Danh sách Order</h2><span class="sub">Bấm mũi tên để xem container của từng Order</span></div>
+              <div class="tabs" role="tablist" aria-label="Lọc theo trạng thái Order">
+                <button type="button" role="tab" class="tab" aria-selected="true">Tất cả <span class="n">9</span></button>
+                <button type="button" role="tab" class="tab" aria-selected="false">Đang thực hiện <span class="n">4</span></button>
+                <button type="button" role="tab" class="tab" aria-selected="false">Nháp <span class="n">1</span></button>
+                <button type="button" role="tab" class="tab" aria-selected="false">Đã giao <span class="n">1</span></button>
+                <button type="button" role="tab" class="tab" aria-selected="false">Đã đối soát / hóa đơn <span class="n">2</span></button>
+                <button type="button" role="tab" class="tab" aria-selected="false">Đã hủy <span class="n">1</span></button>
+              </div>
+              <div class="filters">
+                <label class="lab" style="flex:1 1 260px">Tìm trong danh sách<input type="search" class="fi" placeholder="Số Order, Booking/B/L hoặc số cont"></label>
+                <label class="lab" style="flex:0 1 210px">Khách hàng<select class="fi"><option>Tất cả khách</option><option>May mặc Phúc Thịnh</option><option>Điện tử Sao Việt</option><option>Cà phê Đất Đỏ</option><option>Nội thất An Bình</option><option>Nhựa Tân Phú</option><option>Thép Nam Long</option><option>Gỗ Minh Phát</option></select></label>
+                <label class="lab" style="flex:0 1 180px">Hãng tàu<select class="fi"><option>Tất cả hãng</option><option>ONE</option><option>Maersk</option><option>Wan Hai</option><option>CMA CGM</option><option>COSCO</option><option>Hapag-Lloyd</option><option>Evergreen</option></select></label>
+                <div class="lab"><span id="lc">Chiều</span><div class="seg" role="group" aria-labelledby="lc"><button type="button" aria-pressed="true">Tất cả</button><button type="button" aria-pressed="false">Nhập</button><button type="button" aria-pressed="false">Xuất</button></div></div>
+                <div class="lab"><span>Ngày tạo</span><button type="button" class="btn" style="font-weight:400"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>01/10 – 17/10/2026</button></div>
+              </div>
+            </div>
+
+            <div class="bulk" id="bulk" role="region" aria-label="Thao tác hàng loạt">
+              <span id="bulkLabel">Đã chọn 1 Order</span><span style="flex:1"></span>
+              <button type="button" class="btn sm pri">Xác nhận Order nháp</button>
+              <button type="button" class="btn sm">Xuất Excel</button>
+              <button type="button" class="btn sm" id="clearSel" style="border-color:transparent;background:transparent">Bỏ chọn</button>
+            </div>
+
+            <div class="s-error crit" role="alert"><div class="alert"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01"></path></svg><span style="flex:1 1 360px">Không tải được dữ liệu mới. Đang hiện danh sách lúc 14:12, có thể đã cũ.</span><button type="button" class="btn sm" data-set-state="normal">Thử lại</button></div></div>
+
+            <div class="s-normal">
+              <div class="scroll">
+                <table style="min-width:1120px">
+                  <thead><tr><th scope="col" style="width:52px;padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn tất cả Order đang hiện</span><input type="checkbox" id="selAll"></label></th><th scope="col" style="width:48px"><span class="sr">Mở rộng</span></th><th scope="col">Order · Booking/B/L</th><th scope="col">Khách hàng</th><th scope="col">Hãng tàu · tàu/chuyến</th><th scope="col">Chiều</th><th scope="col">Cut-off</th><th scope="col">Container</th><th scope="col" class="r">Tổng cước</th><th scope="col">Trạng thái</th></tr></thead>
+                  <tbody>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn EXP-2610-044</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="true" aria-controls="x044" aria-label="Thu gọn container của EXP-2610-044"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono" data-set-view="detail">EXP-2610-044</button><div class="sub">Booking <span class="mono">ONEYSGNG04412</span></div></td><td>May mặc Phúc Thịnh</td><td><div style="font-weight:500">ONE</div><div class="sub">ONE HARMONY 042S</div></td><td>Xuất</td><td class="nowrap"><div>17/10 16:35</div><div class="ic t-crit small" style="font-size:14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>còn 2 giờ 15</div></td><td class="nowrap"><div style="font-weight:600">2/5 đã giao</div><div class="prog" aria-hidden="true"><i style="width:40%"></i></div><div class="small t-warn" style="margin-top:4px;font-weight:600">3 cont cần xử lý</div></td><td class="r nowrap"><div style="font-weight:600">17.200.000 ₫</div><div class="ic small t-crit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01"></path></svg>+ 1 cont chưa có giá</div></td><td><span class="chip warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Giao một phần</span></td></tr>
+                    <tr class="inner" id="x044"><td colspan="10" style="padding:4px 20px 16px 104px">
+                      <table aria-label="Container của EXP-2610-044">
+                        <thead><tr><th scope="col">Số cont</th><th scope="col">Loại</th><th scope="col">Trạng thái cont</th><th scope="col">Cảng / bãi</th><th scope="col">Hạn DEM</th><th scope="col">Hạn DET</th><th scope="col" class="r">Cước</th><th scope="col">Xe · tài xế</th><th scope="col">ePOD</th></tr></thead>
+                        <tbody>
+                          <tr><td class="mono nowrap" style="font-weight:600">ONEU4482078</td><td>20GP</td><td><span class="chip ok"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6"></path></svg>Đã giao</span></td><td>Đã vào cảng</td><td>—</td><td>23/10</td><td class="r nowrap" style="font-weight:600">3.200.000 ₫</td><td class="nowrap"><span class="mono">51C-211.85</span> <span class="t-soft">Đỗ Văn Nam</span></td><td class="t-ok small"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6"></path></svg>Đã xác minh</span></td></tr>
+                          <tr><td class="mono nowrap" style="font-weight:600">ONEU4482099</td><td>20GP</td><td><span class="chip ok"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6"></path></svg>Đã giao</span></td><td>Đã vào cảng</td><td>—</td><td>23/10</td><td class="r nowrap t-warn"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"></path></svg>3.200.000 ₫</span><div class="small">Cần tính lại giá</div></td><td class="nowrap"><span class="mono">51C-390.44</span> <span class="t-soft">Ngô Thanh Sơn</span></td><td class="t-warn small"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Chờ xác nhận</span></td></tr>
+                          <tr><td class="mono nowrap" style="font-weight:600">TCLU6630920</td><td>40HC</td><td><span class="chip info"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h11v9H2zM13 10h4l3 3v3h-7M6 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01"></path></svg>Đang chạy</span></td><td>Đã lấy rỗng</td><td>—</td><td>24/10</td><td class="r nowrap" style="font-weight:600">5.400.000 ₫</td><td class="nowrap"><span class="mono">51C-306.12</span> <span class="t-soft">Phạm Quốc Bảo</span></td><td class="t-soft">—</td></tr>
+                          <tr><td class="mono nowrap" style="font-weight:600">OOLU8842105</td><td>40HC</td><td><span class="chip off"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9"></path></svg>Chờ điều</span></td><td>Chưa lấy rỗng</td><td>—</td><td>24/10</td><td class="r nowrap" style="font-weight:600">5.400.000 ₫</td><td class="nowrap"><span class="mono">—</span> <span class="t-soft">Chưa có xe</span></td><td class="t-soft">—</td></tr>
+                          <tr><td class="mono nowrap" style="font-weight:600">OOLU8842110</td><td>40HC</td><td><span class="chip off"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9"></path></svg>Chờ điều</span></td><td>Chưa lấy rỗng</td><td>—</td><td>24/10</td><td class="r nowrap t-crit"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01"></path></svg>Chưa có giá</span><div class="small">Cần nhập giá tay</div></td><td class="nowrap"><span class="mono">—</span> <span class="t-soft">Chưa có xe</span></td><td class="t-soft">—</td></tr>
+                        </tbody>
+                      </table>
+                      <div style="padding-top:10px"><button type="button" class="btn sm" data-set-view="detail">Mở chi tiết EXP-2610-044</button></div>
+                    </td></tr>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn IMP-2610-031</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="false" aria-controls="x031" aria-label="Xem container của IMP-2610-031"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono">IMP-2610-031</button><div class="sub">B/L <span class="mono">MAEU238841907</span></div></td><td>Điện tử Sao Việt</td><td><div style="font-weight:500">Maersk</div><div class="sub">MAERSK SEMBAWANG 241N</div></td><td>Nhập</td><td>—</td><td class="nowrap"><div style="font-weight:600">1/2 đã giao</div><div class="prog" aria-hidden="true"><i style="width:50%"></i></div><div class="small t-warn" style="margin-top:4px;font-weight:600">2 cont cần xử lý</div></td><td class="r" style="font-weight:600">9.600.000 ₫</td><td><span class="chip info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h11v9H2zM13 10h4l3 3v3h-7M6 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01"></path></svg>Đang thực hiện</span></td></tr>
+                    <tr class="inner" id="x031" hidden><td colspan="10" style="padding:4px 20px 16px 104px">
+                      <table aria-label="Container của IMP-2610-031">
+                        <thead><tr><th scope="col">Số cont</th><th scope="col">Loại</th><th scope="col">Trạng thái cont</th><th scope="col">Cảng / bãi</th><th scope="col">Hạn DEM</th><th scope="col">Hạn DET</th><th scope="col" class="r">Cước</th><th scope="col">Xe · tài xế</th><th scope="col">ePOD</th></tr></thead>
+                        <tbody>
+                          <tr><td class="mono nowrap" style="font-weight:600">TGHU8812348</td><td>40HC</td><td><span class="chip ok"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6"></path></svg>Đã giao</span></td><td>Đã lấy hàng</td><td>—</td><td class="nowrap t-warn"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>17/10 19:00</span><div class="small">còn 4 giờ 40</div></td><td class="r" style="font-weight:600">4.800.000 ₫</td><td class="nowrap"><span class="mono">51C-517.06</span> <span class="t-soft">Lê Minh Tâm</span></td><td class="t-ok small">Đã xác minh</td></tr>
+                          <tr><td class="mono nowrap" style="font-weight:600">MSKU1234565</td><td>40HC</td><td><span class="chip off">Chờ điều</span></td><td>Sẵn sàng lấy</td><td class="nowrap t-info"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>18/10 08:00</span><div class="small">còn 17 giờ 40</div></td><td>25/10</td><td class="r" style="font-weight:600">4.800.000 ₫</td><td class="nowrap"><span class="mono">—</span> <span class="t-soft">Chưa có xe</span></td><td class="t-soft">—</td></tr>
+                        </tbody>
+                      </table>
+                    </td></tr>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn EXP-2610-046</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="false" aria-label="Xem container của EXP-2610-046"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono">EXP-2610-046</button><div class="sub">Booking <span class="mono">WHLC316A0482</span></div></td><td>Cà phê Đất Đỏ</td><td><div style="font-weight:500">Wan Hai</div><div class="sub">WAN HAI 316 W158</div></td><td>Xuất</td><td class="nowrap"><div>17/10 22:00</div><div class="ic t-warn" style="font-size:14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>còn 7 giờ 40</div></td><td class="nowrap"><div style="font-weight:600">0/2 đã giao</div><div class="prog" aria-hidden="true"><i style="width:0"></i></div><div class="small t-warn" style="margin-top:4px;font-weight:600">2 cont cần xử lý</div></td><td class="r" style="font-weight:600">7.200.000 ₫</td><td><span class="chip info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v5M12 8v.01"></path></svg>Đã xác nhận</span></td></tr>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn IMP-2610-029</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="false" aria-label="Xem container của IMP-2610-029"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono">IMP-2610-029</button><div class="sub">B/L <span class="mono">CMDUSGN1170342</span></div></td><td>Nội thất An Bình</td><td><div style="font-weight:500">CMA CGM</div><div class="sub">CMA CGM TAGE 0QB3HN1</div></td><td>Nhập</td><td>—</td><td class="nowrap"><div style="font-weight:600">0/1 đã giao</div><div class="prog" aria-hidden="true"><i style="width:0"></i></div><div class="small t-warn" style="margin-top:4px;font-weight:600">1 cont cần xử lý</div></td><td class="r" style="font-weight:600">3.400.000 ₫</td><td><span class="chip info"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 11v5M12 8v.01"></path></svg>Đã xác nhận</span></td></tr>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn EXP-2610-047</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="false" aria-label="Xem container của EXP-2610-047"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono">EXP-2610-047</button><div class="sub">Booking <span class="mono">COSU6402218930</span></div></td><td>Nhựa Tân Phú</td><td><div style="font-weight:500">COSCO</div><div class="sub">COSCO PRIDE 087S</div></td><td>Xuất</td><td class="nowrap"><div>21/10 10:00</div><div class="t-soft" style="font-size:14px;font-weight:600">còn 3 ngày</div></td><td class="nowrap"><div style="font-weight:600">0/3 đã giao</div><div class="prog" aria-hidden="true"><i style="width:0"></i></div><div class="small t-warn" style="margin-top:4px;font-weight:600">3 cont cần xử lý</div></td><td class="r nowrap"><div style="font-weight:600">9.800.000 ₫</div><div class="ic small t-crit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01"></path></svg>+ 1 cont chưa có giá</div></td><td><span class="chip off"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8"></path></svg>Nháp</span></td></tr>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn EXP-2610-041</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="false" aria-label="Xem container của EXP-2610-041"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono">EXP-2610-041</button><div class="sub">Booking <span class="mono">HLCUSGN2610790</span></div></td><td>Thép Nam Long</td><td><div style="font-weight:500">Hapag-Lloyd</div><div class="sub">SANTA LOUKIA 2641E</div></td><td>Xuất</td><td class="nowrap"><div>15/10 11:00</div><div class="ic t-ok" style="font-size:14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6"></path></svg>đã vào cảng đủ</div></td><td class="nowrap"><div style="font-weight:600">2/2 đã giao</div><div class="prog" aria-hidden="true"><i style="width:100%"></i></div></td><td class="r" style="font-weight:600">12.400.000 ₫</td><td><span class="chip ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6"></path></svg>Đã giao</span></td></tr>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn IMP-2610-024</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="false" aria-label="Xem container của IMP-2610-024"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono">IMP-2610-024</button><div class="sub">B/L <span class="mono">EGLV143600218874</span></div></td><td>Gỗ Minh Phát</td><td><div style="font-weight:500">Evergreen</div><div class="sub">EVER CONSIST 1186-024N</div></td><td>Nhập</td><td>—</td><td class="nowrap"><div style="font-weight:600">2/2 đã giao</div><div class="prog" aria-hidden="true"><i style="width:100%"></i></div></td><td class="r" style="font-weight:600">10.200.000 ₫</td><td><span class="chip ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6"></path></svg>Đã đối soát</span></td></tr>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn IMP-2610-020</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="false" aria-label="Xem container của IMP-2610-020"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono">IMP-2610-020</button><div class="sub">B/L <span class="mono">MAEU238702615</span></div></td><td>Điện tử Sao Việt</td><td><div style="font-weight:500">Maersk</div><div class="sub">MAERSK SALTORO 239N</div></td><td>Nhập</td><td>—</td><td class="nowrap"><div style="font-weight:600">1/1 đã giao</div><div class="prog" aria-hidden="true"><i style="width:100%"></i></div></td><td class="r" style="font-weight:600">4.800.000 ₫</td><td><span class="chip ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6"></path></svg>Đã xuất hóa đơn</span></td></tr>
+                    <tr class="row"><td style="padding:0 0 0 8px"><label class="chk"><span class="sr">Chọn EXP-2610-038</span><input type="checkbox" class="selOne"></label></td><td style="padding:2px 4px"><button type="button" class="exp" aria-expanded="false" aria-label="Xem container của EXP-2610-038"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button></td><td><button type="button" class="linkbtn mono">EXP-2610-038</button><div class="sub">Booking <span class="mono">ONEYSGNG03977</span></div></td><td>May mặc Phúc Thịnh</td><td><div style="font-weight:500">ONE</div><div class="sub">ONE HAMBURG 039S</div></td><td>Xuất</td><td class="nowrap"><div>12/10 16:00</div><div class="t-soft" style="font-size:14px;font-weight:600">khách hủy</div></td><td class="nowrap"><div style="font-weight:600">1 cont đã hủy</div><div class="prog" aria-hidden="true"><i style="width:0"></i></div></td><td class="r t-soft" style="font-weight:600">Không thu</td><td><span class="chip off"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12h8"></path></svg>Đã hủy</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="s-loading" aria-busy="true" aria-label="Đang tải danh sách Order">
+              <div class="scroll"><table style="min-width:1120px"><thead><tr><th scope="col" style="width:88px"><span class="sr">Chọn</span></th><th scope="col">Order · Booking/B/L</th><th scope="col">Khách hàng</th><th scope="col">Hãng tàu · tàu/chuyến</th><th scope="col">Cut-off</th><th scope="col">Container</th><th scope="col">Tổng cước</th><th scope="col">Trạng thái</th></tr></thead><tbody id="skBody"></tbody></table></div>
+            </div>
+
+            <div class="s-empty">
+              <div class="empty">
+                <span class="dot info" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l4 4v12H4V4h4M14 4v4h4M8 12h8M8 16h5"></path></svg></span>
+                <strong style="font-weight:600">Chưa có Order nào từ 01/10 đến 17/10/2026</strong>
+                <p>Order mới tạo hoặc nhận từ email của khách sẽ hiện ở đây. Mỗi Order ứng với một Booking hoặc B/L.</p>
+                <button type="button" class="btn" style="margin-top:4px">Tạo Order đầu tiên</button>
+              </div>
+            </div>
+
+            <div class="foot"><span>Đang hiện 9 trên 9 Order</span><span>Trang 1/1</span></div>
+          </section>
+        </div>
+
+        <!-- ============ CHI TIẾT ============ -->
+        <div class="v-detail" style="display:flex;flex-direction:column;gap:24px">
+          <div class="head">
+            <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <button type="button" class="btn" data-set-view="list" style="align-self:flex-start;border:0;background:transparent;color:var(--ink-soft);font-weight:400;padding:0 10px 0 4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>Đơn hàng</button>
+              <h1><span class="mono">EXP-2610-044</span>: 3 container cần xử lý, cut-off 16:35 còn 2 giờ 15</h1>
+              <p style="margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--ink-soft)"><span class="chip warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Giao một phần</span><span>Booking <span class="mono">ONEYSGNG04412</span> · May mặc Phúc Thịnh · Xuất</span></p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn">Sửa thông tin chung</button><button type="button" class="btn pri"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Thêm container</button></div>
+          </div>
+
+          <div class="split">
+            <section class="card pad" aria-label="Thông tin chung" style="flex:3 1 520px">
+              <dl class="facts">
+                <div><dt class="sub">Khách hàng</dt><dd>May mặc Phúc Thịnh</dd></div>
+                <div><dt class="sub">Hãng tàu</dt><dd>ONE</dd></div>
+                <div><dt class="sub">Tàu / chuyến</dt><dd>ONE HARMONY 042S</dd></div>
+                <div><dt class="sub">Cut-off</dt><dd style="color:var(--crit)">17/10 16:35 · còn 2 giờ 15</dd></div>
+                <div><dt class="sub">Tuyến mặc định</dt><dd>Depot Phước Long → Kho Phúc Thịnh, KCN Sóng Thần → Cảng Cát Lái</dd></div>
+                <div><dt class="sub">Tiến độ</dt><dd>2/5 container đã giao</dd></div>
+                <div><dt class="sub">Tạo lúc</dt><dd>15/10/2026 16:40 · Nguyễn Văn Hùng</dd></div>
+              </dl>
+            </section>
+            <section class="card pad" aria-label="Tổng hợp tiền của Order" style="flex:2 1 340px;display:flex;flex-direction:column;gap:12px">
+              <div class="money"><div><span class="sub">Doanh thu</span><b>17.550.000 ₫</b></div><div><span class="sub">Chi phí</span><b>6.980.000 ₫</b></div><div><span class="sub">Lãi lỗ</span><b style="color:var(--ok)">10.570.000 ₫</b></div></div>
+              <p class="sub" style="margin:0">Tổng của các container. Chi hộ không tính vào doanh thu. Chi phí của chuyến chưa xong là tạm tính.</p>
+              <p class="ic t-warn" style="margin:0;font-size:14px;align-items:flex-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:3px"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Chưa gồm 1 container chưa có giá: OOLU8842110</p>
+            </section>
+          </div>
+
+          <section class="card" aria-labelledby="ct">
+            <div class="pad" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px;padding-bottom:12px"><h2 id="ct">Container trong Order (5)</h2><span class="sub">Container là đơn vị điều xe, tính giá, DEM/DET và ePOD. Chọn một dòng để xem chi tiết.</span></div>
+            <div class="s-error crit" role="alert"><div class="alert"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01"></path></svg><span style="flex:1 1 360px">Không tải được trạng thái container mới. Đang hiện dữ liệu lúc 14:12.</span><button type="button" class="btn sm" data-set-state="normal">Thử lại</button></div></div>
+            <div class="s-normal scroll">
+              <table style="min-width:1100px">
+                <thead><tr><th scope="col">Số cont</th><th scope="col">Loại</th><th scope="col">Trạng thái cont</th><th scope="col">Cảng / bãi</th><th scope="col">Hạn DEM</th><th scope="col">Hạn DET</th><th scope="col" class="r">Cước theo bảng giá</th><th scope="col">Xe · tài xế</th><th scope="col">ePOD</th></tr></thead>
+                <tbody>
+                  <tr class="row"><td><button type="button" class="linkbtn mono" aria-pressed="false" style="color:var(--ink)">ONEU4482078</button></td><td>20GP</td><td><span class="chip ok">Đã giao</span></td><td>Đã vào cảng</td><td>—</td><td>23/10</td><td class="r" style="font-weight:600">3.200.000 ₫</td><td class="nowrap"><span class="mono">51C-211.85</span> <span class="t-soft">Đỗ Văn Nam</span></td><td class="t-ok" style="font-size:14px">Đã xác minh</td></tr>
+                  <tr class="row"><td><button type="button" class="linkbtn mono" aria-pressed="false" style="color:var(--ink)">ONEU4482099</button></td><td>20GP</td><td><span class="chip ok">Đã giao</span></td><td>Đã vào cảng</td><td>—</td><td>23/10</td><td class="r nowrap t-warn"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"></path></svg>3.200.000 ₫</span><div class="small">Cần tính lại giá</div></td><td class="nowrap"><span class="mono">51C-390.44</span> <span class="t-soft">Ngô Thanh Sơn</span></td><td class="t-warn" style="font-size:14px"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Chờ xác nhận</span></td></tr>
+                  <tr class="row"><td><button type="button" class="linkbtn mono" aria-pressed="false" style="color:var(--ink)">TCLU6630920</button></td><td>40HC</td><td><span class="chip info">Đang chạy</span></td><td>Đã lấy rỗng</td><td>—</td><td>24/10</td><td class="r" style="font-weight:600">5.400.000 ₫</td><td class="nowrap"><span class="mono">51C-306.12</span> <span class="t-soft">Phạm Quốc Bảo</span></td><td class="t-soft">—</td></tr>
+                  <tr class="row"><td><button type="button" class="linkbtn mono" aria-pressed="false" style="color:var(--ink)">OOLU8842105</button></td><td>40HC</td><td><span class="chip off">Chờ điều</span></td><td>Chưa lấy rỗng</td><td>—</td><td>24/10</td><td class="r" style="font-weight:600">5.400.000 ₫</td><td class="nowrap"><span class="mono">—</span> <span class="t-soft">Chưa có xe</span></td><td class="t-soft">—</td></tr>
+                  <tr class="sel"><td><button type="button" class="linkbtn mono" aria-pressed="true" style="color:var(--ink)">OOLU8842110</button></td><td>40HC</td><td><span class="chip off">Chờ điều</span></td><td>Chưa lấy rỗng</td><td>—</td><td>24/10</td><td class="r nowrap t-crit"><span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01"></path></svg>Chưa có giá</span><div class="small">Cần nhập giá tay</div></td><td class="nowrap"><span class="mono">—</span> <span class="t-soft">Chưa có xe</span></td><td class="t-soft">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="s-loading" aria-busy="true" aria-label="Đang tải container" style="padding:8px 20px 20px" id="skCont"></div>
+            <div class="s-empty"><div class="empty" style="border-top:1px solid var(--line)"><span class="dot info" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="12" rx="1.5"></rect><path d="M7.5 10v6M12 10v6M16.5 10v6"></path></svg></span><strong style="font-weight:600">Order này chưa có container</strong><p>Hàng Xuất có thể để trống số cont, tài xế cập nhật khi lấy rỗng. Thêm ít nhất một dòng để điều xe.</p><button type="button" class="btn" style="margin-top:4px">Thêm container</button></div></div>
+          </section>
+
+          <section class="card s-normal" aria-labelledby="cd" style="padding:20px">
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px"><h2 id="cd">Container <span class="mono">OOLU8842110</span></h2><span>40HC</span><span class="sub">Seal —</span><span class="sub">Xe — Chưa có xe</span><span class="sub">Chưa ghép chuyến</span></div>
+              <div class="crit" role="alert" style="padding:14px 16px;border-radius:10px;display:flex;flex-direction:column;gap:12px">
+                <div class="ic" style="font-weight:600;align-items:flex-start"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9ZM12 8v4M12 16h.01"></path></svg><span>Chưa có giá. Không tìm thấy bảng giá cho 40HC, tuyến Depot Phước Long → Kho Phúc Thịnh, KCN Sóng Thần → Cảng Cát Lái. Nhập giá tay thì mới điều xe cho cont này được.</span></div>
+                <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;color:var(--ink)">
+                  <div class="lab" style="flex:0 1 220px"><label for="mp">Cước nhập tay (₫)</label><input id="mp" class="fi" inputmode="numeric" value="0" aria-invalid="true" aria-describedby="mp-err"><span id="mp-err" class="err"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>Cước phải lớn hơn 0 ₫</span></div>
+                  <label class="lab" style="flex:1 1 260px">Lý do (bắt buộc)<input class="fi" placeholder="Ví dụ: giá báo khách qua email ngày 15/10"></label>
+                  <button type="button" class="btn pri" disabled style="margin-top:27px">Lưu giá tay</button>
+                </div>
+                <span style="font-size:14px;color:var(--ink)">Giá tay được ghi vào lịch sử và cần Kế toán duyệt trước khi lập hóa đơn. Không chấp nhận 0 ₫.</span>
+              </div>
+              <div class="split" style="gap:32px;align-items:flex-start">
+                <div style="flex:3 1 440px;min-width:0;display:flex;flex-direction:column;gap:12px">
+                  <h3>Chuỗi Stop <span style="font-weight:400;color:var(--ink-soft)">· tự sinh theo chiều Xuất</span></h3>
+                  <ol class="stops">
+                    <li><div class="rail" aria-hidden="true"><span class="ring"></span><span class="ln"></span></div><div class="body"><div><span class="mono" style="font-size:14px">PICK_EMPTY</span> <b style="font-weight:600">Lấy rỗng</b> <span class="t-soft">Depot Phước Long</span></div><div class="sub">Kế hoạch 17/10 14:30 · Chưa thực hiện</div></div></li>
+                    <li><div class="rail" aria-hidden="true"><span class="ring"></span><span class="ln"></span></div><div class="body"><div><span class="mono" style="font-size:14px">STUFFING</span> <b style="font-weight:600">Đóng hàng</b> <span class="t-soft">Kho Phúc Thịnh, KCN Sóng Thần</span></div><div class="sub">Kế hoạch 17/10 15:30 · Chưa thực hiện</div></div></li>
+                    <li><div class="rail" aria-hidden="true"><span class="ring"></span></div><div class="body"><div><span class="mono" style="font-size:14px">PORT_IN</span> <b style="font-weight:600">Hạ cảng</b> <span class="t-soft">Cảng Cát Lái</span></div><div class="sub">Kế hoạch 17/10 16:30 · Chưa thực hiện</div></div></li>
+                  </ol>
+                </div>
+                <div style="flex:2 1 320px;min-width:0;display:flex;flex-direction:column;gap:12px">
+                  <h3>Giá của container</h3>
+                  <dl class="price">
+                    <div><dt>Cước snapshot</dt><dd class="t-crit">Chưa có giá</dd></div>
+                    <div style="border-bottom-color:var(--line-strong)"><dt style="font-weight:700">Doanh thu cont</dt><dd class="t-crit">Chưa tính được</dd></div>
+                    <div><dt>Chi phí phân bổ <span class="sub">· chưa phân bổ</span></dt><dd>Chưa phân bổ</dd></div>
+                    <div style="border:0"><dt style="font-weight:700">Lãi lỗ cont</dt><dd class="t-crit">Chưa tính được</dd></div>
+                  </dl>
+                  <div style="padding:10px 12px;border-radius:8px;background:var(--surface-2);font-size:14px"><b>Chi hộ</b> <span class="t-soft">· thu lại của khách, không phải doanh thu</span><div class="t-soft">Chưa phát sinh</div></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card pad" aria-labelledby="au">
+            <h2 id="au" style="margin-bottom:8px">Lịch sử thay đổi</h2>
+            <ol class="audit">
+              <li><span class="at">17/10 13:58</span><span class="who">Trần Thị Lan</span><span class="what">Gán xe 51C-306.12, tài xế Phạm Quốc Bảo cho TCLU6630920</span></li>
+              <li><span class="at">16/10 11:20</span><span class="who">Nguyễn Văn Hùng</span><span class="what">Tách ONEU4482099 khỏi chuyến TWIN_20 TRIP-2610-0897, hệ thống đánh dấu cần tính lại giá</span></li>
+              <li><span class="at">15/10 16:41</span><span class="who">Hệ thống</span><span class="what">Không tìm thấy bảng giá cho OOLU8842110 (40HC, Phước Long → KCN Sóng Thần → Cát Lái)</span></li>
+              <li><span class="at">15/10 16:40</span><span class="who">Nguyễn Văn Hùng</span><span class="what">Tạo Order với 5 container, dán từ email của khách</span></li>
+            </ol>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var root=document.getElementById('root');
+  function press(attr,val){document.querySelectorAll('[data-set-'+attr+']').forEach(function(b){if(b.classList.contains('pill'))b.setAttribute('aria-pressed',String(b.getAttribute('data-set-'+attr)===val));});}
+  document.querySelectorAll('[data-set-state]').forEach(function(b){b.addEventListener('click',function(){var v=b.getAttribute('data-set-state');root.setAttribute('data-state',v);press('state',v);});});
+  document.querySelectorAll('[data-set-view]').forEach(function(b){b.addEventListener('click',function(){var v=b.getAttribute('data-set-view');root.setAttribute('data-view',v);press('view',v);});});
+  document.querySelectorAll('.exp').forEach(function(b){b.addEventListener('click',function(){var id=b.getAttribute('aria-controls');var open=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',String(open));var n=b.getAttribute('aria-label').replace(/^(Thu gọn|Xem) container của /,'');b.setAttribute('aria-label',(open?'Thu gọn':'Xem')+' container của '+n);if(id){var r=document.getElementById(id);if(r)r.hidden=!open;}});});
+  var boxes=[].slice.call(document.querySelectorAll('.selOne')),all=document.getElementById('selAll'),bulk=document.getElementById('bulk'),lbl=document.getElementById('bulkLabel');
+  function sync(){var n=boxes.filter(function(x){return x.checked;}).length;bulk.classList.toggle('on',n>0);lbl.textContent='Đã chọn '+n+' Order';all.checked=n===boxes.length;boxes.forEach(function(x){x.closest('tr').style.background=x.checked?'var(--info-soft)':'';});}
+  boxes.forEach(function(x){x.addEventListener('change',sync);});
+  all.addEventListener('change',function(){boxes.forEach(function(x){x.checked=all.checked;});sync();});
+  document.getElementById('clearSel').addEventListener('click',function(){boxes.forEach(function(x){x.checked=false;});sync();});
+  var w=['140px','170px','120px','160px','130px','150px'],tb=document.getElementById('skBody'),sc=document.getElementById('skCont');
+  w.forEach(function(x){var tr=document.createElement('tr');[['18px','18px'],['120px'],[x],['90px'],['90px'],['96px'],['100px'],['110px','22px']].forEach(function(c){var td=document.createElement('td');var s=document.createElement('span');s.className='sk';s.style.width=c[0];if(c[1])s.style.height=c[1];td.appendChild(s);tr.appendChild(td);});tb.appendChild(tr);});
+  w.slice(0,5).forEach(function(x){var d=document.createElement('div');d.style.cssText='display:flex;gap:24px;align-items:center;margin-top:14px';['130px','48px','100px',x,'80px','80px'].forEach(function(v){var s=document.createElement('span');s.className='sk';s.style.width=v;d.appendChild(s);});sc.appendChild(d);});
+})();
+</script>
+</body></html>

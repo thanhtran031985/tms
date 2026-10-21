@@ -1,0 +1,394 @@
+<!-- @dsCard group="Màn hình" height=1600 width=1440 subtitle="Kế toán duyệt phiếu dầu, xem hạn mức lít và tiêu hao full-to-full từng xe so với định mức L/100km." -->
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Screen06 Phiếu dầu và định mức</title><style>
+body{margin:0;background:var(--bg)}
+.tms{font-family:var(--font-ui);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);min-height:100vh}
+.tms *{box-sizing:border-box}
+.tms .mono{font-family:var(--font-mono);font-weight:500}
+.tms :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tms button{font-family:inherit}
+.statebar{display:flex;align-items:center;gap:8px;padding:8px 24px;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-soft)}
+.statebar button{min-height:36px;padding:0 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
+.statebar button[aria-pressed="true"],.seg[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.shell{display:flex;min-height:calc(100vh - 53px)}
+.side{width:240px;flex:none;padding:16px 12px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-weight:500;font-size:15px}
+.nav-item:hover{background:var(--surface-2)}
+.nav-item.cur{background:var(--info-soft);color:var(--info);font-weight:600}
+.badge{min-width:24px;padding:0 6px;border-radius:999px;background:var(--crit-soft);color:var(--crit);font-size:13px;font-weight:700;text-align:center}
+.col{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:12px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--line)}
+.tenant{height:44px;padding:0 12px;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px;font-weight:600}
+.tenant .ab{width:28px;height:28px;border-radius:6px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.search{position:relative;flex:1;max-width:480px}
+.search svg{position:absolute;left:14px;top:13px;color:var(--ink-soft)}
+.search input{width:100%;height:44px;padding:0 48px 0 42px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px}
+.search kbd{position:absolute;right:12px;top:11px;padding:0 6px;border:1px solid var(--line);border-radius:4px;font-family:inherit;font-size:13px;color:var(--ink-soft)}
+.live{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+[data-state=error] .live i{background:var(--warn)}
+.iconbtn{width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.user{display:flex;align-items:center;gap:8px;font-size:15px;line-height:1.2}
+.user .av{width:32px;height:32px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+main{max-width:1240px;padding:24px;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.01em}
+h2{margin:0;font-size:20px;font-weight:600}
+.soft{color:var(--ink-soft)}.sm{font-size:14px}.b{font-weight:600}.blk{display:block}.nw{white-space:nowrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{padding:16px;display:flex;flex-direction:column;gap:4px}
+.kl{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft)}
+.ki{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.kv{font-size:28px;line-height:1.15;font-weight:700}
+.t-crit{background:var(--crit-soft);color:var(--crit)}.t-warn{background:var(--warn-soft);color:var(--warn)}.t-ok{background:var(--ok-soft);color:var(--ok)}.t-off{background:var(--off-soft);color:var(--off)}.t-info{background:var(--info-soft);color:var(--info)}
+.t-crit-bg{background:var(--crit)}.t-warn-bg{background:var(--warn)}.t-ok-bg{background:var(--ok)}
+.crit-t{color:var(--crit);font-weight:600;font-size:13px}
+.views,.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px}
+.views .tab{min-height:44px;padding:0 16px;font-size:15px;font-weight:600;border-color:var(--line-strong);background:var(--surface)}
+.tab:hover{background:var(--surface-2)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.count{min-width:20px;padding:0 6px;border-radius:999px;background:var(--surface-2);color:var(--ink);font-size:12px;font-weight:700;text-align:center}
+.tab[aria-selected="true"] .count{background:var(--surface);color:var(--ink)}
+.head{padding:16px 20px 12px;display:flex;flex-direction:column;gap:12px}
+.hrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.tools{display:flex;align-items:center;gap:12px}
+.field{min-height:44px;padding:0 12px 0 36px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;width:260px}
+.fwrap{position:relative}.fwrap svg{position:absolute;left:10px;top:13px;color:var(--ink-soft)}
+.cb{display:flex;align-items:center;gap:8px;min-height:44px;font-size:15px;cursor:pointer}
+.cb input,.chk input{width:20px;height:20px;accent-color:var(--primary)}
+.btn{min-height:44px;padding:0 16px;border-radius:8px;font-size:15px;font-weight:600;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap}
+.btn-sm{min-height:40px;padding:0 14px}
+.btn-primary{background:var(--primary);color:var(--on-primary);border:1px solid var(--primary)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-sec{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
+.btn-sec:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:6px;font-size:13px;font-weight:700;white-space:nowrap}
+.scroll{overflow-x:auto;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%}
+th{font-size:13px;font-weight:600;color:var(--ink-soft);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}
+tbody tr:hover{background:var(--surface-2)}
+.num{text-align:right;white-space:nowrap}
+.p0{padding:0}.chk{display:flex;align-items:center;justify-content:center;width:44px;height:52px;cursor:pointer}
+.flags{display:flex;flex-wrap:wrap;gap:4px}
+.rowh{background:transparent;color:var(--ink);font-size:15px}
+.foot{margin:0;padding:12px 20px;display:flex;flex-wrap:wrap;gap:4px 24px;font-size:14px;color:var(--ink-soft);border-top:1px solid var(--line)}
+.empty{padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.eic{width:48px;height:48px;border-radius:50%;background:var(--info-soft);color:var(--info);display:flex;align-items:center;justify-content:center}
+.chartc{padding:20px;display:flex;flex-direction:column;gap:14px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:var(--ink-soft)}
+.legend span{display:flex;align-items:center;gap:6px}
+.cg{display:grid;grid-template-columns:170px 1fr 300px;gap:0 16px;align-items:center}
+.axis{position:relative;height:18px;font-size:12px;color:var(--ink-soft)}
+.axis span{position:absolute;transform:translateX(-50%)}
+.clist{margin:0;padding:0;list-style:none}
+.clist li{display:grid;grid-template-columns:170px 1fr 300px;gap:0 16px;align-items:center;min-height:40px;border-top:1px solid var(--line)}
+.track{position:relative;height:28px}
+.track i{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+.track .seg{position:absolute;top:11px;height:6px;border-radius:3px;opacity:.45}
+.track .norm{position:absolute;top:2px;bottom:2px;width:2px;background:var(--ink);transform:translateX(-1px)}
+.track .mk{position:absolute;top:5px;transform:translateX(-50%)}
+.track .nodata{position:absolute;left:0;right:0;top:4px;height:20px;border:1px dashed var(--line-strong);border-radius:4px;background:var(--surface-2)}
+.val{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:14px}
+.val strong{font-size:15px}
+.tbox{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.alert{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--warn);border-radius:12px;background:var(--warn-soft)}
+.alert svg{color:var(--warn);flex:none}
+.stack{display:flex;flex-direction:column;gap:16px}
+.lv-err{display:none}[data-state=error] .lv-err{display:inline}[data-state=error] .lv-ok{display:none}
+.sk{display:block;background:var(--surface-2);border-radius:6px;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.skrow{display:flex;gap:16px;align-items:center}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.s-loading,.s-empty,.s-error{display:none}
+[data-state=loading] .s-normal,[data-state=empty] .s-normal{display:none}
+[data-state=loading] .s-loading,[data-state=empty] .s-empty,[data-state=error] .s-error{display:flex}
+[data-state=empty] .h-normal{display:none}
+.h-empty{display:none}[data-state=empty] .h-empty{display:block}
+[data-view=table] .v-chart,[data-view=chart] .v-table{display:none}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}.tms *{transition:none!important}}
+</style></head><body>
+<div class="tms" id="root" data-state="normal">
+<div class="statebar" role="group" aria-label="Trạng thái dữ liệu xem trước">
+  <span>Trạng thái:</span>
+  <button type="button" data-s="normal" aria-pressed="true">Bình thường</button>
+  <button type="button" data-s="loading" aria-pressed="false">Đang tải</button>
+  <button type="button" data-s="empty" aria-pressed="false">Trống</button>
+  <button type="button" data-s="error" aria-pressed="false">Lỗi</button>
+</div>
+<div class="shell">
+<nav class="side" aria-label="Điều hướng chính">
+  <div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="6" fill="var(--primary)"></rect><rect x="7" y="10" width="18" height="12" rx="1.5" stroke="var(--on-primary)" stroke-width="2"></rect><path d="M11.5 13v6M16 13v6M20.5 13v6" stroke="var(--on-primary)" stroke-width="2" stroke-linecap="round"></path></svg>TMS Container</div>
+  <a href="Home.dc.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span style="flex:1">Trang chủ</span></a><a href="Dispatch.dc.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v13h-4z"></path></svg><span style="flex:1">Điều vận</span><span class="badge">14</span></a><a href="Orders.dc.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8l4 4v12H4V4h4M14 4v4h4M8 12h8M8 16h5"></path></svg><span style="flex:1">Đơn hàng</span></a><a href="FleetMap.dc.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"></path></svg><span style="flex:1">Bản đồ đội xe</span></a><a href="Fuel.dc.html" class="nav-item cur" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"></path></svg><span style="flex:1">Phiếu dầu</span></a><a href="Reconcile.dc.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"></path></svg><span style="flex:1">Đối soát</span></a><a href="CostAlloc.dc.html" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.7 5 3.2 5 1.3 5 3.3-2.2 3.3-5 3.3-5-1.2-5-3.1"></path></svg><span style="flex:1">Phân bổ chi phí</span></a><a href="#bao-cao" class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"></path></svg><span style="flex:1">Báo cáo</span></a>
+</nav>
+<div class="col">
+<header class="top">
+  <button type="button" class="tenant" aria-label="Đổi công ty, đang ở Vận tải Phúc An"><span class="ab" aria-hidden="true">PA</span>Vận tải Phúc An<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+  <div class="search"><label for="q" class="sr">Tìm container, Order, biển số</label><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input id="q" type="search" placeholder="Tìm container, Order, biển số"><kbd>/</kbd></div>
+  <span class="live"><i aria-hidden="true"></i><span class="lv-ok">Trực tiếp · cập nhật 14:20</span><span class="lv-err">Mất kết nối · dữ liệu lúc 14:05</span></span>
+  <button type="button" class="iconbtn" aria-label="Chế độ tối"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg></button>
+  <span class="user"><span class="av" aria-hidden="true">M</span><span><span class="blk b">Lê Thị Mai</span><span style="font-size:13px" class="soft">Kế toán</span></span></span>
+</header>
+<main>
+  <div>
+    <h1 class="h-normal">6 giao dịch dầu chờ duyệt, 4 có cờ bất thường. Phiếu PD-2610-0198 hết hạn lúc 08:30 ngày 18/10, còn 18 giờ 10</h1>
+    <h1 class="h-empty">Chưa có phiếu dầu nào trong tháng 10/2026</h1>
+    <p style="margin:4px 0 0" class="soft">Tháng 10/2026 · 11 phiếu · giá dầu DO 0,05S niêm yết hôm nay 19.850 ₫/L</p>
+  </div>
+
+  <div class="alert s-error" role="alert"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg><span style="flex:1"><strong style="color:var(--warn)">Không tải được giao dịch mới.</strong> Mất kết nối máy chủ lúc 14:20. Bảng dưới đây là dữ liệu lúc 14:05, chưa có giao dịch đổ sau giờ đó.</span><button type="button" class="btn btn-sm btn-sec" data-s="normal">Thử lại</button></div>
+
+  <div class="s-loading" aria-busy="true" aria-label="Đang tải phiếu dầu" style="flex-direction:column;gap:20px">
+    <div class="kpis"><div class="card kpi"><span class="sk" style="width:60%;height:16px"></span><span class="sk" style="width:40%;height:32px"></span><span class="sk" style="width:80%;height:14px"></span></div><div class="card kpi"><span class="sk" style="width:60%;height:16px"></span><span class="sk" style="width:40%;height:32px"></span><span class="sk" style="width:80%;height:14px"></span></div><div class="card kpi"><span class="sk" style="width:60%;height:16px"></span><span class="sk" style="width:40%;height:32px"></span><span class="sk" style="width:80%;height:14px"></span></div><div class="card kpi"><span class="sk" style="width:60%;height:16px"></span><span class="sk" style="width:40%;height:32px"></span><span class="sk" style="width:80%;height:14px"></span></div></div>
+    <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px"><h2>Danh sách phiếu · tháng 10/2026</h2><div class="skrow"><span class="sk" style="width:20px;height:20px"></span><span class="sk" style="width:140px;height:18px"></span><span class="sk" style="width:160px;height:18px"></span><span class="sk" style="flex:1;height:18px"></span><span class="sk" style="width:120px;height:18px"></span></div><div class="skrow"><span class="sk" style="width:20px;height:20px"></span><span class="sk" style="width:140px;height:18px"></span><span class="sk" style="width:160px;height:18px"></span><span class="sk" style="flex:1;height:18px"></span><span class="sk" style="width:120px;height:18px"></span></div><div class="skrow"><span class="sk" style="width:20px;height:20px"></span><span class="sk" style="width:140px;height:18px"></span><span class="sk" style="width:160px;height:18px"></span><span class="sk" style="flex:1;height:18px"></span><span class="sk" style="width:120px;height:18px"></span></div><div class="skrow"><span class="sk" style="width:20px;height:20px"></span><span class="sk" style="width:140px;height:18px"></span><span class="sk" style="width:160px;height:18px"></span><span class="sk" style="flex:1;height:18px"></span><span class="sk" style="width:120px;height:18px"></span></div><div class="skrow"><span class="sk" style="width:20px;height:20px"></span><span class="sk" style="width:140px;height:18px"></span><span class="sk" style="width:160px;height:18px"></span><span class="sk" style="flex:1;height:18px"></span><span class="sk" style="width:120px;height:18px"></span></div><div class="skrow"><span class="sk" style="width:20px;height:20px"></span><span class="sk" style="width:140px;height:18px"></span><span class="sk" style="width:160px;height:18px"></span><span class="sk" style="flex:1;height:18px"></span><span class="sk" style="width:120px;height:18px"></span></div><span class="soft" style="font-size:13px">Đang tải giao dịch tháng 10/2026…</span></div>
+  </div>
+
+  <section class="card empty s-empty" aria-labelledby="em-t">
+    <span class="eic" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"></path></svg></span>
+    <h2 id="em-t">Chưa có phiếu dầu nào trong tháng 10/2026</h2>
+    <p style="margin:0;max-width:520px" class="soft">Tháng mới chưa phát hành phiếu nào nên chưa có giao dịch để duyệt và chưa tính được tiêu hao full-to-full. Phát hành phiếu đầu tiên để tài xế đổ dầu tại cây xăng đối tác.</p>
+    <button type="button" class="btn btn-primary">Phát hành phiếu</button>
+  </section>
+
+  <div class="s-normal stack">
+    <section class="kpis" aria-label="Chỉ số phiếu dầu"><div class="card kpi"><span class="kl"><span class="ki t-warn" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg></span>Chờ duyệt</span><span class="kv" style="color:var(--ink)">6 giao dịch</span><span class="soft sm">1.572,9 L · 31.400.865 ₫</span></div><div class="card kpi"><span class="kl"><span class="ki t-crit" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg></span>Có cờ bất thường</span><span class="kv" style="color:var(--crit)">4 giao dịch</span><span class="soft sm">Phải duyệt từng phiếu, kèm lý do</span></div><div class="card kpi"><span class="kl"><span class="ki t-crit" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14l4-4M3.5 18a9 9 0 1 1 17 0z"></path></svg></span>Vượt định mức trên 5%</span><span class="kv" style="color:var(--crit)">1 xe</span><span class="soft sm">51C-482.17 · 41,2 / 36,0 L/100km</span></div><div class="card kpi"><span class="kl"><span class="ki t-info" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg></span>Phiếu còn hiệu lực</span><span class="kv" style="color:var(--ink)">1 phiếu</span><span class="soft sm">PD-2610-0198 · 51C-735.09</span></div></section>
+    <div class="views" role="tablist" aria-label="Chọn việc trên màn phiếu dầu">
+      <button type="button" role="tab" class="tab" aria-selected="true">Danh sách phiếu</button>
+      <button type="button" role="tab" class="tab" aria-selected="false">Phát hành phiếu</button>
+      <button type="button" role="tab" class="tab" aria-selected="false">Duyệt giao dịch <span class="count">6</span></button>
+    </div>
+
+    <section class="card" aria-labelledby="ds" style="overflow:hidden">
+      <div class="head">
+        <div class="hrow">
+          <h2 id="ds">Danh sách phiếu · tháng 10/2026</h2>
+          <div class="tools">
+            <div class="fwrap"><label for="qp" class="sr">Tìm mã phiếu, biển số, tài xế</label><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input id="qp" class="field" type="search" placeholder="Mã phiếu, biển số, tài xế"></div>
+            <label class="cb"><input type="checkbox" id="onlyFlag">Chỉ phiếu có cờ bất thường</label>
+            <button type="button" class="btn btn-primary"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Phát hành phiếu</button>
+          </div>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Lọc theo trạng thái phiếu"><button type="button" role="tab" class="tab" data-f="all" aria-selected="false">Tất cả <span class="count">11</span></button><button type="button" role="tab" class="tab" data-f="VOUCHER_ISSUED" aria-selected="false">Đã phát hành <span class="count">1</span></button><button type="button" role="tab" class="tab" data-f="FUELED" aria-selected="true">Đã đổ, chờ duyệt <span class="count">6</span></button><button type="button" role="tab" class="tab" data-f="APPROVED" aria-selected="false">Đã duyệt <span class="count">1</span></button><button type="button" role="tab" class="tab" data-f="RECONCILED" aria-selected="false">Đã đối soát <span class="count">1</span></button><button type="button" role="tab" class="tab" data-f="VOIDED" aria-selected="false">Đã hủy <span class="count">1</span></button><button type="button" role="tab" class="tab" data-f="EXPIRED" aria-selected="false">Hết hạn <span class="count">1</span></button></div>
+      </div>
+      <div class="scroll">
+        <table style="min-width:1180px">
+          <thead><tr><th scope="col" style="width:44px"><span class="sr">Chọn để duyệt</span></th><th scope="col">Mã phiếu · trạng thái</th><th scope="col">Xe · tài xế</th><th scope="col">Cây xăng</th><th scope="col" class="num">Hạn mức</th><th scope="col" class="num">Lít thực đổ</th><th scope="col" class="num">Đơn giá</th><th scope="col" class="num">Thành tiền</th><th scope="col" class="num">L/100km · định mức</th><th scope="col">Cờ bất thường</th><th scope="col"><span class="sr">Thao tác</span></th></tr></thead>
+          <tbody id="rows">
+<tr data-st="VOUCHER_ISSUED" data-flag="0">
+<td class="p0"><label class="chk" title="Chỉ chọn được phiếu đã đổ, chờ duyệt"><input type="checkbox" aria-label="Chọn PD-2610-0198 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0198</span><span class="chip t-info" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg>Đã phát hành</span></td>
+<td class="nw"><span class="mono b blk">51C-735.09</span><span class="soft sm">Trịnh Hữu Lợi</span></td>
+<td><span class="blk">PV Oil Sóng Thần</span><span class="soft sm">Phát hành 17/10 08:30 · hạn 18/10 08:30</span></td>
+<td class="num">250 L</td>
+<td class="num b">—</td>
+<td class="num"><span class="blk">—</span></td>
+<td class="num">—</td>
+<td class="num"><span class="blk"><strong style="color:var(--ink)">—</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--ink)"></span></td>
+<td><span class="flags"><span class="soft sm">—</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-sec" disabled title="Phiếu chưa có giao dịch đổ dầu">Xem chi tiết</button></td></tr>
+<tr data-st="FUELED" data-flag="1">
+<td class="p0"><label class="chk" title="Có cờ bất thường, phải duyệt từng giao dịch"><input type="checkbox" aria-label="Chọn PD-2610-0187 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0187</span><span class="chip t-warn" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Đã đổ, chờ duyệt</span></td>
+<td class="nw"><span class="mono b blk">51C-482.17</span><span class="soft sm">Trần Văn Lộc</span></td>
+<td><span class="blk">Petrolimex CH 12 Tân Vạn</span><span class="soft sm">Đổ 17/10 11:42</span></td>
+<td class="num">300 L</td>
+<td class="num b">286,4 L</td>
+<td class="num"><span class="blk">19.850 ₫</span></td>
+<td class="num">5.685.040 ₫</td>
+<td class="num"><span class="blk"><strong style="color:var(--crit)">41,2</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--crit)">+14,4%</span></td>
+<td><span class="flags"><span class="chip t-crit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Vượt định mức</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-primary">Xem giải trình</button></td></tr>
+<tr data-st="FUELED" data-flag="1">
+<td class="p0"><label class="chk" title="Có cờ bất thường, phải duyệt từng giao dịch"><input type="checkbox" aria-label="Chọn PD-2610-0191 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0191</span><span class="chip t-warn" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Đã đổ, chờ duyệt</span></td>
+<td class="nw"><span class="mono b blk">51C-517.06</span><span class="soft sm">Lê Minh Tâm</span></td>
+<td><span class="blk">PV Oil Sóng Thần</span><span class="soft sm">Đổ 17/10 10:18</span></td>
+<td class="num">250 L</td>
+<td class="num b">241,0 L</td>
+<td class="num"><span class="blk">19.850 ₫</span></td>
+<td class="num">4.783.850 ₫</td>
+<td class="num"><span class="blk"><strong style="color:var(--warn)">38,1</strong> <span class="soft">/ 36,5</span></span><span class="sm b" style="color:var(--warn)">+4,4%</span></td>
+<td><span class="flags"><span class="chip t-crit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Lệch GPS > 10%</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-primary">Xem giải trình</button></td></tr>
+<tr data-st="FUELED" data-flag="1">
+<td class="p0"><label class="chk" title="Có cờ bất thường, phải duyệt từng giao dịch"><input type="checkbox" aria-label="Chọn PD-2610-0195 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0195</span><span class="chip t-warn" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Đã đổ, chờ duyệt</span></td>
+<td class="nw"><span class="mono b blk">51D-028.91</span><span class="soft sm">Đặng Văn Khoa</span></td>
+<td><span class="blk">Petrolimex CH 12 Tân Vạn</span><span class="soft sm">Đổ 17/10 08:12</span></td>
+<td class="num">300 L</td>
+<td class="num b">298,0 L</td>
+<td class="num"><span class="blk">20.450 ₫</span><span class="crit-t">niêm yết 19.850 ₫</span></td>
+<td class="num">6.094.100 ₫</td>
+<td class="num"><span class="blk"><strong style="color:var(--warn)">37,0</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--warn)">+2,8%</span></td>
+<td><span class="flags"><span class="chip t-crit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Giá lệch niêm yết</span><span class="chip t-crit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Ảnh trùng</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-primary">Xem giải trình</button></td></tr>
+<tr data-st="FUELED" data-flag="1">
+<td class="p0"><label class="chk" title="Có cờ bất thường, phải duyệt từng giao dịch"><input type="checkbox" aria-label="Chọn PD-2610-0189 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0189</span><span class="chip t-warn" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Đã đổ, chờ duyệt</span></td>
+<td class="nw"><span class="mono b blk">51C-611.73</span><span class="soft sm">Huỳnh Tấn Phát</span></td>
+<td><span class="blk">PV Oil Linh Xuân</span><span class="soft sm">Đổ 16/10 16:30</span></td>
+<td class="num">260 L</td>
+<td class="num b">251,2 L</td>
+<td class="num"><span class="blk">19.850 ₫</span></td>
+<td class="num">4.986.320 ₫</td>
+<td class="num"><span class="blk"><strong style="color:var(--ink)">—</strong> <span class="soft">/ 36,5</span></span><span class="sm b" style="color:var(--ink)">không tính được</span></td>
+<td><span class="flags"><span class="chip t-crit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Odometer lùi</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-primary">Xem giải trình</button></td></tr>
+<tr data-st="FUELED" data-flag="0">
+<td class="p0"><label class="chk" title="Chọn để duyệt hàng loạt"><input type="checkbox" aria-label="Chọn PD-2610-0193 để duyệt hàng loạt"></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0193</span><span class="chip t-warn" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Đã đổ, chờ duyệt</span></td>
+<td class="nw"><span class="mono b blk">51C-306.12</span><span class="soft sm">Phạm Quốc Bảo</span></td>
+<td><span class="blk">Petrolimex CH 05 Cát Lái</span><span class="soft sm">Đổ 17/10 09:50</span></td>
+<td class="num">280 L</td>
+<td class="num b">262,5 L</td>
+<td class="num"><span class="blk">19.850 ₫</span></td>
+<td class="num">5.210.625 ₫</td>
+<td class="num"><span class="blk"><strong style="color:var(--ink)">35,4</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--ink)">−1,7%</span></td>
+<td><span class="flags"><span class="soft sm">Không có</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-sec">Xem và duyệt</button></td></tr>
+<tr data-st="FUELED" data-flag="0">
+<td class="p0"><label class="chk" title="Chọn để duyệt hàng loạt"><input type="checkbox" aria-label="Chọn PD-2610-0194 để duyệt hàng loạt"></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0194</span><span class="chip t-warn" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Đã đổ, chờ duyệt</span></td>
+<td class="nw"><span class="mono b blk">51C-390.44</span><span class="soft sm">Võ Thành Nhân</span></td>
+<td><span class="blk">PV Oil Sóng Thần</span><span class="soft sm">Đổ 17/10 09:05</span></td>
+<td class="num">250 L</td>
+<td class="num b">233,8 L</td>
+<td class="num"><span class="blk">19.850 ₫</span></td>
+<td class="num">4.640.930 ₫</td>
+<td class="num"><span class="blk"><strong style="color:var(--ink)">34,9</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--ink)">−3,1%</span></td>
+<td><span class="flags"><span class="soft sm">Không có</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-sec">Xem và duyệt</button></td></tr>
+<tr data-st="APPROVED" data-flag="0">
+<td class="p0"><label class="chk" title="Chỉ chọn được phiếu đã đổ, chờ duyệt"><input type="checkbox" aria-label="Chọn PD-2610-0182 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0182</span><span class="chip t-ok" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Đã duyệt</span></td>
+<td class="nw"><span class="mono b blk">51C-204.58</span><span class="soft sm">Ngô Văn Sang</span></td>
+<td><span class="blk">Petrolimex CH 05 Cát Lái</span><span class="soft sm">Đổ 16/10 07:20 · duyệt 16/10 15:02</span></td>
+<td class="num">280 L</td>
+<td class="num b">270,0 L</td>
+<td class="num"><span class="blk">19.850 ₫</span></td>
+<td class="num">5.359.500 ₫</td>
+<td class="num"><span class="blk"><strong style="color:var(--ink)">35,1</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--ink)">−2,5%</span></td>
+<td><span class="flags"><span class="soft sm">Không có</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-sec">Xem chi tiết</button></td></tr>
+<tr data-st="RECONCILED" data-flag="0">
+<td class="p0"><label class="chk" title="Chỉ chọn được phiếu đã đổ, chờ duyệt"><input type="checkbox" aria-label="Chọn PD-2610-0170 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0170</span><span class="chip t-ok" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12.5l5 5L18 6.5M12 17.5 22 6.5"></path></svg>Đã đối soát</span></td>
+<td class="nw"><span class="mono b blk">51C-118.20</span><span class="soft sm">Bùi Minh Đức</span></td>
+<td><span class="blk">Petrolimex CH 12 Tân Vạn</span><span class="soft sm">Đổ 14/10 06:55 · bảng kê T10 đợt 1</span></td>
+<td class="num">300 L</td>
+<td class="num b">290,6 L</td>
+<td class="num"><span class="blk">19.700 ₫</span></td>
+<td class="num">5.724.820 ₫</td>
+<td class="num"><span class="blk"><strong style="color:var(--ink)">35,8</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--ink)">−0,6%</span></td>
+<td><span class="flags"><span class="soft sm">Không có</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-sec">Xem chi tiết</button></td></tr>
+<tr data-st="VOIDED" data-flag="0">
+<td class="p0"><label class="chk" title="Chỉ chọn được phiếu đã đổ, chờ duyệt"><input type="checkbox" aria-label="Chọn PD-2610-0175 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0175</span><span class="chip t-off" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Đã hủy</span></td>
+<td class="nw"><span class="mono b blk">51C-390.44</span><span class="soft sm">Võ Thành Nhân</span></td>
+<td><span class="blk">PV Oil Linh Xuân</span><span class="soft sm">Hủy 15/10 10:12 · đổi cây xăng</span></td>
+<td class="num">250 L</td>
+<td class="num b">—</td>
+<td class="num"><span class="blk">—</span></td>
+<td class="num">—</td>
+<td class="num"><span class="blk"><strong style="color:var(--ink)">—</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--ink)"></span></td>
+<td><span class="flags"><span class="soft sm">—</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-sec" disabled title="Phiếu chưa có giao dịch đổ dầu">Xem chi tiết</button></td></tr>
+<tr data-st="EXPIRED" data-flag="0">
+<td class="p0"><label class="chk" title="Chỉ chọn được phiếu đã đổ, chờ duyệt"><input type="checkbox" aria-label="Chọn PD-2610-0160 để duyệt hàng loạt" disabled></label></td>
+<td class="nw"><span class="mono b blk">PD-2610-0160</span><span class="chip t-off" style="margin-top:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9"></path></svg>Hết hạn</span></td>
+<td class="nw"><span class="mono b blk">51C-306.12</span><span class="soft sm">Phạm Quốc Bảo</span></td>
+<td><span class="blk">PV Oil Sóng Thần</span><span class="soft sm">Hết hạn 14/10 23:59 · chưa đổ</span></td>
+<td class="num">280 L</td>
+<td class="num b">—</td>
+<td class="num"><span class="blk">—</span></td>
+<td class="num">—</td>
+<td class="num"><span class="blk"><strong style="color:var(--ink)">—</strong> <span class="soft">/ 36,0</span></span><span class="sm b" style="color:var(--ink)"></span></td>
+<td><span class="flags"><span class="soft sm">—</span></span></td>
+<td class="num nw"><button type="button" class="btn btn-sm btn-sec" disabled title="Phiếu chưa có giao dịch đổ dầu">Xem chi tiết</button></td></tr>
+          </tbody>
+        </table>
+        <div class="empty" id="noRows" hidden><strong>Không có phiếu nào khớp bộ lọc</strong><span class="soft">Bộ lọc trạng thái hoặc "Chỉ phiếu có cờ" đang loại hết phiếu.</span><button type="button" class="btn btn-sm btn-sec" id="clearF">Xóa bộ lọc</button></div>
+      </div>
+      <p class="foot"><span>Định mức bình quân tính theo trạng thái tải (có hàng / rỗng) trên các chuyến từ lần đổ đầy trước.</span><span>"—" là chưa có số liệu, không phải 0.</span></p>
+    </section>
+
+    <section class="card chartc" id="chartBox" data-view="chart" aria-labelledby="ch-t">
+      <div class="hrow" style="align-items:flex-start">
+        <div><h2 id="ch-t">Tiêu hao full-to-full so với định mức</h2><p style="margin:2px 0 0" class="soft sm">L/100km = lít đổ đầy lần này ÷ km odometer từ lần đổ đầy trước × 100 · lần đổ gần nhất của mỗi xe · ngưỡng cờ: cao hơn định mức trên 5%</p></div>
+        <div role="group" aria-label="Cách hiển thị" style="display:flex;gap:6px">
+          <button type="button" class="btn btn-sm btn-sec seg" data-v="chart" aria-pressed="true">Biểu đồ</button>
+          <button type="button" class="btn btn-sm btn-sec seg" data-v="table" aria-pressed="false">Bảng số liệu</button>
+        </div>
+      </div>
+      <figure class="v-chart" style="margin:0;display:flex;flex-direction:column;gap:8px">
+        <figcaption class="legend">
+          <span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1l7 7-7 7-7-7z" fill="var(--crit)"></path></svg>Vượt định mức trên 5% (gắn cờ)</span>
+          <span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13z" fill="var(--warn)"></path></svg>Cao hơn, trong ngưỡng 5%</span>
+          <span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="var(--ok)"></path></svg>Bằng hoặc thấp hơn định mức</span>
+          <span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1v14" stroke="var(--ink)" stroke-width="2"></path></svg>Định mức của xe</span>
+        </figcaption>
+        <div class="cg"><span></span><div class="axis" aria-hidden="true"><span style="left:0.0%">30</span><span style="left:14.3%">32</span><span style="left:28.6%">34</span><span style="left:42.9%">36</span><span style="left:57.1%">38</span><span style="left:71.4%">40</span><span style="left:85.7%">42</span><span style="left:100.0%">44</span></div><span class="soft" style="font-size:13px">Thực tế / định mức · chênh lệch</span></div>
+        <ul class="clist">
+<li><span><span class="mono b blk">51C-482.17</span><span class="soft" style="font-size:13px">Trần Văn Lộc</span></span><span class="track" aria-hidden="true"><i style="left:0.0%"></i><i style="left:14.3%"></i><i style="left:28.6%"></i><i style="left:42.9%"></i><i style="left:57.1%"></i><i style="left:71.4%"></i><i style="left:85.7%"></i><i style="left:100.0%"></i><span class="seg t-crit-bg" style="left:42.9%;width:37.1%"></span><span class="norm" style="left:42.9%"></span><svg class="mk" width="18" height="18" viewBox="0 0 16 16" style="left:80.0%"><path d="M8 1l7 7-7 7-7-7z" fill="var(--crit)" stroke="var(--surface)" stroke-width="1.5"></path></svg></span><span class="val"><span><strong>41,2</strong> <span class="soft">/ 36,0</span></span><span class="chip t-crit"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1l7 7-7 7-7-7z" fill="currentColor"></path></svg>+14,4% · Vượt định mức</span></span></li>
+<li><span><span class="mono b blk">51C-517.06</span><span class="soft" style="font-size:13px">Lê Minh Tâm</span></span><span class="track" aria-hidden="true"><i style="left:0.0%"></i><i style="left:14.3%"></i><i style="left:28.6%"></i><i style="left:42.9%"></i><i style="left:57.1%"></i><i style="left:71.4%"></i><i style="left:85.7%"></i><i style="left:100.0%"></i><span class="seg t-warn-bg" style="left:46.4%;width:11.4%"></span><span class="norm" style="left:46.4%"></span><svg class="mk" width="18" height="18" viewBox="0 0 16 16" style="left:57.9%"><path d="M8 2l6.5 11.5h-13z" fill="var(--warn)" stroke="var(--surface)" stroke-width="1.5"></path></svg></span><span class="val"><span><strong>38,1</strong> <span class="soft">/ 36,5</span></span><span class="chip t-warn"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13z" fill="currentColor"></path></svg>+4,4% · Cao hơn, trong ngưỡng</span></span></li>
+<li><span><span class="mono b blk">51D-028.91</span><span class="soft" style="font-size:13px">Đặng Văn Khoa</span></span><span class="track" aria-hidden="true"><i style="left:0.0%"></i><i style="left:14.3%"></i><i style="left:28.6%"></i><i style="left:42.9%"></i><i style="left:57.1%"></i><i style="left:71.4%"></i><i style="left:85.7%"></i><i style="left:100.0%"></i><span class="seg t-warn-bg" style="left:42.9%;width:7.1%"></span><span class="norm" style="left:42.9%"></span><svg class="mk" width="18" height="18" viewBox="0 0 16 16" style="left:50.0%"><path d="M8 2l6.5 11.5h-13z" fill="var(--warn)" stroke="var(--surface)" stroke-width="1.5"></path></svg></span><span class="val"><span><strong>37,0</strong> <span class="soft">/ 36,0</span></span><span class="chip t-warn"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13z" fill="currentColor"></path></svg>+2,8% · Cao hơn, trong ngưỡng</span></span></li>
+<li><span><span class="mono b blk">51C-118.20</span><span class="soft" style="font-size:13px">Bùi Minh Đức</span></span><span class="track" aria-hidden="true"><i style="left:0.0%"></i><i style="left:14.3%"></i><i style="left:28.6%"></i><i style="left:42.9%"></i><i style="left:57.1%"></i><i style="left:71.4%"></i><i style="left:85.7%"></i><i style="left:100.0%"></i><span class="seg t-ok-bg" style="left:41.4%;width:1.4%"></span><span class="norm" style="left:42.9%"></span><svg class="mk" width="18" height="18" viewBox="0 0 16 16" style="left:41.4%"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="var(--ok)" stroke="var(--surface)" stroke-width="1.5"></path></svg></span><span class="val"><span><strong>35,8</strong> <span class="soft">/ 36,0</span></span><span class="chip t-ok"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="currentColor"></path></svg>−0,6% · Đạt</span></span></li>
+<li><span><span class="mono b blk">51C-306.12</span><span class="soft" style="font-size:13px">Phạm Quốc Bảo</span></span><span class="track" aria-hidden="true"><i style="left:0.0%"></i><i style="left:14.3%"></i><i style="left:28.6%"></i><i style="left:42.9%"></i><i style="left:57.1%"></i><i style="left:71.4%"></i><i style="left:85.7%"></i><i style="left:100.0%"></i><span class="seg t-ok-bg" style="left:38.6%;width:4.3%"></span><span class="norm" style="left:42.9%"></span><svg class="mk" width="18" height="18" viewBox="0 0 16 16" style="left:38.6%"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="var(--ok)" stroke="var(--surface)" stroke-width="1.5"></path></svg></span><span class="val"><span><strong>35,4</strong> <span class="soft">/ 36,0</span></span><span class="chip t-ok"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="currentColor"></path></svg>−1,7% · Đạt</span></span></li>
+<li><span><span class="mono b blk">51C-204.58</span><span class="soft" style="font-size:13px">Ngô Văn Sang</span></span><span class="track" aria-hidden="true"><i style="left:0.0%"></i><i style="left:14.3%"></i><i style="left:28.6%"></i><i style="left:42.9%"></i><i style="left:57.1%"></i><i style="left:71.4%"></i><i style="left:85.7%"></i><i style="left:100.0%"></i><span class="seg t-ok-bg" style="left:36.4%;width:6.4%"></span><span class="norm" style="left:42.9%"></span><svg class="mk" width="18" height="18" viewBox="0 0 16 16" style="left:36.4%"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="var(--ok)" stroke="var(--surface)" stroke-width="1.5"></path></svg></span><span class="val"><span><strong>35,1</strong> <span class="soft">/ 36,0</span></span><span class="chip t-ok"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="currentColor"></path></svg>−2,5% · Đạt</span></span></li>
+<li><span><span class="mono b blk">51C-390.44</span><span class="soft" style="font-size:13px">Võ Thành Nhân</span></span><span class="track" aria-hidden="true"><i style="left:0.0%"></i><i style="left:14.3%"></i><i style="left:28.6%"></i><i style="left:42.9%"></i><i style="left:57.1%"></i><i style="left:71.4%"></i><i style="left:85.7%"></i><i style="left:100.0%"></i><span class="seg t-ok-bg" style="left:35.0%;width:7.9%"></span><span class="norm" style="left:42.9%"></span><svg class="mk" width="18" height="18" viewBox="0 0 16 16" style="left:35.0%"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="var(--ok)" stroke="var(--surface)" stroke-width="1.5"></path></svg></span><span class="val"><span><strong>34,9</strong> <span class="soft">/ 36,0</span></span><span class="chip t-ok"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="currentColor"></path></svg>−3,1% · Đạt</span></span></li>
+<li><span><span class="mono b blk">51C-611.73</span><span class="soft" style="font-size:13px">Huỳnh Tấn Phát</span></span><span class="track" aria-hidden="true"><i style="left:0.0%"></i><i style="left:14.3%"></i><i style="left:28.6%"></i><i style="left:42.9%"></i><i style="left:57.1%"></i><i style="left:71.4%"></i><i style="left:85.7%"></i><i style="left:100.0%"></i><span class="nodata"></span></span><span class="val"><span><strong>—</strong> <span class="soft">/ 36,5</span></span><span class="chip t-off"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7h10v2H3z" fill="currentColor"></path></svg>Không tính được · odometer lùi</span></span></li>
+        </ul>
+        <p style="margin:0;font-size:13px" class="soft">Trục ngang: L/100km, từ 30 đến 44. Mỗi xe có định mức riêng theo tỉ lệ có hàng / rỗng. Xe 51C-611.73 không tính được vì odometer lùi.</p>
+      </figure>
+      <div class="tbox v-table">
+        <table style="min-width:760px">
+          <caption class="sr">Tiêu hao full-to-full từng xe so với định mức</caption>
+          <thead><tr><th scope="col">Xe</th><th scope="col">Phiếu · tài xế</th><th scope="col" class="num">Km odometer</th><th scope="col" class="num">Lít đổ đầy</th><th scope="col" class="num">Thực tế L/100km</th><th scope="col" class="num">Định mức</th><th scope="col">Chênh lệch</th></tr></thead>
+          <tbody>
+<tr><th scope="row" class="mono rowh">51C-482.17</th><td><span class="mono blk sm">PD-2610-0187</span><span class="soft sm">Trần Văn Lộc</span></td><td class="num">695 km</td><td class="num">286,4 L</td><td class="num b">41,2</td><td class="num">36,0</td><td><span class="chip t-crit"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1l7 7-7 7-7-7z" fill="currentColor"></path></svg>+14,4% · Vượt định mức</span></td></tr>
+<tr><th scope="row" class="mono rowh">51C-517.06</th><td><span class="mono blk sm">PD-2610-0191</span><span class="soft sm">Lê Minh Tâm</span></td><td class="num">633 km</td><td class="num">241,0 L</td><td class="num b">38,1</td><td class="num">36,5</td><td><span class="chip t-warn"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13z" fill="currentColor"></path></svg>+4,4% · Cao hơn, trong ngưỡng</span></td></tr>
+<tr><th scope="row" class="mono rowh">51D-028.91</th><td><span class="mono blk sm">PD-2610-0195</span><span class="soft sm">Đặng Văn Khoa</span></td><td class="num">805 km</td><td class="num">298,0 L</td><td class="num b">37,0</td><td class="num">36,0</td><td><span class="chip t-warn"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l6.5 11.5h-13z" fill="currentColor"></path></svg>+2,8% · Cao hơn, trong ngưỡng</span></td></tr>
+<tr><th scope="row" class="mono rowh">51C-118.20</th><td><span class="mono blk sm">PD-2610-0170</span><span class="soft sm">Bùi Minh Đức</span></td><td class="num">812 km</td><td class="num">290,6 L</td><td class="num b">35,8</td><td class="num">36,0</td><td><span class="chip t-ok"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="currentColor"></path></svg>−0,6% · Đạt</span></td></tr>
+<tr><th scope="row" class="mono rowh">51C-306.12</th><td><span class="mono blk sm">PD-2610-0193</span><span class="soft sm">Phạm Quốc Bảo</span></td><td class="num">741 km</td><td class="num">262,5 L</td><td class="num b">35,4</td><td class="num">36,0</td><td><span class="chip t-ok"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="currentColor"></path></svg>−1,7% · Đạt</span></td></tr>
+<tr><th scope="row" class="mono rowh">51C-204.58</th><td><span class="mono blk sm">PD-2610-0182</span><span class="soft sm">Ngô Văn Sang</span></td><td class="num">769 km</td><td class="num">270,0 L</td><td class="num b">35,1</td><td class="num">36,0</td><td><span class="chip t-ok"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="currentColor"></path></svg>−2,5% · Đạt</span></td></tr>
+<tr><th scope="row" class="mono rowh">51C-390.44</th><td><span class="mono blk sm">PD-2610-0194</span><span class="soft sm">Võ Thành Nhân</span></td><td class="num">670 km</td><td class="num">233,8 L</td><td class="num b">34,9</td><td class="num">36,0</td><td><span class="chip t-ok"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" fill="currentColor"></path></svg>−3,1% · Đạt</span></td></tr>
+<tr><th scope="row" class="mono rowh">51C-611.73</th><td><span class="mono blk sm">PD-2610-0189</span><span class="soft sm">Huỳnh Tấn Phát</span></td><td class="num">âm 760 km</td><td class="num">251,2 L</td><td class="num b">—</td><td class="num">36,5</td><td><span class="chip t-off"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7h10v2H3z" fill="currentColor"></path></svg>Không tính được · odometer lùi</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+</div>
+</div>
+</div>
+<script>
+(function(){
+  var root=document.getElementById('root');
+  root.querySelectorAll('[data-s]').forEach(function(b){b.addEventListener('click',function(){
+    var s=b.getAttribute('data-s');root.setAttribute('data-state',s);
+    root.querySelectorAll('.statebar [data-s]').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-s')===s?'true':'false');});
+  });});
+  var filt='FUELED',only=document.getElementById('onlyFlag');
+  function apply(){
+    var n=0;root.querySelectorAll('#rows tr').forEach(function(tr){
+      var ok=(filt==='all'||tr.getAttribute('data-st')===filt)&&(!only.checked||tr.getAttribute('data-flag')==='1');
+      tr.hidden=!ok;if(ok)n++;});
+    document.getElementById('noRows').hidden=n>0;
+    root.querySelectorAll('.tabs .tab').forEach(function(t){t.setAttribute('aria-selected',t.getAttribute('data-f')===filt?'true':'false');});
+  }
+  root.querySelectorAll('.tabs .tab').forEach(function(t){t.addEventListener('click',function(){filt=t.getAttribute('data-f');apply();});});
+  only.addEventListener('change',apply);
+  document.getElementById('clearF').addEventListener('click',function(){filt='all';only.checked=false;apply();});
+  var box=document.getElementById('chartBox');
+  box.querySelectorAll('[data-v]').forEach(function(b){b.addEventListener('click',function(){
+    var v=b.getAttribute('data-v');box.setAttribute('data-view',v);
+    box.querySelectorAll('[data-v]').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-v')===v?'true':'false');});
+  });});
+  apply();
+})();
+</script>
+</body></html>

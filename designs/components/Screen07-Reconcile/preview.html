@@ -1,0 +1,281 @@
+<!-- @dsCard group="Màn hình" height=1560 width=1440 subtitle="Kế toán so khớp bảng kê của khách hàng, cây xăng và nhà xe ngoài với dữ liệu hệ thống, xử lý từng dòng lệch rồi chốt kỳ." -->
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Đối soát – TMS Container</title><style>
+body{margin:0}
+.tms{font-family:var(--font-ui);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--ink);min-height:100vh}
+.tms *{box-sizing:border-box}
+.tms .mono{font-family:var(--font-mono);font-weight:500}
+.tms :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tms a{color:var(--primary);text-underline-offset:3px}
+.tms button{font-family:inherit;cursor:pointer}
+.tms .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.switch{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 16px;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-soft)}
+.switch button{min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:13px}
+.switch button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink);font-weight:600}
+.app{display:flex;min-height:100vh}
+.side{flex:0 0 240px;padding:16px 12px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 16px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 12px;border-radius:8px;text-decoration:none;color:var(--ink)!important;font-size:15px;font-weight:500}
+.nav-item:hover{background:var(--surface-2)}
+.nav-item[aria-current="page"]{background:var(--info-soft);color:var(--info)!important;font-weight:600}
+.nav-item .lbl{flex:1}
+.badge{min-width:24px;padding:0 6px;border-radius:999px;font-size:13px;font-weight:700;text-align:center}
+.badge.crit{background:var(--crit-soft);color:var(--crit)} .badge.warn{background:var(--warn-soft);color:var(--warn)}
+.col{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--line)}
+.ctl{height:44px;padding:0 12px;display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font-size:15px}
+.ini{width:28px;height:28px;border-radius:6px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.search{flex:1 1 280px;max-width:480px;position:relative}
+.search input{width:100%;height:44px;padding:0 48px 0 42px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px}
+.search svg{position:absolute;left:14px;top:13px;color:var(--ink-soft)}
+.search kbd{position:absolute;right:12px;top:11px;padding:0 6px;border:1px solid var(--line);border-radius:4px;font-family:inherit;font-size:13px;color:var(--ink-soft)}
+.live{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.icon-btn{width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);display:flex;align-items:center;justify-content:center}
+.user{height:44px;padding:0 8px;display:flex;align-items:center;gap:8px;border:0;border-radius:8px;background:transparent;color:var(--ink);text-align:left;line-height:1.2;font-size:15px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+main{width:100%;max-width:1240px;padding:24px;display:flex;flex-direction:column;gap:20px}
+.subnav{display:flex;gap:4px;font-size:15px}
+.subnav a{display:flex;align-items:center;min-height:36px;padding:0 12px;border-radius:8px;color:var(--ink-soft);text-decoration:none;font-weight:500}
+.subnav a[aria-current="page"]{background:var(--info-soft);color:var(--info);font-weight:600}
+h1{margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.01em}
+.lead{margin:4px 0 0;color:var(--ink-soft)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.steps li{display:flex;align-items:center;gap:8px}
+.step{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px 0 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:15px;font-weight:500}
+.step .n{width:26px;height:26px;border-radius:50%;background:var(--surface-2);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.step[aria-current="step"]{border-color:var(--primary);background:var(--info-soft);font-weight:600}
+.step[aria-current="step"] .n{background:var(--primary);color:var(--on-primary)}
+.alert{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border-radius:10px;font-size:15px}
+.alert.crit{background:var(--crit-soft)} .alert.crit strong{color:var(--crit)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{display:flex;flex-direction:column;gap:4px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.kpi .k{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft)}
+.kico{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.kico.info{background:var(--info-soft);color:var(--info)} .kico.warn{background:var(--warn-soft);color:var(--warn)} .kico.ok{background:var(--ok-soft);color:var(--ok)}
+.kpi .v{font-size:26px;line-height:1.2;font-weight:700}
+.kpi .note{font-size:14px;color:var(--ink-soft)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 12px}
+h2{margin:0;font-size:20px;font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:6px;font-size:13px;font-weight:700;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.crit{background:var(--crit-soft);color:var(--crit)}
+.excl{padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.excl ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px 20px;font-size:15px}
+.excl li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid var(--line)}
+.soft{color:var(--ink-soft)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font-size:14px;font-weight:500;display:flex;align-items:center;gap:6px}
+.tab:hover{background:var(--surface-2)}
+.tab .count{min-width:20px;padding:0 6px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:700}
+.tab .open{padding:0 6px;border-radius:999px;background:var(--warn-soft);color:var(--warn);font-size:12px;font-weight:700}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.tab[aria-selected="true"] .count,.tab[aria-selected="true"] .open{background:var(--surface)}
+.tab[aria-selected="true"] .count{color:var(--ink)}
+.scroll{overflow-x:auto;border-top:1px solid var(--line)}
+.inner{min-width:980px}
+.grid2{display:grid;grid-template-columns:1fr 1fr}
+.head{background:var(--surface-2);border-bottom:1px solid var(--line)}
+.half{padding:12px 20px 8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.half+.half{border-left:1px solid var(--line)}
+.head .half{padding:10px 20px}
+.side-t{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.cells{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.8fr) minmax(0,1.2fr) minmax(0,1fr);gap:10px;align-items:start}
+.head .cells{font-size:13px;font-weight:600;color:var(--ink-soft)}
+.tag{font-size:12px;font-weight:600;color:var(--ink-soft)}
+.f{min-width:0;font-size:15px;overflow-wrap:anywhere}
+.f .s{font-size:13px;color:var(--ink-soft)}
+.b{font-weight:600}
+.r{text-align:right}
+.hl{background:var(--warn-soft);border:1px solid var(--warn);border-radius:6px;padding:4px 6px;margin:-5px -7px}
+.hl .s{color:var(--warn);font-weight:700}
+.miss{padding:10px 12px;border-radius:8px;border:1px dashed var(--line-strong);color:var(--ink-soft);font-size:14px}
+.pair{border-bottom:1px solid var(--line)}
+.pair:hover{background:var(--surface-2)}
+.foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:4px 20px 12px}
+.foot .note{font-size:14px;flex:1 1 260px;min-width:0}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.btn{min-height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn-link{border:0;background:transparent;color:var(--primary);display:none;align-items:center;gap:6px}
+.btn-primary{min-height:44px;padding:0 20px;border:0;border-radius:8px;background:var(--primary);color:var(--on-primary);font-size:16px;font-weight:600}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-primary:disabled{background:var(--surface-2);color:var(--ink-soft);cursor:not-allowed}
+.closebar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:12px 16px;padding:16px 20px;border-top:1px solid var(--line);background:var(--surface-2)}
+.closebar .hint{margin-right:auto;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;color:var(--warn)}
+.empty{padding:48px 20px;border-top:1px solid var(--line);text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty .circ{margin:0 auto}
+.circ{width:44px;height:44px;border-radius:50%;background:var(--info-soft);color:var(--info);display:flex;align-items:center;justify-content:center}
+.sk{display:block;background:var(--surface-2);border-radius:6px;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.pair[hidden]{display:none}
+.proto{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-radius:10px;border:1px dashed var(--line-strong);font-size:13px;color:var(--ink-soft)}
+[data-state] .s-loading,[data-state] .s-empty,[data-state] .s-error{display:none}
+[data-state=loading] .s-normal,[data-state=empty] .s-normal,[data-state=empty] .s-full{display:none}
+[data-state=loading] .s-loading,[data-state=empty] .s-empty,[data-state=error] .s-error{display:block}
+[data-state=loading] .kpis.s-loading{display:grid}
+[data-state=error] .alert.s-error{display:flex}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}.tms *{transition:none!important}}
+</style></head><body>
+<div class="tms" id="root" data-state="normal">
+  <div class="switch" role="group" aria-label="Trạng thái dữ liệu">
+    <span style="font-weight:600;margin-right:4px;">Trạng thái:</span>
+    <button type="button" aria-pressed="true" data-set="normal">Bình thường</button>
+    <button type="button" aria-pressed="false" data-set="loading">Đang tải</button>
+    <button type="button" aria-pressed="false" data-set="empty">Trống</button>
+    <button type="button" aria-pressed="false" data-set="error">Lỗi</button>
+  </div>
+  <div class="app">
+    <nav class="side" aria-label="Điều hướng chính">
+      <div class="brand"><svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="6" fill="var(--primary)"></rect><rect x="7" y="10" width="18" height="12" rx="1.5" stroke="var(--on-primary)" stroke-width="2"></rect><path d="M11.5 13v6M16 13v6M20.5 13v6" stroke="var(--on-primary)" stroke-width="2" stroke-linecap="round"></path></svg>TMS Container</div>
+      <a class="nav-item" href="#trang-chu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg><span class="lbl">Trang chủ</span></a>
+      <a class="nav-item" href="#dieu-van"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v13h-4z"></path></svg><span class="lbl">Điều vận</span><span class="badge crit">14</span></a>
+      <a class="nav-item" href="#don-hang"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8l4 4v12H4V4h4M14 4v4h4M8 12h8M8 16h5"></path></svg><span class="lbl">Đơn hàng</span></a>
+      <a class="nav-item" href="#ban-do"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"></path></svg><span class="lbl">Bản đồ đội xe</span></a>
+      <a class="nav-item" href="#phieu-dau"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"></path></svg><span class="lbl">Phiếu dầu</span></a>
+      <a class="nav-item" href="#doi-soat" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"></path></svg><span class="lbl">Đối soát</span><span class="badge warn" id="navBadge">5</span></a>
+      <a class="nav-item" href="#phan-bo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.7 5 3.2 5 1.3 5 3.3-2.2 3.3-5 3.3-5-1.2-5-3.1"></path></svg><span class="lbl">Phân bổ chi phí</span></a>
+      <a class="nav-item" href="#bao-cao"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"></path></svg><span class="lbl">Báo cáo</span></a>
+    </nav>
+    <div class="col">
+      <header class="top">
+        <button type="button" class="ctl" aria-label="Đổi công ty, đang ở Vận tải Phúc An"><span class="ini" aria-hidden="true">PA</span><span style="font-weight:600;">Vận tải Phúc An</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <div class="search"><label for="q" class="sr">Tìm số cont, Booking/B/L, biển số</label><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input id="q" type="search" placeholder="Tìm số cont, Booking/B/L, biển số"><kbd>/</kbd></div>
+        <span class="live"><span class="dot" aria-hidden="true"></span>Trực tiếp · cập nhật 14:20</span>
+        <button type="button" class="icon-btn" aria-label="Chế độ tối"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg></button>
+        <button type="button" class="user" aria-label="Tài khoản Lê Thị Mai, Kế toán"><span class="avatar" aria-hidden="true">M</span><span><span style="display:block;font-weight:600;">Lê Thị Mai</span><span style="font-size:13px;color:var(--ink-soft);">Kế toán</span></span></button>
+      </header>
+
+      <main>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <nav class="subnav" aria-label="Kế toán"><a href="#phan-bo">Phân bổ chi phí</a><a href="#doi-soat" aria-current="page">Đối soát</a></nav>
+          <div>
+            <h1 class="s-full" id="h1">5 dòng lệch cần xử lý. Hạn chốt kỳ 10/2026: 31/10, còn 14 ngày</h1>
+            <h1 class="s-empty">Chưa có bảng kê để so khớp. Hạn chốt kỳ 10/2026: 31/10, còn 14 ngày</h1>
+            <p class="lead s-full">May mặc Phúc Thịnh · kỳ 10/2026 · 9 dòng so khớp · 4 khớp · file <span class="mono" style="font-size:14px;">BangKe_PhucThinh_T10-2026.xlsx</span></p>
+            <p class="lead s-empty">May mặc Phúc Thịnh · kỳ 10/2026 · chưa có file bảng kê</p>
+          </div>
+          <ol class="steps" aria-label="Các bước đối soát">
+            <li><button type="button" class="step"><span class="n" aria-hidden="true">1</span>Tải và ánh xạ bảng kê</button><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></li>
+            <li><button type="button" class="step" aria-current="step"><span class="n" aria-hidden="true">2</span>So khớp và xử lý</button></li>
+          </ol>
+        </div>
+
+        <div role="alert" class="alert crit s-error">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--crit)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>
+          <span style="flex:1 1 320px;"><strong>Không tải lại được kết quả so khớp.</strong> Mất kết nối máy chủ lúc 14:19. Số liệu bên dưới là bản lúc 14:12, chưa có thay đổi mới.</span>
+          <button type="button" class="btn" data-set="normal">Thử lại</button>
+        </div>
+
+        <section class="kpis s-normal" aria-label="Tổng đối soát">
+          <div class="kpi"><span class="k"><span class="kico info" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v13H3zM8 21h8M12 17v4"></path></svg></span>Tổng hệ thống</span><span class="v">30.500.000 ₫</span><span class="note">8 dòng có trong TMS</span></div>
+          <div class="kpi"><span class="k"><span class="kico info" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5"></path></svg></span>Tổng bảng kê</span><span class="v">30.150.000 ₫</span><span class="note">8 dòng trong file đối tác</span></div>
+          <div class="kpi"><span class="k"><span class="kico warn" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"></path></svg></span>Chênh lệch (bảng kê − hệ thống)</span><span class="v" style="color:var(--warn);">−350.000 ₫</span><span class="note">Bảng kê thấp hơn hệ thống</span></div>
+          <div class="kpi"><span class="k"><span class="kico warn" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14M5 4l7 8-7 8h14"></path></svg></span>Số chốt sau xử lý</span><span class="v">14.500.000 ₫</span><span class="note" id="kpiOpen">Còn 5 dòng chưa xử lý</span></div>
+        </section>
+        <section class="kpis s-loading" aria-label="Đang tải tổng đối soát" aria-busy="true">
+          <div class="kpi"><span class="sk" style="height:28px;width:60%;"></span><span class="sk" style="height:30px;width:75%;margin-top:4px;"></span><span class="sk" style="height:14px;width:50%;margin-top:6px;"></span></div>
+          <div class="kpi"><span class="sk" style="height:28px;width:60%;"></span><span class="sk" style="height:30px;width:75%;margin-top:4px;"></span><span class="sk" style="height:14px;width:50%;margin-top:6px;"></span></div>
+          <div class="kpi"><span class="sk" style="height:28px;width:60%;"></span><span class="sk" style="height:30px;width:75%;margin-top:4px;"></span><span class="sk" style="height:14px;width:50%;margin-top:6px;"></span></div>
+          <div class="kpi"><span class="sk" style="height:28px;width:60%;"></span><span class="sk" style="height:30px;width:75%;margin-top:4px;"></span><span class="sk" style="height:14px;width:50%;margin-top:6px;"></span></div>
+        </section>
+
+        <section class="card excl s-normal" aria-labelledby="loai-tru">
+          <div style="display:flex;align-items:center;gap:8px;"><span class="chip warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M5.7 5.7l12.6 12.6"></path></svg>Chưa đưa vào</span><h2 id="loai-tru" style="font-size:16px;">3 container chưa được đưa vào đối soát vì chưa có ePOD đã xác minh</h2></div>
+          <ul>
+            <li><span><span class="mono b">FCIU2640136</span> <span class="soft">· giao 13/10</span></span><span class="soft" style="font-size:14px;">ePOD Điều vận đã xác nhận, đang chờ Kế toán xác minh (bước 2).</span><a href="#epod" style="font-size:14px;font-weight:600;">Xác minh ePOD</a></li>
+            <li><span><span class="mono b">GESU5197704</span> <span class="soft">· giao 15/10</span></span><span class="soft" style="font-size:14px;">Chưa có ePOD, tài xế chưa nộp ảnh ký nhận.</span><a href="#nhac" style="font-size:14px;font-weight:600;">Nhắc tài xế</a></li>
+            <li><span><span class="mono b">TRHU4802560</span> <span class="soft">· giao 16/10</span></span><span class="soft" style="font-size:14px;">ePOD lệch số seal, Điều vận đang kiểm tra lại.</span><a href="#chung-tu" style="font-size:14px;font-weight:600;">Xem chứng từ</a></li>
+          </ul>
+        </section>
+
+        <section class="card" aria-labelledby="ket-qua">
+          <div class="card-head">
+            <h2 id="ket-qua">Kết quả so khớp</h2>
+            <div class="tabs s-normal" role="tablist" aria-label="Nhóm kết quả">
+              <button type="button" role="tab" class="tab" aria-selected="false" data-tab="match"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Khớp <span class="count">4</span></button>
+              <button type="button" role="tab" class="tab" aria-selected="true" data-tab="diff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"></path></svg>Lệch số liệu <span class="count">3</span><span class="open" data-open="diff">3 chưa xử lý</span></button>
+              <button type="button" role="tab" class="tab" aria-selected="false" data-tab="partner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v4M12 16v.01"></path></svg>Chỉ có ở bảng kê <span class="count">1</span><span class="open" data-open="partner">1 chưa xử lý</span></button>
+              <button type="button" role="tab" class="tab" aria-selected="false" data-tab="system"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v4M12 16v.01"></path></svg>Chỉ có trong hệ thống <span class="count">1</span><span class="open" data-open="system">1 chưa xử lý</span></button>
+            </div>
+          </div>
+
+          <div class="empty s-empty">
+            <span class="circ" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8Z"></path><path d="M14 3v5h5M12 11v6M9 14l3-3 3 3"></path></svg></span>
+            <strong style="font-weight:600;display:block;">Chưa có bảng kê nào của May mặc Phúc Thịnh cho kỳ 10/2026</strong>
+            <span class="soft" style="display:block;max-width:460px;margin:0 auto;">Kết quả so khớp sẽ hiện ở đây sau khi bạn tải file bảng kê của đối tác và kiểm tra ánh xạ cột.</span>
+            <button type="button" class="btn-primary" style="margin-top:12px;font-size:15px;">Tải bảng kê</button>
+          </div>
+
+          <div class="scroll s-full">
+            <div class="inner">
+              <div class="grid2 head">
+                <div class="half"><span class="side-t"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8M12 17v4"></path></svg>Dữ liệu hệ thống TMS</span><div class="cells"><span>Container · Order</span><span>Ngày giao</span><span>Tuyến</span><span class="r">Thành tiền</span></div></div>
+                <div class="half"><span class="side-t"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8Z"></path><path d="M14 3v5h5M9 13h6M9 17h6"></path></svg>Bảng kê May mặc Phúc Thịnh</span><div class="cells"><span>Container · Order</span><span>Ngày giao</span><span>Tuyến</span><span class="r">Thành tiền</span></div></div>
+              </div>
+
+              <ul class="s-loading" aria-label="Đang tải kết quả so khớp" aria-busy="true" style="list-style:none;margin:0;padding:0;">
+                <li class="grid2" style="border-bottom:1px solid var(--line);"><div class="half cells" style="display:grid;padding:14px 20px;"><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span></div><div class="half cells" style="display:grid;padding:14px 20px;"><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span></div></li>
+                <li class="grid2" style="border-bottom:1px solid var(--line);"><div class="half cells" style="display:grid;padding:14px 20px;"><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span></div><div class="half cells" style="display:grid;padding:14px 20px;"><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span></div></li>
+                <li class="grid2" style="border-bottom:1px solid var(--line);"><div class="half cells" style="display:grid;padding:14px 20px;"><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span></div><div class="half cells" style="display:grid;padding:14px 20px;"><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span></div></li>
+                <li class="grid2" style="border-bottom:1px solid var(--line);"><div class="half cells" style="display:grid;padding:14px 20px;"><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span></div><div class="half cells" style="display:grid;padding:14px 20px;"><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span><span class="sk" style="height:18px;"></span></div></li>
+              </ul>
+
+              <ul class="s-normal" style="list-style:none;margin:0;padding:0;">
+                <!-- Khớp -->
+                <li class="pair" data-kind="match" hidden><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="cells"><div class="f"><div class="mono b">OOLU8842105</div><div class="s mono">EXP-2610-044</div></div><div class="f">02/10</div><div class="f">Cát Lái → KCN Sóng Thần</div><div class="f r b">3.850.000 ₫</div></div></div><div class="half"><span class="tag">Bảng kê · dòng 2</span><div class="cells"><div class="f"><div class="mono b">OOLU8842105</div><div class="s mono">EXP-2610-044</div></div><div class="f">02/10</div><div class="f">Cát Lái → KCN Sóng Thần</div><div class="f r b">3.850.000 ₫</div></div></div></div><div class="foot"><span class="chip ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Khớp</span><span class="note">Khớp mã, ngày, số lượng và số tiền.</span></div></li>
+                <li class="pair" data-kind="match" hidden><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="cells"><div class="f"><div class="mono b">OOLU8842110</div><div class="s mono">EXP-2610-044</div></div><div class="f">02/10</div><div class="f">Cát Lái → KCN Sóng Thần</div><div class="f r b">3.850.000 ₫</div></div></div><div class="half"><span class="tag">Bảng kê · dòng 3</span><div class="cells"><div class="f"><div class="mono b">OOLU8842110</div><div class="s mono">EXP-2610-044</div></div><div class="f">02/10</div><div class="f">Cát Lái → KCN Sóng Thần</div><div class="f r b">3.850.000 ₫</div></div></div></div><div class="foot"><span class="chip ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Khớp</span><span class="note">Khớp mã, ngày, số lượng và số tiền.</span></div></li>
+                <li class="pair" data-kind="match" hidden><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="cells"><div class="f"><div class="mono b">HLXU8301173</div><div class="s mono">IMP-2610-033</div></div><div class="f">09/10</div><div class="f">Cát Lái → Tân Vạn</div><div class="f r b">2.950.000 ₫</div></div></div><div class="half"><span class="tag">Bảng kê · dòng 6</span><div class="cells"><div class="f"><div class="mono b">HLXU8301173</div><div class="s mono">IMP-2610-033</div></div><div class="f">09/10</div><div class="f">Cát Lái → Tân Vạn</div><div class="f r b">2.950.000 ₫</div></div></div></div><div class="foot"><span class="chip ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Khớp</span><span class="note">Khớp mã, ngày, số lượng và số tiền.</span></div></li>
+                <li class="pair" data-kind="match" hidden><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="cells"><div class="f"><div class="mono b">BMOU4551024</div><div class="s mono">EXP-2610-047</div></div><div class="f">14/10</div><div class="f">Cát Lái → KCN Sóng Thần</div><div class="f r b">3.850.000 ₫</div></div></div><div class="half"><span class="tag">Bảng kê · dòng 8</span><div class="cells"><div class="f"><div class="mono b">BMOU4551024</div><div class="s mono">EXP-2610-047</div></div><div class="f">14/10</div><div class="f">Cát Lái → KCN Sóng Thần</div><div class="f r b">3.850.000 ₫</div></div></div></div><div class="foot"><span class="chip ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Khớp</span><span class="note">Khớp mã, ngày, số lượng và số tiền.</span></div></li>
+                <!-- Lệch số liệu -->
+                <li class="pair" data-kind="diff"><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="cells"><div class="f"><div class="mono b">TGHU8812348</div><div class="s mono">IMP-2610-031</div></div><div class="f">05/10</div><div class="f">Cát Lái → VSIP 1</div><div class="f r b">4.200.000 ₫</div></div></div><div class="half"><span class="tag">Bảng kê · dòng 4</span><div class="cells"><div class="f"><div class="mono b">TGHU8812348</div><div class="s mono">IMP-2610-031</div></div><div class="f">05/10</div><div class="f">Cát Lái → VSIP 1</div><div class="f r b hl">3.900.000 ₫<div class="s">lệch −300.000 ₫</div></div></div></div></div><div class="foot"><span class="chip warn" data-chip><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"></path></svg><span>Lệch số liệu</span></span><span class="note">Khách chưa tính phí nâng hạ chi hộ 300.000 ₫ có hóa đơn cảng.</span><div class="acts" role="group" aria-label="Cách xử lý dòng TGHU8812348"><button type="button" class="btn" data-res="Đã xử lý: áp dụng số bảng kê">Theo bảng kê</button><button type="button" class="btn" data-res="Đã xử lý: giữ số hệ thống">Giữ số hệ thống</button></div><button type="button" class="btn btn-link" data-undo>Hoàn tác</button></div></li>
+                <li class="pair" data-kind="diff"><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="cells"><div class="f"><div class="mono b">MSCU7120452</div><div class="s mono">IMP-2610-033</div></div><div class="f">07/10</div><div class="f">Cát Lái → Tân Vạn</div><div class="f r b">2.950.000 ₫</div></div></div><div class="half"><span class="tag">Bảng kê · dòng 5</span><div class="cells"><div class="f"><div class="mono b">MSCU7120452</div><div class="s mono">IMP-2610-033</div></div><div class="f hl">08/10<div class="s">hệ thống: 07/10</div></div><div class="f">Cát Lái → Tân Vạn</div><div class="f r b">2.950.000 ₫</div></div></div></div><div class="foot"><span class="chip warn" data-chip><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"></path></svg><span>Lệch số liệu</span></span><span class="note">Lệch ngày giao 1 ngày, số tiền khớp. ePOD ghi 07/10 23:40.</span><div class="acts" role="group" aria-label="Cách xử lý dòng MSCU7120452"><button type="button" class="btn" data-res="Đã xử lý: áp dụng số bảng kê">Theo bảng kê</button><button type="button" class="btn" data-res="Đã xử lý: giữ số hệ thống">Giữ số hệ thống</button></div><button type="button" class="btn btn-link" data-undo>Hoàn tác</button></div></li>
+                <li class="pair" data-kind="diff"><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="cells"><div class="f"><div class="mono b">CAIU7388292</div><div class="s mono">EXP-2610-049</div></div><div class="f">15/10</div><div class="f">Cát Lái → VSIP 1</div><div class="f r b">4.650.000 ₫</div></div></div><div class="half"><span class="tag">Bảng kê · dòng 9</span><div class="cells"><div class="f"><div class="mono b">CAIU7388292</div><div class="s mono">EXP-2610-049</div></div><div class="f">15/10</div><div class="f">Cát Lái → VSIP 1</div><div class="f r b hl">4.950.000 ₫<div class="s">lệch +300.000 ₫</div></div></div></div></div><div class="foot"><span class="chip warn" data-chip><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8h8M13 16h8"></path></svg><span>Lệch số liệu</span></span><span class="note">Khách tính cao hơn 300.000 ₫, có thể theo bảng giá cũ.</span><div class="acts" role="group" aria-label="Cách xử lý dòng CAIU7388292"><button type="button" class="btn" data-res="Đã xử lý: áp dụng số bảng kê">Theo bảng kê</button><button type="button" class="btn" data-res="Đã xử lý: giữ số hệ thống">Giữ số hệ thống</button></div><button type="button" class="btn btn-link" data-undo>Hoàn tác</button></div></li>
+                <!-- Chỉ có ở bảng kê -->
+                <li class="pair" data-kind="partner" hidden><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="miss">Không có trong hệ thống. Kiểm tra lại số cont hoặc kỳ.</div></div><div class="half"><span class="tag">Bảng kê · dòng 7</span><div class="cells"><div class="f"><div class="mono b">EGHU9023313</div><div class="s mono">EXP-2610-051</div></div><div class="f">11/10</div><div class="f">Cát Lái → KCN Sóng Thần</div><div class="f r b">3.850.000 ₫</div></div></div></div><div class="foot"><span class="chip crit" data-chip><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v4M12 16v.01"></path></svg><span>Chỉ có ở bảng kê</span></span><span class="note">Không tìm thấy container này trong Order nào của khách ở kỳ 10/2026.</span><div class="acts" role="group" aria-label="Cách xử lý dòng EGHU9023313"><button type="button" class="btn" data-res="Đã xử lý: ghi nhận">Bổ sung vào hệ thống</button><button type="button" class="btn" data-res="Đã xử lý: loại khỏi kỳ này">Loại khỏi kỳ này</button></div><button type="button" class="btn btn-link" data-undo>Hoàn tác</button></div></li>
+                <!-- Chỉ có trong hệ thống -->
+                <li class="pair" data-kind="system" hidden><div class="grid2"><div class="half"><span class="tag">Hệ thống</span><div class="cells"><div class="f"><div class="mono b">TEMU6118402</div><div class="s mono">EXP-2610-047</div></div><div class="f">12/10</div><div class="f">Phước Long → VSIP 1</div><div class="f r b">4.200.000 ₫</div></div></div><div class="half"><span class="tag">Bảng kê · dòng —</span><div class="miss">Không có trong bảng kê của đối tác.</div></div></div><div class="foot"><span class="chip crit" data-chip><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v4M12 16v.01"></path></svg><span>Chỉ có trong hệ thống</span></span><span class="note">Đã giao, ePOD đã xác minh, nhưng khách chưa đưa vào bảng kê.</span><div class="acts" role="group" aria-label="Cách xử lý dòng TEMU6118402"><button type="button" class="btn" data-res="Đã xử lý: vẫn tính trong kỳ">Vẫn tính, gửi khách bổ sung</button><button type="button" class="btn" data-res="Đã xử lý: chuyển sang kỳ sau">Chuyển sang kỳ sau</button></div><button type="button" class="btn btn-link" data-undo>Hoàn tác</button></div></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="closebar s-normal">
+            <span class="hint" id="closeHint"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg><span id="closeText">Còn 5 dòng chưa xử lý. Xử lý hết mới chốt được.</span></span>
+            <button type="button" class="btn-primary" id="closeBtn" disabled aria-describedby="closeHint">Chốt đối soát, chuyển lập hóa đơn</button>
+          </div>
+        </section>
+
+        <div class="proto" role="group" aria-label="Bản mẫu, đổi tình huống"><span style="font-weight:600;">Bản mẫu, dữ liệu giả.</span> Màn còn bước 1 (tải file, ánh xạ cột, xem trước), loại đối tác Cây xăng và Nhà xe ngoài, tình huống nhập trùng file và kỳ đã khóa: xem bản canvas Reconcile.dc.html.</div>
+      </main>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var root=document.getElementById('root');
+  function setState(v){root.setAttribute('data-state',v);document.querySelectorAll('.switch [data-set]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-set')===v));});}
+  document.querySelectorAll('[data-set]').forEach(function(b){b.addEventListener('click',function(){setState(b.getAttribute('data-set'));});});
+  var tabs=document.querySelectorAll('[data-tab]');
+  tabs.forEach(function(t){t.addEventListener('click',function(){var k=t.getAttribute('data-tab');tabs.forEach(function(x){x.setAttribute('aria-selected',String(x===t));});document.querySelectorAll('.pair').forEach(function(p){p.hidden=p.getAttribute('data-kind')!==k;});});});
+  function refresh(){
+    var kinds=['diff','partner','system'],total=0;
+    kinds.forEach(function(k){var n=document.querySelectorAll('.pair[data-kind="'+k+'"]:not([data-done])').length;total+=n;var o=document.querySelector('[data-open="'+k+'"]');o.textContent=n+' chưa xử lý';o.style.display=n?'':'none';});
+    var btn=document.getElementById('closeBtn'),hint=document.getElementById('closeHint');
+    document.getElementById('navBadge').textContent=String(total);document.getElementById('navBadge').style.display=total?'':'none';
+    document.getElementById('kpiOpen').textContent=total?'Còn '+total+' dòng chưa xử lý':'Đã xử lý hết dòng lệch';
+    document.getElementById('h1').textContent=(total?total+' dòng lệch cần xử lý':'Đã xử lý hết dòng lệch')+'. Hạn chốt kỳ 10/2026: 31/10, còn 14 ngày';
+    btn.disabled=total>0;hint.style.color=total?'var(--warn)':'var(--ok)';
+    document.getElementById('closeText').textContent=total?'Còn '+total+' dòng chưa xử lý. Xử lý hết mới chốt được.':'Sẵn sàng chốt. Số chốt sẽ chuyển sang lập hóa đơn.';
+  }
+  document.querySelectorAll('[data-res]').forEach(function(b){b.addEventListener('click',function(){
+    var li=b.closest('.pair'),chip=li.querySelector('[data-chip]');
+    if(!chip.dataset.orig){chip.dataset.orig=chip.className;chip.dataset.text=chip.querySelector('span').textContent;}
+    chip.className='chip ok';chip.querySelector('span').textContent=b.getAttribute('data-res');
+    li.setAttribute('data-done','');li.querySelector('.acts').style.display='none';li.querySelector('[data-undo]').style.display='inline-flex';refresh();});});
+  document.querySelectorAll('[data-undo]').forEach(function(b){b.addEventListener('click',function(){
+    var li=b.closest('.pair'),chip=li.querySelector('[data-chip]');
+    chip.className=chip.dataset.orig;chip.querySelector('span').textContent=chip.dataset.text;
+    li.removeAttribute('data-done');li.querySelector('.acts').style.display='';b.style.display='none';refresh();});});
+  document.getElementById('closeBtn').addEventListener('click',function(){document.getElementById('closeText').textContent='Đã chốt đối soát lúc 14:26. Đã chuyển số chốt của May mặc Phúc Thịnh sang lập hóa đơn.';this.disabled=true;});
+})();
+</script>
+</body></html>

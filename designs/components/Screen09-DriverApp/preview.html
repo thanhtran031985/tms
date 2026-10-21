@@ -1,0 +1,190 @@
+<!-- @dsCard group="Màn hình" height=844 width=390 subtitle="App tài xế: việc tiếp theo, lệnh chuyến hôm nay, check-in có ảnh EIR và chữ ký ePOD, phiếu dầu, chi phí và sổ lương, chạy được cả khi offline." -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>App tài xế – TMS Container</title>
+<style>
+body{margin:0;background:var(--bg)}
+.tms{font-family:var(--font-ui);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);width:390px;height:844px;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden}
+.tms *{box-sizing:border-box}
+.tms .mono{font-family:var(--font-mono);font-weight:500;letter-spacing:0}
+.tms :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tms button,.tms a{font-family:inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.tms [hidden]{display:none!important}
+
+.tms .state-bar{flex:none;display:flex;align-items:center;gap:4px;padding:6px 8px;background:var(--surface-2);border-bottom:1px solid var(--line);overflow-x:auto}
+.tms .state-bar button{flex:none;min-height:36px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer}
+.tms .state-bar button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+
+.tms[data-state] .s-loading,.tms[data-state] .s-empty,.tms[data-state] .s-error,.tms[data-state] .s-data{display:none}
+.tms[data-state="normal"] .s-data,.tms[data-state="error"] .s-data,.tms[data-state="error"] .s-error,.tms[data-state="loading"] .s-loading,.tms[data-state="empty"] .s-empty{display:flex}
+
+.tms .hdr{flex:none;background:var(--surface);border-bottom:1px solid var(--line);padding:max(12px, env(safe-area-inset-top)) 16px 12px;display:flex;flex-direction:column;gap:8px}
+.tms .row{display:flex;align-items:center;gap:8px}
+.tms .eyebrow{font-size:15px;font-weight:500;color:var(--ink-soft);line-height:1.3}
+.tms h1{margin:0;font-size:22px;font-weight:700;line-height:1.25;letter-spacing:-.01em}
+.tms h2{margin:0;font-size:19px;font-weight:700}
+.tms .icon-btn{flex:none;width:48px;height:48px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.tms .pill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:14px;font-weight:600;flex:none}
+.tms .p-ok{background:var(--ok-soft);color:var(--ok)}
+.tms .p-off{background:var(--off-soft);color:var(--off)}
+.tms .p-now{background:var(--primary);color:var(--on-primary)}
+.tms .p-info{background:var(--info-soft);color:var(--info)}
+.tms .p-warn{background:var(--warn-soft);color:var(--warn);height:36px;font-size:16px;font-weight:700;align-self:flex-start}
+
+.tms main{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;scrollbar-width:none;overscroll-behavior:contain}
+.tms .col{flex-direction:column;gap:16px}
+.tms .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.tms .next{border:2px solid var(--primary);gap:12px}
+.tms .next-k{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.04em}
+.tms .big{font-size:22px;font-weight:700;line-height:1.25}
+.tms .soft{color:var(--ink-soft)}
+.tms .btn-primary{height:60px;border:0;border-radius:8px;background:var(--primary);color:var(--on-primary);font-size:20px;font-weight:700;cursor:pointer;transition:background-color .1s ease-out,transform .1s ease-out}
+.tms .btn-primary:hover,.tms .btn-primary:active{background:var(--primary-hover)}
+.tms .btn-primary:active{transform:scale(.98)}
+.tms .btn-sec{height:48px;padding:0 16px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font-size:16px;font-weight:700;cursor:pointer;flex:none}
+.tms .press{transition:background-color .1s ease-out,transform .1s ease-out}
+.tms .press:active,.tms .btn-sec:active{transform:scale(.97);background:var(--surface-2)}
+.tms ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.tms .trip{width:100%;text-align:left;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.tms .trip.now{border:2px solid var(--primary)}
+.tms .trip-time{font-size:26px;font-weight:700;line-height:1}
+.tms .trip-route{font-size:19px;font-weight:600;line-height:1.3}
+.tms .trip-meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:16px;color:var(--ink-soft)}
+.tms .trip-meta .mono{color:var(--ink)}
+.tms .alert{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--crit-soft);border:1px solid var(--line)}
+.tms .alert b{color:var(--crit)}
+.tms .empty{align-items:center;text-align:center;padding:32px 16px;gap:12px}
+.tms .empty-ic{width:64px;height:64px;border-radius:999px;background:var(--info-soft);color:var(--info);display:flex;align-items:center;justify-content:center}
+.tms .sk{display:block;background:var(--surface-2);border-radius:8px;animation:tms-sk 1.4s ease-in-out infinite}
+@keyframes tms-sk{0%,100%{opacity:1}50%{opacity:.5}}
+
+.tms nav{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;border-top:1px solid var(--line);background:var(--surface);padding:6px 8px max(8px, env(safe-area-inset-bottom))}
+.tms .navbtn{min-height:64px;border:0;border-radius:8px;background:transparent;color:var(--ink-soft);font-size:15px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 0}
+.tms .navbtn[aria-current="page"]{color:var(--primary);font-weight:700}
+.tms .navpill{width:56px;height:32px;border-radius:999px;display:flex;align-items:center;justify-content:center;transition:background-color .1s ease-out}
+.tms .navbtn[aria-current="page"] .navpill{background:var(--info-soft)}
+.tms .navbtn:active .navpill{background:var(--surface-2)}
+@media (prefers-reduced-motion:reduce){.tms *{transition:none!important}.tms .sk{animation:none}.tms .press:active,.tms .btn-primary:active,.tms .btn-sec:active{transform:none}}
+</style>
+</head>
+<body>
+<div class="tms" id="root" data-state="normal">
+
+  <div role="group" aria-label="Trạng thái dữ liệu" class="state-bar">
+    <button type="button" data-set="normal" aria-pressed="true">Bình thường</button>
+    <button type="button" data-set="loading" aria-pressed="false">Đang tải</button>
+    <button type="button" data-set="empty" aria-pressed="false">Trống</button>
+    <button type="button" data-set="error" aria-pressed="false">Lỗi</button>
+  </div>
+
+  <header class="hdr">
+    <div class="row">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+        <span class="eyebrow">Lệnh hôm nay · Thứ Bảy 17/10</span>
+        <h1>2 chuyến còn lại · Cut-off 18:00</h1>
+      </div>
+      <button type="button" class="icon-btn press" aria-label="Chế độ tối">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg>
+      </button>
+    </div>
+    <div class="row" style="font-size: 15px; color: var(--ink-soft);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h11v9H2zM13 10h4l3 3v3h-7M6 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01"></path></svg>
+      <span style="flex: 1; min-width: 0;"><span class="mono" style="color: var(--ink);">51C-482.17</span> · Trần Văn Lộc</span>
+      <span class="pill p-ok" role="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5h.01"></path></svg>
+        Có mạng
+      </span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Lỗi: giữ dữ liệu cũ, báo lỗi và cho Thử lại -->
+    <div class="s-error alert" role="alert">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--crit)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>
+      <span style="flex: 1; font-size: 16px; line-height: 1.35;"><b>Không tải được lệnh mới.</b> Đang hiện lệnh lúc 10:41.</span>
+      <button type="button" class="btn-sec" data-retry>Thử lại</button>
+    </div>
+
+    <!-- Đang tải: khung xương -->
+    <div class="s-loading col" aria-busy="true" aria-label="Đang tải lệnh">
+      <div class="card"><span class="sk" style="width: 40%; height: 16px;"></span><span class="sk" style="width: 85%; height: 24px;"></span><span class="sk" style="width: 100%; height: 56px;"></span></div>
+      <span class="sk" style="width: 50%; height: 18px;"></span>
+      <div class="card"><span class="sk" style="width: 30%; height: 26px;"></span><span class="sk" style="width: 90%; height: 20px;"></span><span class="sk" style="width: 60%; height: 16px;"></span></div>
+      <div class="card"><span class="sk" style="width: 30%; height: 26px;"></span><span class="sk" style="width: 80%; height: 20px;"></span><span class="sk" style="width: 55%; height: 16px;"></span></div>
+    </div>
+
+    <!-- Trống -->
+    <div class="s-empty card empty">
+      <span class="empty-ic" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"></path></svg></span>
+      <h2 style="font-size: 20px;">Chưa có lệnh nào hôm nay</h2>
+      <p style="margin: 0; font-size: 17px; color: var(--ink-soft); line-height: 1.45;">Điều vận chưa giao chuyến cho xe <span class="mono">51C-482.17</span>. Lệnh mới sẽ hiện ở đây và máy sẽ rung báo.</p>
+      <button type="button" class="btn-primary" data-retry style="align-self: stretch; height: 56px; font-size: 18px;">Tải lại lệnh</button>
+    </div>
+
+    <!-- Bình thường (và Lỗi giữ dữ liệu cũ) -->
+    <div class="s-data col">
+      <section class="card next" aria-labelledby="next-h">
+        <span class="next-k" id="next-h">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          Việc tiếp theo
+        </span>
+        <span class="big">Check-in Stop 2 · Kho Nam Phong</span>
+        <span class="soft" style="font-size: 17px; line-height: 1.4;">Cổng số 3. Gọi chị Mai 0909 482 117 trước 15 phút.</span>
+        <span class="pill p-warn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 7v5l3 2"></path></svg>
+          Cut-off Cát Lái 18:00 hôm nay
+        </span>
+        <button type="button" class="btn-primary">Check-in Stop 2</button>
+      </section>
+
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+        <h2>3 chuyến hôm nay</h2>
+        <span class="soft" style="font-size: 15px;">Thứ Bảy 17/10/2026</span>
+      </div>
+      <ul>
+        <li>
+          <button type="button" class="trip press" aria-label="05:30, Depot Phước Long → Cát Lái, Đã xong. Mở chuyến">
+            <span class="row" style="width: 100%;"><span class="trip-time">05:30</span><span style="flex: 1;"></span>
+              <span class="pill p-ok" style="font-size: 15px; font-weight: 700;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Đã xong</span></span>
+            <span class="trip-route">Depot Phước Long → Cát Lái</span>
+            <span class="trip-meta"><span class="mono">TGHU8732108</span><span>20GP · SINGLE · Nhập trả rỗng</span></span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="trip now press" aria-label="08:00, Phước Long → KCN VSIP 1 → Cát Lái, Đang chạy. Mở chuyến">
+            <span class="row" style="width: 100%;"><span class="trip-time">08:00</span><span style="flex: 1;"></span>
+              <span class="pill p-now" style="font-size: 15px; font-weight: 700;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>Đang chạy</span></span>
+            <span class="trip-route">Phước Long → KCN VSIP 1 → Cát Lái</span>
+            <span class="trip-meta"><span class="mono">MSKU1234565</span><span>40HC · SINGLE · Xuất · Cut-off 18:00</span></span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="trip press" aria-label="15:30, Cát Lái → KCN Sóng Thần, Chờ. Mở chuyến">
+            <span class="row" style="width: 100%;"><span class="trip-time">15:30</span><span style="flex: 1;"></span>
+              <span class="pill p-info" style="font-size: 15px; font-weight: 700;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 7v5l3 2"></path></svg>Chờ</span></span>
+            <span class="trip-route">Cát Lái → KCN Sóng Thần</span>
+            <span class="trip-meta"><span class="mono">CMAU5142872 + OOLU9026111</span><span>2×20GP · TWIN_20 · Nhập</span></span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </main>
+
+  <nav aria-label="Menu chính">
+    <button type="button" class="navbtn" aria-current="page"><span class="navpill" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"></path></svg></span>Lệnh</button>
+    <button type="button" class="navbtn" aria-current="false"><span class="navpill" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l3 3v6a2 2 0 0 0 4 0V9l-3-3"></path></svg></span>Phiếu dầu</button>
+    <button type="button" class="navbtn" aria-current="false"><span class="navpill" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h16v18l-3-2-3 2-2-2-2 2-3-2-3 2zM8 8h8M8 12h8M8 16h5"></path></svg></span>Chi phí</button>
+    <button type="button" class="navbtn" aria-current="false"><span class="navpill" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3zM3 11h18M7 15h3"></path></svg></span>Sổ lương</button>
+  </nav>
+</div>
+<script>
+(function(){var root=document.getElementById('root');var bs=root.querySelectorAll('.state-bar [data-set]');
+function setState(v){root.setAttribute('data-state',v);for(var j=0;j<bs.length;j++)bs[j].setAttribute('aria-pressed',String(bs[j].getAttribute('data-set')===v));}
+for(var i=0;i<bs.length;i++)bs[i].addEventListener('click',function(){setState(this.getAttribute('data-set'));});
+var rs=root.querySelectorAll('[data-retry]');for(var k=0;k<rs.length;k++)rs[k].addEventListener('click',function(){setState('normal');});
+var nb=root.querySelectorAll('nav .navbtn');for(var n=0;n<nb.length;n++)nb[n].addEventListener('click',function(){for(var m=0;m<nb.length;m++)nb[m].setAttribute('aria-current',nb[m]===this?'page':'false');});})();
+</script>
+</body>
+</html>

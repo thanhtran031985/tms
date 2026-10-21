@@ -1,0 +1,26 @@
+<!-- @dsCard group="Trạng thái" height=300 -->
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>EmptyState — xem trước</title></head>
+<body>
+<div class="tms">
+<div class="tms-preview" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+  <section class="tms-card" aria-label="Street Turn">
+    <div class="tms-empty">
+      <span class="tms-empty-ico is-ok" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9 17.5 20 6.5"></path></svg></span>
+      <h3>Không có Street Turn nào chờ chấp thuận</h3>
+      <p>Khi bạn ghép cont Nhập với cont Xuất dùng chung vỏ, chuyến cần số chấp thuận của hãng tàu sẽ hiện ở đây.</p>
+    </div>
+  </section>
+  <section class="tms-card" aria-label="Chờ điều">
+    <div class="tms-empty">
+      <span class="tms-empty-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="11" rx="1.5"></rect><path d="M7 10v5M12 10v5M17 10v5"></path></svg></span>
+      <h3>Chưa có container nào chờ điều</h3>
+      <p>Container sẽ vào cột này khi Order có Booking và lệnh cấp rỗng.</p>
+      <a href="#tao-order" class="tms-btn tms-btn-sm tms-btn-secondary">Tạo Order</a>
+    </div>
+  </section>
+</div>
+</div>
+</body>
+</html>

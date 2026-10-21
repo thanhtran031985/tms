@@ -1,0 +1,1381 @@
+<!-- @dsCard group="Màn hình" height=1500 width=1440 subtitle="Bảng điều vận Kanban theo từng container, chọn thẻ Chờ điều để gán xe và xem lịch xe trong ngày." -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Điều vận – TMS Container</title>
+<style>
+body{margin:0;background:var(--bg)}
+.tms{font-family:var(--font-ui);font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg)}
+.tms [hidden]{display:none!important}
+.tms .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tms .state-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 24px;background:var(--surface);border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-soft)}
+.tms .state-bar button{min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.tms .state-bar button:hover{background:var(--surface-2)}
+.tms .state-bar button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tms .s-normal,.tms .s-data,.tms .s-loading,.tms .s-empty,.tms .s-error{display:none}
+.tms[data-state="normal"] .s-normal,.tms[data-state="normal"] .s-data,.tms[data-state="error"] .s-data,.tms[data-state="loading"] .s-loading,.tms[data-state="empty"] .s-empty,.tms[data-state="error"] .s-error{display:contents}
+.tms .sk{display:block;background:var(--surface-2);border-radius:6px;animation:tms-sk 1.4s ease-in-out infinite}
+.tms .sk-on2{background:var(--line)}
+@keyframes tms-sk{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.tms .sk{animation:none}}
+
+.tms .mono{font-family:var(--font-mono);font-weight:500}
+.tms :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.tms a{color:var(--primary);text-underline-offset:3px}
+.tms button{font-family:inherit}
+.tms .ghost{transition:background-color .15s ease-out}
+.tms .ghost:hover{background:var(--surface-2)}
+.tms .card{transition:border-color .15s ease-out,box-shadow .15s ease-out}
+.tms .card:hover{border-color:var(--line-strong)}
+.tms .card[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary)}
+.tms .seg[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.tms .lane-btn{transition:background-color .15s ease-out,border-color .15s ease-out}
+.tms .lane-btn:hover:not(:disabled){border-color:var(--primary);background:var(--info-soft)}
+.tms .lane-btn:disabled{cursor:not-allowed;opacity:.75}
+@media (prefers-reduced-motion:reduce){.tms *{transition:none!important}}
+
+</style>
+</head>
+<body>
+<div class="tms" id="root" data-state="normal">
+<div role="group" aria-label="Trạng thái dữ liệu" class="state-bar">
+  <span style="margin-right: 4px;">Trạng thái:</span>
+  <button type="button" data-set="normal" aria-pressed="true">Bình thường</button>
+  <button type="button" data-set="loading" aria-pressed="false">Đang tải</button>
+  <button type="button" data-set="empty" aria-pressed="false">Trống</button>
+  <button type="button" data-set="error" aria-pressed="false">Lỗi</button>
+</div>
+<div class="screen" style="min-height: calc(100vh - 53px); background: var(--bg); color: var(--ink);">
+
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--line);">
+    <a href="Home.dc.html" class="ghost" style="height: 44px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; color: var(--ink-soft); text-decoration: none; font-size: 15px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>Trang chủ
+    </a>
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em;">Điều vận</h1>
+    <span style="font-size: 15px; color: var(--ink-soft);">Thứ Sáu 17/10 · 14:20</span>
+    <span style="flex: 1;"></span>
+    <button type="button" class="ghost" aria-label="Chế độ tối" style="width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path></svg>
+    </button>
+    <button type="button" class="ghost" style="height: 44px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 15px; font-weight: 600; cursor: pointer;">Đặt lại dữ liệu mẫu</button>
+  </header>
+
+  <div style="box-sizing: border-box; padding: 16px 24px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+      <div role="group" aria-label="Lọc theo chiều hàng" style="display: flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);">
+        
+          <button type="button" class="seg" aria-pressed="true" style="min-height: 36px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 500; cursor: pointer;">Tất cả <span style="opacity: .8;">19</span></button>
+        
+          <button type="button" class="seg" aria-pressed="false" style="min-height: 36px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 500; cursor: pointer;">Xuất <span style="opacity: .8;">9</span></button>
+        
+          <button type="button" class="seg" aria-pressed="false" style="min-height: 36px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 500; cursor: pointer;">Nhập <span style="opacity: .8;">10</span></button>
+        
+      </div>
+      <div style="position: relative; flex: 0 1 320px; min-width: 200px;">
+        <label for="dq" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Lọc theo số container, Order hoặc khách hàng</label>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 12px; top: 13px; color: var(--ink-soft);"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input id="dq" type="search" value="" placeholder="Số cont, Order, khách hàng" style="width: 100%; height: 44px; box-sizing: border-box; padding: 0 12px 0 38px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 15px;">
+      </div>
+      <span style="font-size: 14px; color: var(--ink-soft);">Chọn một thẻ ở cột Chờ điều để gán xe</span>
+    </div>
+
+    
+    <div class="s-error"><div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; background: var(--crit-soft); color: var(--crit);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none;"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>
+      <span style="flex: 1; min-width: 240px; color: var(--ink);"><strong style="font-weight: 600; color: var(--crit);">Không tải được thay đổi mới từ 14:20.</strong> Bảng dưới là bản lúc 14:20. Gán xe lúc này có thể trùng với người khác, hãy thử lại trước khi gán.</span>
+      <button type="button" class="ghost" style="height: 40px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 15px; font-weight: 600; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"></path></svg>Thử lại</button>
+    </div></div>
+    <div class="s-data">
+      <div id="toast" hidden role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 8px; background: var(--ok-soft); color: var(--ok);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>
+        <span id="toast-text" style="flex: 1; color: var(--ink);"> </span>
+        <button type="button" id="undo" style="height: 40px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 15px; font-weight: 600; cursor: pointer;">Hoàn tác</button>
+      </div>
+    
+
+    <section aria-label="Bảng container theo trạng thái" style="overflow-x: auto; padding-bottom: 4px;">
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(210px, 1fr)); gap: 12px; min-width: 1320px;">
+        
+          <div data-colid="wait" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;">
+            <h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;">
+              <span>Chờ điều</span>
+              <span data-count style="min-width: 24px; padding: 0 8px; box-sizing: border-box; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 700; text-align: center;">9</span>
+            </h2>
+            
+              <button type="button" class="card" data-id="OOLU8842105" data-col="wait" data-dir="XUẤT" data-search="OOLU8842105 EXP-2610-044 MAY MẶC PHÚC THỊNH" data-slot="14:30–16:20" aria-pressed="false" aria-label="OOLU8842105, 40HC, May mặc Phúc Thịnh, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">OOLU8842105</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-044</span> · May mặc Phúc Thịnh</span>
+                <span style="color: var(--ink-soft);">Xuất · VSIP 1 → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 2 giờ 15</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Có lệnh cấp rỗng</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 14:30–16:20</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="OOLU8842110" data-col="wait" data-dir="XUẤT" data-search="OOLU8842110 EXP-2610-044 MAY MẶC PHÚC THỊNH" data-slot="15:00–16:50" aria-pressed="false" aria-label="OOLU8842110, 40HC, May mặc Phúc Thịnh, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">OOLU8842110</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-044</span> · May mặc Phúc Thịnh</span>
+                <span style="color: var(--ink-soft);">Xuất · VSIP 1 → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 2 giờ 15</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Có lệnh cấp rỗng</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 15:00–16:50</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="WHSU5203183" data-col="wait" data-dir="XUẤT" data-search="WHSU5203183 EXP-2610-046 CÀ PHÊ ĐẤT ĐỎ" data-slot="18:00–21:30" aria-pressed="false" aria-label="WHSU5203183, 20GP, Cà phê Đất Đỏ, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">WHSU5203183</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-046</span> · Cà phê Đất Đỏ</span>
+                <span style="color: var(--ink-soft);">Xuất · Tân Uyên → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 7 giờ 40</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Có lệnh cấp rỗng</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 18:00–21:30</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="EMCU8120458" data-col="wait" data-dir="XUẤT" data-search="EMCU8120458 EXP-2610-048 HÓA CHẤT ĐÔNG Á" data-slot="19:30–22:30" aria-pressed="false" aria-label="EMCU8120458, 20GP, Hóa chất Đông Á, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">EMCU8120458</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-048</span> · Hóa chất Đông Á</span>
+                <span style="color: var(--ink-soft);">Xuất · Sóng Thần → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 20 giờ 40</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Có lệnh cấp rỗng</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Hàng nguy hiểm</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 19:30–22:30</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="MSKU1234565" data-col="wait" data-dir="NHẬP" data-search="MSKU1234565 IMP-2610-031 ĐIỆN TỬ SAO VIỆT" data-slot="15:30–19:00" aria-pressed="false" aria-label="MSKU1234565, 40HC, Điện tử Sao Việt, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">MSKU1234565</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-031</span> · Điện tử Sao Việt</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Sóng Thần</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>DEM còn 17 giờ 40</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Có EDO</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 15:30–19:00</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="CMAU3077150" data-col="wait" data-dir="NHẬP" data-search="CMAU3077150 IMP-2610-029 NỘI THẤT AN BÌNH" data-slot="19:00–22:30" aria-pressed="false" aria-label="CMAU3077150, 20GP, Nội thất An Bình, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">CMAU3077150</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-029</span> · Nội thất An Bình</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Tân Vạn</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>DEM còn 1 ngày 16 giờ</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>HOLD hải quan</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 19:00–22:30</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="FCIU5032762" data-col="wait" data-dir="NHẬP" data-search="FCIU5032762 IMP-2610-029 NỘI THẤT AN BÌNH" data-slot="16:00–19:30" aria-pressed="false" aria-label="FCIU5032762, 20GP, Nội thất An Bình, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">FCIU5032762</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-029</span> · Nội thất An Bình</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Tân Vạn</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>DEM còn 1 ngày 16 giờ</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Chờ EDO</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 16:00–19:30</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="TRLU4188275" data-col="wait" data-dir="NHẬP" data-search="TRLU4188275 IMP-2610-033 THỰC PHẨM HẢI LONG" data-slot="15:00–18:30" aria-pressed="false" aria-label="TRLU4188275, 40RF, Thực phẩm Hải Long, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">TRLU4188275</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40RF</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-033</span> · Thực phẩm Hải Long</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → VSIP 2</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>DEM còn 8 giờ 40</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Có EDO</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18"></path></svg>Cont lạnh</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 15:00–18:30</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="TCLU6630920" data-col="wait" data-dir="NHẬP" data-search="TCLU6630920 IMP-2610-035 THÉP NAM LONG" data-slot="16:30–20:00" aria-pressed="false" aria-label="TCLU6630920, 40GP, Thép Nam Long, chọn để gán xe" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">TCLU6630920</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-035</span> · Thép Nam Long</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Nhơn Trạch</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>DEM còn 2 ngày 0 giờ</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--ok-soft); color: var(--ok); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Có EDO</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 16:30–20:00</span>
+                  <span class="mono" style="color: var(--ink);">Chưa có xe</span>
+                </span>
+              </button>
+            
+            
+              <p class="col-empty" hidden style="margin: 0; padding: 16px 8px; text-align: center; font-size: 14px; color: var(--ink-soft);">Không có container nào khớp bộ lọc.</p>
+            
+          </div>
+        
+          <div data-colid="plan" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;">
+            <h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;">
+              <span>Đã lên kế hoạch</span>
+              <span data-count style="min-width: 24px; padding: 0 8px; box-sizing: border-box; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 700; text-align: center;">2</span>
+            </h2>
+            
+              <button type="button" class="card" data-id="SEGU9102466" data-col="plan" data-dir="XUẤT" data-search="SEGU9102466 EXP-2610-046 CÀ PHÊ ĐẤT ĐỎ" data-slot="18:00–21:30" aria-pressed="false" aria-label="SEGU9102466, 20GP, Cà phê Đất Đỏ" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">SEGU9102466</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-046</span> · Cà phê Đất Đỏ</span>
+                <span style="color: var(--ink-soft);">Xuất · Tân Uyên → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 7 giờ 40</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 18:00–21:30</span>
+                  <span class="mono" style="color: var(--ink);">51C-390.44</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="GESU6115906" data-col="plan" data-dir="XUẤT" data-search="GESU6115906 EXP-2610-048 HÓA CHẤT ĐÔNG Á" data-slot="17:30–20:30" aria-pressed="false" aria-label="GESU6115906, 40HC, Hóa chất Đông Á" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">GESU6115906</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-048</span> · Hóa chất Đông Á</span>
+                <span style="color: var(--ink-soft);">Xuất · Sóng Thần → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 20 giờ 40</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"></path></svg>Street Turn</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 17:30–20:30</span>
+                  <span class="mono" style="color: var(--ink);">51C-745.02</span>
+                </span>
+              </button>
+            
+            
+              <p class="col-empty" hidden style="margin: 0; padding: 16px 8px; text-align: center; font-size: 14px; color: var(--ink-soft);">Không có container nào khớp bộ lọc.</p>
+            
+          </div>
+        
+          <div data-colid="disp" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;">
+            <h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;">
+              <span>Đã điều</span>
+              <span data-count style="min-width: 24px; padding: 0 8px; box-sizing: border-box; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 700; text-align: center;">2</span>
+            </h2>
+            
+              <button type="button" class="card" data-id="CAIU7714022" data-col="disp" data-dir="XUẤT" data-search="CAIU7714022 EXP-2610-046 CÀ PHÊ ĐẤT ĐỎ" data-slot="15:30–19:00" aria-pressed="false" aria-label="CAIU7714022, 20GP, Cà phê Đất Đỏ" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">CAIU7714022</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-046</span> · Cà phê Đất Đỏ</span>
+                <span style="color: var(--ink-soft);">Xuất · Tân Uyên → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 7 giờ 40</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 15:30–19:00</span>
+                  <span class="mono" style="color: var(--ink);">51C-806.23</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="SZLU9021141" data-col="disp" data-dir="NHẬP" data-search="SZLU9021141 IMP-2610-035 THÉP NAM LONG" data-slot="15:00–19:00" aria-pressed="false" aria-label="SZLU9021141, 40GP, Thép Nam Long" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">SZLU9021141</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-035</span> · Thép Nam Long</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Nhơn Trạch</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 15:00–19:00</span>
+                  <span class="mono" style="color: var(--ink);">51C-912.48</span>
+                </span>
+              </button>
+            
+            
+              <p class="col-empty" hidden style="margin: 0; padding: 16px 8px; text-align: center; font-size: 14px; color: var(--ink-soft);">Không có container nào khớp bộ lọc.</p>
+            
+          </div>
+        
+          <div data-colid="run" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;">
+            <h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;">
+              <span>Đang chạy</span>
+              <span data-count style="min-width: 24px; padding: 0 8px; box-sizing: border-box; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 700; text-align: center;">2</span>
+            </h2>
+            
+              <button type="button" class="card" data-id="HLXU2248702" data-col="run" data-dir="XUẤT" data-search="HLXU2248702 EXP-2610-044 MAY MẶC PHÚC THỊNH" data-slot="14:00–16:10" aria-pressed="false" aria-label="HLXU2248702, 40HC, May mặc Phúc Thịnh" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">HLXU2248702</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-044</span> · May mặc Phúc Thịnh</span>
+                <span style="color: var(--ink-soft);">Xuất · VSIP 1 → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 14:00–16:10</span>
+                  <span class="mono" style="color: var(--ink);">51C-517.06</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="BMOU2077343" data-col="run" data-dir="NHẬP" data-search="BMOU2077343 IMP-2610-035 THÉP NAM LONG" data-slot="12:30–16:30" aria-pressed="false" aria-label="BMOU2077343, 40GP, Thép Nam Long" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">BMOU2077343</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-035</span> · Thép Nam Long</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Nhơn Trạch</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 12:30–16:30</span>
+                  <span class="mono" style="color: var(--ink);">51C-155.63</span>
+                </span>
+              </button>
+            
+            
+              <p class="col-empty" hidden style="margin: 0; padding: 16px 8px; text-align: center; font-size: 14px; color: var(--ink-soft);">Không có container nào khớp bộ lọc.</p>
+            
+          </div>
+        
+          <div data-colid="hook" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;">
+            <h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;">
+              <span>Chờ móc rơ moóc</span>
+              <span data-count style="min-width: 24px; padding: 0 8px; box-sizing: border-box; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 700; text-align: center;">1</span>
+            </h2>
+            
+              <button type="button" class="card" data-id="TGHU8812348" data-col="hook" data-dir="NHẬP" data-search="TGHU8812348 IMP-2610-031 ĐIỆN TỬ SAO VIỆT" data-slot="08:00–11:00" aria-pressed="false" aria-label="TGHU8812348, 40HC, Điện tử Sao Việt" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">TGHU8812348</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-031</span> · Điện tử Sao Việt</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Sóng Thần</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>DET còn 4 giờ 40</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 08:00–11:00</span>
+                  <span class="mono" style="color: var(--ink);">51C-482.17</span>
+                </span>
+              </button>
+            
+            
+              <p class="col-empty" hidden style="margin: 0; padding: 16px 8px; text-align: center; font-size: 14px; color: var(--ink-soft);">Không có container nào khớp bộ lọc.</p>
+            
+          </div>
+        
+          <div data-colid="done" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;">
+            <h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;">
+              <span>Hoàn thành chờ chứng từ</span>
+              <span data-count style="min-width: 24px; padding: 0 8px; box-sizing: border-box; border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 700; text-align: center;">3</span>
+            </h2>
+            
+              <button type="button" class="card" data-id="TEMU5301189" data-col="done" data-dir="XUẤT" data-search="TEMU5301189 EXP-2610-044 MAY MẶC PHÚC THỊNH" data-slot="07:00–10:20" aria-pressed="false" aria-label="TEMU5301189, 40HC, May mặc Phúc Thịnh" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">TEMU5301189</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-044</span> · May mặc Phúc Thịnh</span>
+                <span style="color: var(--ink-soft);">Xuất · VSIP 1 → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5"></path></svg>Chờ duyệt EIR hạ cảng</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 07:00–10:20</span>
+                  <span class="mono" style="color: var(--ink);">51C-306.12</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="MRKU6609132" data-col="done" data-dir="NHẬP" data-search="MRKU6609132 IMP-2610-031 ĐIỆN TỬ SAO VIỆT" data-slot="06:00–10:30" aria-pressed="false" aria-label="MRKU6609132, 40HC, Điện tử Sao Việt" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">MRKU6609132</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-031</span> · Điện tử Sao Việt</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Sóng Thần</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5"></path></svg>Thiếu ảnh ePOD</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 06:00–10:30</span>
+                  <span class="mono" style="color: var(--ink);">51C-306.12</span>
+                </span>
+              </button>
+            
+              <button type="button" class="card" data-id="TLLU2245518" data-col="done" data-dir="NHẬP" data-search="TLLU2245518 IMP-2610-035 THÉP NAM LONG" data-slot="05:30–09:40" aria-pressed="false" aria-label="TLLU2245518, 40GP, Thép Nam Long" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">TLLU2245518</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-035</span> · Thép Nam Long</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Nhơn Trạch</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5"></path></svg>Chờ xác nhận ePOD</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 05:30–09:40</span>
+                  <span class="mono" style="color: var(--ink);">51C-482.17</span>
+                </span>
+              </button>
+            
+            
+              <p class="col-empty" hidden style="margin: 0; padding: 16px 8px; text-align: center; font-size: 14px; color: var(--ink-soft);">Không có container nào khớp bộ lọc.</p>
+            
+          </div>
+        
+      </div>
+    </section>
+
+    
+
+    <section data-panel="OOLU8842105" hidden aria-labelledby="assign-title-OOLU8842105" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-OOLU8842105" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">OOLU8842105</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">40HC · khung 14:30–16:20 · VSIP 1 → Cát Lái</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warn);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Được điều · GPLX còn 2 ngày</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+    <section data-panel="OOLU8842110" hidden aria-labelledby="assign-title-OOLU8842110" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-OOLU8842110" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">OOLU8842110</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">40HC · khung 15:00–16:50 · VSIP 1 → Cát Lái</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warn);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Được điều · GPLX còn 2 ngày</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+    <section data-panel="WHSU5203183" hidden aria-labelledby="assign-title-WHSU5203183" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-WHSU5203183" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">WHSU5203183</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">20GP · khung 18:00–21:30 · Tân Uyên → Cát Lái</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warn);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Được điều · GPLX còn 2 ngày</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+    <section data-panel="EMCU8120458" hidden aria-labelledby="assign-title-EMCU8120458" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-EMCU8120458" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">EMCU8120458</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">20GP · khung 19:30–22:30 · Sóng Thần → Cát Lái</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warn);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Được điều · GPLX còn 2 ngày</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+    <section data-panel="MSKU1234565" hidden aria-labelledby="assign-title-MSKU1234565" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-MSKU1234565" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">MSKU1234565</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">40HC · khung 15:30–19:00 · Cát Lái → Sóng Thần</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warn);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Được điều · GPLX còn 2 ngày</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+    <section data-panel="CMAU3077150" hidden aria-labelledby="assign-title-CMAU3077150" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-CMAU3077150" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">CMAU3077150</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">20GP · khung 19:00–22:30 · Cát Lái → Tân Vạn</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warn);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Được điều · GPLX còn 2 ngày</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+    <section data-panel="FCIU5032762" hidden aria-labelledby="assign-title-FCIU5032762" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-FCIU5032762" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">FCIU5032762</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">20GP · khung 16:00–19:30 · Cát Lái → Tân Vạn</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warn);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Được điều · GPLX còn 2 ngày</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+    <section data-panel="TRLU4188275" hidden aria-labelledby="assign-title-TRLU4188275" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-TRLU4188275" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">TRLU4188275</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">40RF · khung 15:00–18:30 · Cát Lái → VSIP 2</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18"></path></svg>Cont lạnh cần rơ moóc có genset</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18"></path></svg>Cont lạnh cần rơ moóc có genset</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18"></path></svg>Cont lạnh cần rơ moóc có genset</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18"></path></svg>Cont lạnh cần rơ moóc có genset</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18"></path></svg>Cont lạnh cần rơ moóc có genset</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+    <section data-panel="TCLU6630920" hidden aria-labelledby="assign-title-TCLU6630920" style="padding: 16px 20px; border: 2px solid var(--primary); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px;">
+          <h2 id="assign-title-TCLU6630920" style="margin: 0; font-size: 20px; font-weight: 600;">Gán xe cho <span class="mono">TCLU6630920</span></h2>
+          <span style="font-size: 15px; color: var(--ink-soft);">40GP · khung 16:30–20:00 · Cát Lái → Nhơn Trạch</span>
+          <button type="button" data-clear class="ghost" style="height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 15px; cursor: pointer;">Bỏ chọn</button>
+        </div>
+        <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-306.12" data-driver="Phạm Quốc Bảo" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-306.12</span><span style="color: var(--ink-soft);">Phạm Quốc Bảo</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ok);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9 17.5 20 6.5"></path></svg>Rảnh trong khung giờ này</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-482.17" data-driver="Trần Văn Lộc" style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-482.17</span><span style="color: var(--ink-soft);">Trần Văn Lộc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--warn);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Được điều · GPLX còn 2 ngày</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-517.06" data-driver="Lê Minh Tâm" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-517.06</span><span style="color: var(--ink-soft);">Lê Minh Tâm</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-228.40" data-driver="Đỗ Thành Nhân" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-228.40</span><span style="color: var(--ink-soft);">Đỗ Thành Nhân</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>Đăng kiểm hết hạn, không được điều</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-390.44" data-driver="Võ Văn Sang" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-390.44</span><span style="color: var(--ink-soft);">Võ Văn Sang</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-611.85" data-driver="Ngô Văn Phúc" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-611.85</span><span style="color: var(--ink-soft);">Ngô Văn Phúc</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--off);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Tài xế nghỉ phép hôm nay</span>
+              </button>
+            </li>
+          
+            <li>
+              <button type="button" class="lane-btn" data-truck="51C-745.02" data-driver="Huỳnh Tấn Lực" disabled style="width: 100%; min-height: 64px; padding: 10px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; gap: 8px; align-items: baseline;"><span class="mono" style="font-size: 15px; font-weight: 600;">51C-745.02</span><span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span></span>
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--crit);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Trùng giờ với chuyến khác</span>
+              </button>
+            </li>
+          
+        </ul>
+      </section>
+
+    <section aria-labelledby="lanes-title" style="border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow-x: auto;">
+      <div style="min-width: 1100px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 20px;">
+          <h2 id="lanes-title" style="margin: 0; font-size: 20px; font-weight: 600;">Lịch xe hôm nay</h2>
+          <span style="font-size: 14px; color: var(--ink-soft);">05:00 – 23:00 · vạch xanh là bây giờ</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 240px 1fr; border-top: 1px solid var(--line);">
+          <div style="padding: 6px 20px; font-size: 13px; font-weight: 600; color: var(--ink-soft); background: var(--surface-2);">Xe · tài xế · rơ moóc</div>
+          <div style="position: relative; height: 32px; background: var(--surface-2);">
+            <span style="position: absolute; left: 0.00%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">05:00</span><span style="position: absolute; left: 11.11%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">07:00</span><span style="position: absolute; left: 22.22%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">09:00</span><span style="position: absolute; left: 33.33%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">11:00</span><span style="position: absolute; left: 44.44%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">13:00</span><span style="position: absolute; left: 55.56%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">15:00</span><span style="position: absolute; left: 66.67%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">17:00</span><span style="position: absolute; left: 77.78%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">19:00</span><span style="position: absolute; left: 88.89%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">21:00</span><span style="position: absolute; left: 100.00%; top: 6px; transform: translateX(-50%); font-size: 12px; color: var(--ink-soft);">23:00</span>
+          </div>
+          
+            <div style="padding: 8px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+              <span><span class="mono" style="font-weight: 600;">51C-306.12</span> <span style="color: var(--ink-soft);">· sàn 40 feet</span></span>
+              <span style="color: var(--ink-soft);">Phạm Quốc Bảo</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                
+              </span>
+            </div>
+            <div data-lane="51C-306.12" style="position: relative; border-top: 1px solid var(--line); min-height: 72px;">
+              <span aria-hidden="true" style="position: absolute; left: 51.85%; top: 0; bottom: 0; width: 2px; background: var(--primary);"></span>
+              
+                <span title="MRKU6609132 · 06:00–10:30" style="position: absolute; left: 5.56%; width: 25.00%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--ok); background: var(--ok-soft); color: var(--ok); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">MRKU6609132</span><span>IMP-2610-031</span></span>
+              
+            </div>
+          
+            <div style="padding: 8px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+              <span><span class="mono" style="font-weight: 600;">51C-482.17</span> <span style="color: var(--ink-soft);">· sàn 40 feet</span></span>
+              <span style="color: var(--ink-soft);">Trần Văn Lộc</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                <span style="padding: 0 6px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;">GPLX còn 2 ngày</span><span style="padding: 0 6px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;">Đăng kiểm còn 5 ngày</span>
+              </span>
+            </div>
+            <div data-lane="51C-482.17" style="position: relative; border-top: 1px solid var(--line); min-height: 72px;">
+              <span aria-hidden="true" style="position: absolute; left: 51.85%; top: 0; bottom: 0; width: 2px; background: var(--primary);"></span>
+              
+                <span title="TLLU2245518 · 05:30–09:40" style="position: absolute; left: 2.78%; width: 23.15%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--ok); background: var(--ok-soft); color: var(--ok); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">TLLU2245518</span><span>IMP-2610-035</span></span>
+              
+                <span title="TGHU8812348 · 09:40–11:00" style="position: absolute; left: 25.93%; width: 7.41%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--ok); background: var(--ok-soft); color: var(--ok); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">TGHU8812348</span><span>Drop tại Sao Việt</span></span>
+              
+            </div>
+          
+            <div style="padding: 8px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+              <span><span class="mono" style="font-weight: 600;">51C-517.06</span> <span style="color: var(--ink-soft);">· sàn 40 feet</span></span>
+              <span style="color: var(--ink-soft);">Lê Minh Tâm</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                
+              </span>
+            </div>
+            <div data-lane="51C-517.06" style="position: relative; border-top: 1px solid var(--line); min-height: 72px;">
+              <span aria-hidden="true" style="position: absolute; left: 51.85%; top: 0; bottom: 0; width: 2px; background: var(--primary);"></span>
+              
+                <span title="HLXU2248702 · 14:00–18:00" style="position: absolute; left: 50.00%; width: 22.22%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--primary); background: var(--primary); color: var(--on-primary); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">HLXU2248702</span><span>VSIP 1 → Cát Lái</span></span>
+              
+            </div>
+          
+            <div style="padding: 8px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+              <span><span class="mono" style="font-weight: 600;">51C-228.40</span> <span style="color: var(--ink-soft);">· sàn 40 feet</span></span>
+              <span style="color: var(--ink-soft);">Đỗ Thành Nhân</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                <span style="padding: 0 6px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;">Đăng kiểm hết hạn 15/10</span>
+              </span>
+            </div>
+            <div data-lane="51C-228.40" style="position: relative; border-top: 1px solid var(--line); min-height: 72px;">
+              <span aria-hidden="true" style="position: absolute; left: 51.85%; top: 0; bottom: 0; width: 2px; background: var(--primary);"></span>
+              
+            </div>
+          
+            <div style="padding: 8px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+              <span><span class="mono" style="font-weight: 600;">51C-390.44</span> <span style="color: var(--ink-soft);">· chở được 2×20</span></span>
+              <span style="color: var(--ink-soft);">Võ Văn Sang</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                
+              </span>
+            </div>
+            <div data-lane="51C-390.44" style="position: relative; border-top: 1px solid var(--line); min-height: 72px;">
+              <span aria-hidden="true" style="position: absolute; left: 51.85%; top: 0; bottom: 0; width: 2px; background: var(--primary);"></span>
+              
+                <span title="SEGU9102466 · 18:00–21:30" style="position: absolute; left: 72.22%; width: 19.44%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">SEGU9102466</span><span>Tân Uyên → Cát Lái</span></span>
+              
+            </div>
+          
+            <div style="padding: 8px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+              <span><span class="mono" style="font-weight: 600;">51C-611.85</span> <span style="color: var(--ink-soft);">· có genset</span></span>
+              <span style="color: var(--ink-soft);">Ngô Văn Phúc</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                <span style="padding: 0 6px; border-radius: 5px; background: var(--off-soft); color: var(--off); font-size: 12px; font-weight: 700;">Tài xế nghỉ phép</span>
+              </span>
+            </div>
+            <div data-lane="51C-611.85" style="position: relative; border-top: 1px solid var(--line); min-height: 72px;">
+              <span aria-hidden="true" style="position: absolute; left: 51.85%; top: 0; bottom: 0; width: 2px; background: var(--primary);"></span>
+              
+                <span title="Nghỉ phép cả ngày · 05:00–23:00" style="position: absolute; left: 0.00%; width: 100.00%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--off-soft); color: var(--off); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">Nghỉ phép cả ngày</span><span>Đổi tài xế để dùng xe này</span></span>
+              
+            </div>
+          
+            <div style="padding: 8px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+              <span><span class="mono" style="font-weight: 600;">51C-745.02</span> <span style="color: var(--ink-soft);">· sàn 40 feet</span></span>
+              <span style="color: var(--ink-soft);">Huỳnh Tấn Lực</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                
+              </span>
+            </div>
+            <div data-lane="51C-745.02" style="position: relative; border-top: 1px solid var(--line); min-height: 72px;">
+              <span aria-hidden="true" style="position: absolute; left: 51.85%; top: 0; bottom: 0; width: 2px; background: var(--primary);"></span>
+              
+                <span title="Bảo dưỡng định kỳ · 05:00–11:00" style="position: absolute; left: 0.00%; width: 33.33%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--warn); background: var(--warn-soft); color: var(--warn); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">Bảo dưỡng định kỳ</span><span>Gara Tân Vạn</span></span>
+              
+                <span title="GESU6115906 · 17:30–20:30" style="position: absolute; left: 69.44%; width: 16.67%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">GESU6115906</span><span>Street Turn</span></span>
+              
+            </div>
+          
+        </div>
+      </div>
+    </section>
+  
+    </div>
+    <div class="s-loading"><div aria-busy="true" style="display: flex; flex-direction: column; gap: 16px;">
+      <p class="sr-only" role="status">Đang tải bảng điều vận và lịch xe</p>
+      <section aria-label="Bảng container đang tải" style="overflow-x: auto; padding-bottom: 4px;"><div style="display: grid; grid-template-columns: repeat(6, minmax(210px, 1fr)); gap: 12px; min-width: 1320px;"><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;"><h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;"><span>Chờ điều</span><span class="sk sk-on2" style="width: 24px; height: 18px; border-radius: 999px;"></span></h2><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;"><h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;"><span>Đã lên kế hoạch</span><span class="sk sk-on2" style="width: 24px; height: 18px; border-radius: 999px;"></span></h2><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;"><h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;"><span>Đã điều</span><span class="sk sk-on2" style="width: 24px; height: 18px; border-radius: 999px;"></span></h2><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;"><h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;"><span>Đang chạy</span><span class="sk sk-on2" style="width: 24px; height: 18px; border-radius: 999px;"></span></h2><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;"><h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;"><span>Chờ móc rơ moóc</span><span class="sk sk-on2" style="width: 24px; height: 18px; border-radius: 999px;"></span></h2><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); min-height: 200px;"><h2 style="margin: 0; padding: 2px 4px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600;"><span>Hoàn thành chờ chứng từ</span><span class="sk sk-on2" style="width: 24px; height: 18px; border-radius: 999px;"></span></h2><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div><div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);"><span style="display: flex; justify-content: space-between;"><span class="sk" style="width: 110px; height: 16px;"></span><span class="sk" style="width: 36px; height: 14px;"></span></span><span class="sk" style="width: 90%; height: 14px;"></span><span class="sk" style="width: 70%; height: 14px;"></span><span style="display: flex; gap: 4px;"><span class="sk" style="width: 96px; height: 18px; border-radius: 5px;"></span><span class="sk" style="width: 64px; height: 18px; border-radius: 5px;"></span></span><span class="sk" style="width: 100%; height: 12px;"></span></div></div></div></section>
+      <section aria-label="Lịch xe đang tải" style="border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow-x: auto;"><div style="min-width: 1100px;"><div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 20px;"><h2 style="margin: 0; font-size: 20px; font-weight: 600;">Lịch xe hôm nay</h2><span class="sk" style="width: 220px; height: 14px;"></span></div><div style="display: grid; grid-template-columns: 240px 1fr; border-top: 1px solid var(--line);"><div style="padding: 6px 20px; font-size: 13px; font-weight: 600; color: var(--ink-soft); background: var(--surface-2);">Xe · tài xế · rơ moóc</div><div style="height: 32px; background: var(--surface-2);"></div><div style="padding: 10px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px;"><span class="sk" style="width: 120px; height: 16px;"></span><span class="sk" style="width: 100px; height: 14px;"></span></div><div style="position: relative; border-top: 1px solid var(--line); min-height: 72px;"><span class="sk" style="position: absolute; left: 5%; width: 24%; top: 12px; bottom: 12px;"></span></div><div style="padding: 10px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px;"><span class="sk" style="width: 120px; height: 16px;"></span><span class="sk" style="width: 100px; height: 14px;"></span></div><div style="position: relative; border-top: 1px solid var(--line); min-height: 72px;"><span class="sk" style="position: absolute; left: 30%; width: 18%; top: 12px; bottom: 12px;"></span></div><div style="padding: 10px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px;"><span class="sk" style="width: 120px; height: 16px;"></span><span class="sk" style="width: 100px; height: 14px;"></span></div><div style="position: relative; border-top: 1px solid var(--line); min-height: 72px;"><span class="sk" style="position: absolute; left: 52%; width: 22%; top: 12px; bottom: 12px;"></span></div><div style="padding: 10px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px;"><span class="sk" style="width: 120px; height: 16px;"></span><span class="sk" style="width: 100px; height: 14px;"></span></div><div style="position: relative; border-top: 1px solid var(--line); min-height: 72px;"><span class="sk" style="position: absolute; left: 12%; width: 30%; top: 12px; bottom: 12px;"></span></div><div style="padding: 10px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px;"><span class="sk" style="width: 120px; height: 16px;"></span><span class="sk" style="width: 100px; height: 14px;"></span></div><div style="position: relative; border-top: 1px solid var(--line); min-height: 72px;"><span class="sk" style="position: absolute; left: 64%; width: 16%; top: 12px; bottom: 12px;"></span></div></div></div></section>
+    </div></div>
+    <div class="s-empty"><section aria-labelledby="d-empty-title" style="padding: 56px 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+      <span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 50%; background: var(--info-soft); color: var(--info); display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v13h-4z"></path></svg></span>
+      <h2 id="d-empty-title" style="margin: 0; font-size: 20px; font-weight: 600;">Chưa có container nào cần điều hôm nay</h2>
+      <p style="margin: 0; max-width: 560px; color: var(--ink-soft);">Bảng điều vận lấy container từ các Order có khung lấy hoặc trả hàng trong ngày 17/10. Hiện chưa có Order nào như vậy, nên 7 xe đều đang rảnh. Tạo Order và nhập danh sách container để bắt đầu điều xe.</p>
+      <a href="Orders.dc.html" class="btn-primary" style="margin-top: 8px; height: 44px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 600; text-decoration: none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Tạo Order</a>
+    </section></div>
+  </div>
+</div>
+
+<template data-plan-card="OOLU8842105"><button type="button" class="card" data-id="OOLU8842105" data-col="plan" data-dir="XUẤT" data-search="OOLU8842105 EXP-2610-044 MAY MẶC PHÚC THỊNH" data-slot="14:30–16:20" aria-pressed="false" aria-label="OOLU8842105, 40HC, May mặc Phúc Thịnh" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">OOLU8842105</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-044</span> · May mặc Phúc Thịnh</span>
+                <span style="color: var(--ink-soft);">Xuất · VSIP 1 → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 2 giờ 15</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 14:30–16:20</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="OOLU8842105"><span title="OOLU8842105 · 14:30–16:20" style="position: absolute; left: 52.78%; width: 10.19%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">OOLU8842105</span><span>VSIP 1 → Cát Lái</span></span></template>
+<template data-plan-card="OOLU8842110"><button type="button" class="card" data-id="OOLU8842110" data-col="plan" data-dir="XUẤT" data-search="OOLU8842110 EXP-2610-044 MAY MẶC PHÚC THỊNH" data-slot="15:00–16:50" aria-pressed="false" aria-label="OOLU8842110, 40HC, May mặc Phúc Thịnh" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">OOLU8842110</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-044</span> · May mặc Phúc Thịnh</span>
+                <span style="color: var(--ink-soft);">Xuất · VSIP 1 → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 2 giờ 15</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 15:00–16:50</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="OOLU8842110"><span title="OOLU8842110 · 15:00–16:50" style="position: absolute; left: 55.56%; width: 10.19%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">OOLU8842110</span><span>VSIP 1 → Cát Lái</span></span></template>
+<template data-plan-card="WHSU5203183"><button type="button" class="card" data-id="WHSU5203183" data-col="plan" data-dir="XUẤT" data-search="WHSU5203183 EXP-2610-046 CÀ PHÊ ĐẤT ĐỎ" data-slot="18:00–21:30" aria-pressed="false" aria-label="WHSU5203183, 20GP, Cà phê Đất Đỏ" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">WHSU5203183</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-046</span> · Cà phê Đất Đỏ</span>
+                <span style="color: var(--ink-soft);">Xuất · Tân Uyên → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 7 giờ 40</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 18:00–21:30</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="WHSU5203183"><span title="WHSU5203183 · 18:00–21:30" style="position: absolute; left: 72.22%; width: 19.44%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">WHSU5203183</span><span>Tân Uyên → Cát Lái</span></span></template>
+<template data-plan-card="EMCU8120458"><button type="button" class="card" data-id="EMCU8120458" data-col="plan" data-dir="XUẤT" data-search="EMCU8120458 EXP-2610-048 HÓA CHẤT ĐÔNG Á" data-slot="19:30–22:30" aria-pressed="false" aria-label="EMCU8120458, 20GP, Hóa chất Đông Á" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">EMCU8120458</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">EXP-2610-048</span> · Hóa chất Đông Á</span>
+                <span style="color: var(--ink-soft);">Xuất · Sóng Thần → Cát Lái</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Cut-off còn 20 giờ 40</span>
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.01"></path></svg>Hàng nguy hiểm</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 19:30–22:30</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="EMCU8120458"><span title="EMCU8120458 · 19:30–22:30" style="position: absolute; left: 80.56%; width: 16.67%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">EMCU8120458</span><span>Sóng Thần → Cát Lái</span></span></template>
+<template data-plan-card="MSKU1234565"><button type="button" class="card" data-id="MSKU1234565" data-col="plan" data-dir="NHẬP" data-search="MSKU1234565 IMP-2610-031 ĐIỆN TỬ SAO VIỆT" data-slot="15:30–19:00" aria-pressed="false" aria-label="MSKU1234565, 40HC, Điện tử Sao Việt" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">MSKU1234565</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40HC</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-031</span> · Điện tử Sao Việt</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Sóng Thần</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 15:30–19:00</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="MSKU1234565"><span title="MSKU1234565 · 15:30–19:00" style="position: absolute; left: 58.33%; width: 19.44%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">MSKU1234565</span><span>Cát Lái → Sóng Thần</span></span></template>
+<template data-plan-card="CMAU3077150"><button type="button" class="card" data-id="CMAU3077150" data-col="plan" data-dir="NHẬP" data-search="CMAU3077150 IMP-2610-029 NỘI THẤT AN BÌNH" data-slot="19:00–22:30" aria-pressed="false" aria-label="CMAU3077150, 20GP, Nội thất An Bình" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">CMAU3077150</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-029</span> · Nội thất An Bình</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Tân Vạn</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--crit-soft); color: var(--crit); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"></path></svg>HOLD hải quan</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 19:00–22:30</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="CMAU3077150"><span title="CMAU3077150 · 19:00–22:30" style="position: absolute; left: 77.78%; width: 19.44%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">CMAU3077150</span><span>Cát Lái → Tân Vạn</span></span></template>
+<template data-plan-card="FCIU5032762"><button type="button" class="card" data-id="FCIU5032762" data-col="plan" data-dir="NHẬP" data-search="FCIU5032762 IMP-2610-029 NỘI THẤT AN BÌNH" data-slot="16:00–19:30" aria-pressed="false" aria-label="FCIU5032762, 20GP, Nội thất An Bình" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">FCIU5032762</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">20GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-029</span> · Nội thất An Bình</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Tân Vạn</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--warn-soft); color: var(--warn); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"></path></svg>Chờ EDO</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 16:00–19:30</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="FCIU5032762"><span title="FCIU5032762 · 16:00–19:30" style="position: absolute; left: 61.11%; width: 19.44%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">FCIU5032762</span><span>Cát Lái → Tân Vạn</span></span></template>
+<template data-plan-card="TRLU4188275"><button type="button" class="card" data-id="TRLU4188275" data-col="plan" data-dir="NHẬP" data-search="TRLU4188275 IMP-2610-033 THỰC PHẨM HẢI LONG" data-slot="15:00–18:30" aria-pressed="false" aria-label="TRLU4188275, 40RF, Thực phẩm Hải Long" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">TRLU4188275</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40RF</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-033</span> · Thực phẩm Hải Long</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → VSIP 2</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; background: var(--info-soft); color: var(--info); font-size: 12px; font-weight: 700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18"></path></svg>Cont lạnh</span>
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 15:00–18:30</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="TRLU4188275"><span title="TRLU4188275 · 15:00–18:30" style="position: absolute; left: 55.56%; width: 19.44%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">TRLU4188275</span><span>Cát Lái → VSIP 2</span></span></template>
+<template data-plan-card="TCLU6630920"><button type="button" class="card" data-id="TCLU6630920" data-col="plan" data-dir="NHẬP" data-search="TCLU6630920 IMP-2610-035 THÉP NAM LONG" data-slot="16:30–20:00" aria-pressed="false" aria-label="TCLU6630920, 40GP, Thép Nam Long" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px;">
+                <span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%;">
+                  <span class="mono" style="font-size: 15px; font-weight: 600;">TCLU6630920</span>
+                  <span style="font-size: 13px; font-weight: 600; color: var(--ink-soft);">40GP</span>
+                </span>
+                <span style="color: var(--ink-soft); line-height: 1.35;"><span class="mono" style="color: var(--ink);">IMP-2610-035</span> · Thép Nam Long</span>
+                <span style="color: var(--ink-soft);">Nhập · Cát Lái → Nhơn Trạch</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 4px;">
+                  
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%; font-size: 13px; color: var(--ink-soft);">
+                  <span>Khung 16:30–20:00</span>
+                  <span class="mono" style="color: var(--ink);">__TRUCK__</span>
+                </span>
+              </button></template>
+<template data-plan-block="TCLU6630920"><span title="TCLU6630920 · 16:30–20:00" style="position: absolute; left: 63.89%; width: 19.44%; top: 12px; bottom: 12px; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--info); background: var(--info-soft); color: var(--info); overflow: hidden; font-size: 12px; line-height: 1.3; white-space: nowrap;"><span class="mono" style="display: block; font-weight: 600;">TCLU6630920</span><span>Cát Lái → Nhơn Trạch</span></span></template>
+</div>
+<script>
+(function(){var root=document.getElementById('root');var bs=root.querySelectorAll('.state-bar [data-set]');for(var i=0;i<bs.length;i++){bs[i].addEventListener('click',function(){root.setAttribute('data-state',this.getAttribute('data-set'));for(var j=0;j<bs.length;j++)bs[j].setAttribute('aria-pressed',String(bs[j]===this));});}})();
+(function(){var root=document.getElementById('root');var NOW=14*60+20;
+function $$(s,el){return Array.prototype.slice.call((el||root).querySelectorAll(s));}
+var dir='all',q='',last=null;
+function recount(){$$('[data-colid]').forEach(function(col){var n=$$('.card',col).filter(function(c){return !c.hidden;}).length;col.querySelector('[data-count]').textContent=n;col.querySelector('.col-empty').hidden=n>0;});}
+function filter(){$$('.card').forEach(function(c){var ok=(dir==='all'||c.getAttribute('data-dir')===dir)&&(!q||c.getAttribute('data-search').indexOf(q)>=0)&&!c.hasAttribute('data-assigned');c.hidden=!ok;});recount();}
+function select(id){$$('.card').forEach(function(c){c.setAttribute('aria-pressed',String(c.getAttribute('data-id')===id&&c.getAttribute('data-col')==='wait'));});$$('[data-panel]').forEach(function(p){p.hidden=p.getAttribute('data-panel')!==id;});}
+$$('.card').forEach(bindCard);
+function bindCard(c){c.addEventListener('click',function(){if(c.getAttribute('data-col')!=='wait')return;select(c.getAttribute('aria-pressed')==='true'?null:c.getAttribute('data-id'));});}
+$$('[data-clear]').forEach(function(b){b.addEventListener('click',function(){select(null);});});
+$$('.seg').forEach(function(b,i){b.addEventListener('click',function(){dir=['all','XUẤT','NHẬP'][i];$$('.seg').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});filter();});});
+document.getElementById('dq').addEventListener('input',function(){q=this.value.trim().toUpperCase();filter();});
+$$('.lane-btn').forEach(function(b){b.addEventListener('click',function(){if(b.disabled)return;var panel=b.closest('[data-panel]');var id=panel.getAttribute('data-panel');var truck=b.getAttribute('data-truck'),driver=b.getAttribute('data-driver');
+var orig=root.querySelector('.card[data-id="'+id+'"][data-col="wait"]');var ct=document.querySelector('template[data-plan-card="'+id+'"]').content.firstElementChild.cloneNode(true);
+var monos=ct.querySelectorAll('.mono');monos[monos.length-1].textContent=truck;var planCol=root.querySelector('[data-colid="plan"]');planCol.insertBefore(ct,planCol.querySelector('.col-empty'));bindCard(ct);
+var bk=document.querySelector('template[data-plan-block="'+id+'"]').content.firstElementChild.cloneNode(true);root.querySelector('[data-lane="'+truck+'"]').appendChild(bk);
+orig.setAttribute('data-assigned','');if(last)last.done();
+var slot=orig.getAttribute('data-slot');
+last={done:function(){},undo:function(){ct.remove();bk.remove();orig.removeAttribute('data-assigned');filter();}};
+document.getElementById('toast-text').textContent='Đã gán '+truck+' ('+driver+') cho '+id+', khung '+slot+'.';document.getElementById('toast').hidden=false;
+select(null);filter();});});
+document.getElementById('undo').addEventListener('click',function(){if(last){last.undo();last=null;}document.getElementById('toast').hidden=true;});
+})();
+</script>
+</body>
+</html>
