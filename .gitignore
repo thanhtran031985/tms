@@ -20,8 +20,6 @@ test-results/
 # Expo
 .expo/
 
-# Bản sao tài sản thiết kế sinh khi chạy (script predev/prebuild)
-apps/web/public/brand/
 
 # Khác
 *.zip

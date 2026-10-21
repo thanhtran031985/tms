@@ -10,3 +10,4 @@ scripts
 .claude
 .env*
 *.md
+apps/web/src/app/fonts.css

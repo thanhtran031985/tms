@@ -16,12 +16,15 @@
     "db:generate": "pnpm --filter core db:generate",
     "db:migrate": "pnpm --filter core db:migrate",
     "db:seed": "pnpm --filter core db:seed",
-    "test": "node scripts/test.mjs"
+    "test": "node scripts/test.mjs",
+    "e2e": "pnpm --filter web e2e",
+    "dev": "pnpm --filter web dev"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.5",
     "eslint": "^10.13.0",
+    "eslint-config-next": "^16.4.2",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.0"
