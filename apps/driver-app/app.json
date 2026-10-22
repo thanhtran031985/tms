@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "TMS Tài xế",
+    "slug": "tms-driver",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios", "android"]
+  }
+}

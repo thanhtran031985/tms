@@ -18,7 +18,7 @@
     "db:seed": "pnpm --filter core db:seed",
     "test": "node scripts/test.mjs",
     "e2e": "pnpm --filter web e2e",
-    "dev": "pnpm --filter web dev"
+    "dev": "pnpm -r --parallel --filter web --filter worker dev"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

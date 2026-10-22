@@ -1,4 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src"]
+  "compilerOptions": {
+    "jsx": "react-native",
+    "lib": ["ES2023"]
+  },
+  "include": ["App.tsx", "src"]
 }

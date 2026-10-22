@@ -4,6 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "dev": "node --env-file-if-exists=../../.env --import tsx src/index.ts",
+    "start": "node --env-file-if-exists=../../.env --import tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "bullmq": "^6.3.19",
+    "ioredis": "^6.0.0",
+    "pino": "^10.4.0"
+  },
+  "devDependencies": {
+    "testcontainers": "^12.2.1",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.5"
   }
 }

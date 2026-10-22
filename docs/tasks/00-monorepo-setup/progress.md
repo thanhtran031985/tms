@@ -8,7 +8,7 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 2 | Docker Compose, kết nối DB/Redis/S3 và lệnh migration | ✅ | |
 | 3 | Vitest, Testcontainers và test mẫu | ✅ | |
 | 4 | apps/web: Next.js, token, font, Tailwind và Playwright | ✅ | |
-| 5 | apps/worker, apps/driver-app và lệnh pnpm dev | ⬜ | |
+| 5 | apps/worker, apps/driver-app và lệnh pnpm dev | ✅ | |
 | 6 | CI GitHub Actions | ⬜ | |
 | 7 | Lệnh dashboard tiến độ và mục Lệnh thường dùng | ⬜ | |
 | 8 | Hoàn tất | ⬜ | |
@@ -55,3 +55,12 @@ Kiểm tra:
 - `pnpm --filter web build` (Turbopack) thành công, 4 route tĩnh; `pnpm typecheck`, `pnpm lint`, `pnpm format:check`: sạch.
 Token đã thêm vào theme (CLAUDE.md yêu cầu liệt kê): `tokens.css` chưa có biến cỡ chữ nên thêm 13 kiểu `--text-*` (hero-title, screen-title, kpi-figure, section-title, body, body-sm, label, button, small, caption, chip, chip-sm, code) lấy đúng cỡ, dòng, độ đậm từ `designs/tokens.json`; ánh xạ thêm tên shadcn/ui (`--color-background`, `--color-foreground`, `--color-border`, `--color-ring`…) về token có sẵn.
 Việc anh/chị cần làm thủ công: không có.
+
+### Bước 5 — 22/10/2026
+Đã làm: `apps/worker` (`src/logger.ts` pino JSON, che trường nhạy cảm, `withContext` cho tenantId/userId/requestId; `src/queues.ts` với tên hàng đợi và `defaultJobOptions`: 5 lần thử, backoff mũ, giữ job lỗi; `src/worker.ts` `startWorker`/`stop`; `src/index.ts` nối Redis, bắt SIGINT/SIGTERM/SIGBREAK; `src/worker.int.test.ts`; `vitest.config.ts`); `apps/driver-app` khung Expo SDK 58 (`app.json`, `App.tsx`, `tsconfig.json`); script gốc `pnpm dev` chạy song song `web` và `worker`.
+Kiểm tra:
+- `pnpm dev` (Compose đang chạy): Next.js sẵn sàng ở cổng 3000 (trang `/` trả 200), worker in JSON "worker ready" rồi heartbeat; sau hơn 60 giây có heartbeat thứ hai.
+- Test tích hợp worker (Redis Testcontainers) xanh: chạy được ít nhất 2 heartbeat, log JSON đủ trường `service`, `stop()` gọi hai lần không lỗi, dòng cuối là "worker đã dừng".
+- `pnpm --filter driver-app typecheck`: mã 0. `pnpm typecheck`, `pnpm lint`, `pnpm format:check`: sạch. `pnpm test`: 17 test xanh (core 16, worker 1).
+- Không kiểm tra được Ctrl+C thật trong môi trường này (không có bàn phím tương tác); đã dừng các tiến trình bằng cách kết thúc tiến trình và xác nhận không còn tiến trình node nào của dự án. Đường tắt êm đã được test qua `stop()`. Anh/chị thử `pnpm dev` rồi Ctrl+C ở terminal của mình để xác nhận.
+Việc anh/chị cần làm thủ công: thử Ctrl+C như trên; Docker Desktop phải đang chạy khi `pnpm dev` (worker cần Redis ở `redis://localhost:6379`, có sẵn giá trị mặc định khi không đặt `REDIS_URL` và không ở production).
