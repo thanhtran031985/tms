@@ -19,7 +19,8 @@
     "test": "node scripts/test.mjs",
     "e2e": "pnpm --filter web e2e",
     "dev": "pnpm -r --parallel --filter web --filter worker dev",
-    "tasks:dashboard": "node scripts/tasks-dashboard.mjs"
+    "tasks:dashboard": "node scripts/tasks-dashboard.mjs",
+    "audit:deps": "node scripts/audit.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
