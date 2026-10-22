@@ -6,9 +6,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 |---|---|---|---|
 | 1 | Schema đội xe, migration và tenant isolation | ✅ | `0c667d1` |
 | 2 | Service đầu kéo, rơ moóc, tài xế và che dữ liệu cá nhân | ✅ | `688a22f` |
-| 3 | Rà hạn giấy tờ và seed | ✅ | |
-| 4 | Kế hoạch và lệnh bảo dưỡng | 🔄 | |
-| 5 | Job hằng ngày cảnh báo giấy tờ | ⬜ | |
+| 3 | Rà hạn giấy tờ và seed | ✅ | `c912398` |
+| 4 | Kế hoạch và lệnh bảo dưỡng | ✅ | |
+| 5 | Job hằng ngày cảnh báo giấy tờ | 🔄 | |
 | 6 | Màn đội xe, tài xế và giấy tờ | ⬜ | |
 | 7 | Hoàn tất | ⬜ | |
 
@@ -36,3 +36,10 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Tích hợp `seedFleet` vào `seed.ts` và viết test `packages/core/lib/db/seeds/fleet.int.test.ts` (4 test).
 - Thêm Server Action `listExpiringDocuments` trong `apps/web/src/features/fleet/actions.ts`.
 - Kiểm tra: 26/26 tests xanh; `pnpm db:seed` thành công; typecheck và lint xanh 100%.
+
+### Bước 4 — Kế hoạch và lệnh bảo dưỡng (22/10/2026)
+- Viết test trước `packages/core/modules/fleet/maintenance.service.int.test.ts`: kiểm thử tìm khoảng thời gian bảo dưỡng chồng lấn (`planned_start < :end AND planned_end > :start`), bỏ qua các lệnh đã `DONE`/`CANCELLED`; chuyển lệnh `IN_PROGRESS` tự động chuyển xe sang `MAINTENANCE` và `DONE` trả về `AVAILABLE`; kiểm thử xe đến kỳ bảo dưỡng theo km và theo ngày.
+- Bổ sung schema Zod `maintenancePlanInputSchema` và `maintenanceOrderInputSchema` tại `packages/shared/schemas/fleet.ts`.
+- Viết `packages/core/modules/fleet/maintenance.service.ts`: `createMaintenancePlan`, `listMaintenancePlans`, `createMaintenanceOrder`, `updateMaintenanceOrderStatus`, `findMaintenanceOverlap`, `listMaintenanceDue`.
+- Bổ sung Server Actions tương ứng tại `apps/web/src/features/fleet/actions.ts`.
+- Kiểm tra: 30/30 tests xanh; typecheck và lint xanh 100%.

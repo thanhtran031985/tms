@@ -2,6 +2,8 @@ import { z } from 'zod';
 import {
   DRIVER_EMPLOYMENT_TYPES,
   DRIVER_STATUS,
+  MAINTENANCE_ORDER_STATUS,
+  MAINTENANCE_ORDER_TYPES,
   TRACTOR_OWNERSHIP,
   TRACTOR_STATUS,
   TRAILER_STATUS,
@@ -190,3 +192,61 @@ export function maskDriverPII<T extends { phone: string; nationalIdNo?: string |
     licenseNo: driver.licenseNo ? maskLicense(driver.licenseNo) : null,
   };
 }
+
+// ================= KẾ HOẠCH BẢO DƯỠNG =================
+export const maintenancePlanBaseSchema = z.object({
+  tractorId: optionalId,
+  trailerId: optionalId,
+  taskCode: requiredText(50, 'Mã hạng mục bảo dưỡng'),
+  intervalKm: z.number().int('Km phải là số nguyên').min(1, 'Km tối thiểu là 1').nullish(),
+  intervalDays: z.number().int('Số ngày phải là số nguyên').min(1, 'Số ngày tối thiểu là 1').nullish(),
+  lastDoneOdometer: z.number().int('Km phải là số nguyên').min(0).nullish(),
+  lastDoneAt: optionalDateString,
+});
+
+export const maintenancePlanInputSchema = maintenancePlanBaseSchema.refine(
+  (data) => Boolean(data.tractorId || data.trailerId),
+  {
+    message: 'Phải chọn đầu kéo hoặc rơ moóc cho kế hoạch bảo dưỡng.',
+    path: ['tractorId'],
+  },
+);
+
+export type MaintenancePlanInput = z.input<typeof maintenancePlanInputSchema>;
+export type MaintenancePlanOutput = z.output<typeof maintenancePlanInputSchema>;
+
+// ================= LỆNH BẢO DƯỠNG =================
+export const maintenanceOrderBaseSchema = z.object({
+  tractorId: optionalId,
+  trailerId: optionalId,
+  vendorId: optionalId,
+  type: z.enum(MAINTENANCE_ORDER_TYPES),
+  odometerAt: z.number().int('Km phải là số nguyên').min(0).nullish(),
+  plannedStart: z.union([z.string(), z.date()]).nullish().transform((v) => (v ? new Date(v) : null)),
+  plannedEnd: z.union([z.string(), z.date()]).nullish().transform((v) => (v ? new Date(v) : null)),
+  cost: optionalDecimalString(15, 2, 'Chi phí'),
+  currency: z.string().trim().default('VND'),
+  status: z.enum(MAINTENANCE_ORDER_STATUS).default('PLANNED'),
+});
+
+export const maintenanceOrderInputSchema = maintenanceOrderBaseSchema
+  .refine((data) => Boolean(data.tractorId || data.trailerId), {
+    message: 'Phải chọn đầu kéo hoặc rơ moóc cho lệnh bảo dưỡng.',
+    path: ['tractorId'],
+  })
+  .refine(
+    (data) => {
+      if (data.plannedStart && data.plannedEnd) {
+        return data.plannedEnd.getTime() > data.plannedStart.getTime();
+      }
+      return true;
+    },
+    {
+      message: 'Thời gian kết thúc kế hoạch phải sau thời gian bắt đầu.',
+      path: ['plannedEnd'],
+    },
+  );
+
+export type MaintenanceOrderInput = z.input<typeof maintenanceOrderInputSchema>;
+export type MaintenanceOrderOutput = z.output<typeof maintenanceOrderInputSchema>;
+

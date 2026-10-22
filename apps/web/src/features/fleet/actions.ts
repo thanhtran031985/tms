@@ -5,9 +5,13 @@ import { getTenantDb } from '@core/lib/db/tenant-db';
 import { rolesFor } from '@core/modules/identity/permissions';
 import * as documentsSvc from '@core/modules/fleet/documents.service';
 import * as fleetSvc from '@core/modules/fleet/fleet.service';
+import * as maintenanceSvc from '@core/modules/fleet/maintenance.service';
+import { MAINTENANCE_ORDER_STATUS } from '@shared/enums';
 import { ok } from '@shared/result';
 import {
   driverInputSchema,
+  maintenanceOrderInputSchema,
+  maintenancePlanInputSchema,
   tractorInputSchema,
   trailerBaseSchema,
   trailerInputSchema,
@@ -97,3 +101,65 @@ export const listExpiringDocuments = defineAction(
   async (ctx, input) =>
     ok(await documentsSvc.listExpiringDocuments(ctx, getTenantDb(ctx), input)),
 );
+
+// ================= KẾ HOẠCH & LỆNH BẢO DƯỠNG =================
+const listPlansSchema = z.object({
+  tractorId: z.string().length(36).optional(),
+  trailerId: z.string().length(36).optional(),
+});
+
+export const listMaintenancePlans = defineAction(READ, listPlansSchema, async (ctx, input) =>
+  ok(await maintenanceSvc.listMaintenancePlans(ctx, getTenantDb(ctx), input)),
+);
+
+export const createMaintenancePlan = defineAction(
+  WRITE,
+  maintenancePlanInputSchema,
+  async (ctx, input) =>
+    ok(await maintenanceSvc.createMaintenancePlan(ctx, getTenantDb(ctx), input)),
+);
+
+const listOrdersSchema = z.object({
+  tractorId: z.string().length(36).optional(),
+  trailerId: z.string().length(36).optional(),
+  status: z.enum(MAINTENANCE_ORDER_STATUS).optional(),
+});
+
+export const listMaintenanceOrders = defineAction(READ, listOrdersSchema, async (ctx, input) =>
+  ok(await maintenanceSvc.listMaintenanceOrders(ctx, getTenantDb(ctx), input)),
+);
+
+export const createMaintenanceOrder = defineAction(
+  WRITE,
+  maintenanceOrderInputSchema,
+  async (ctx, input) =>
+    ok(await maintenanceSvc.createMaintenanceOrder(ctx, getTenantDb(ctx), input)),
+);
+
+const updateOrderStatusSchema = z.object({
+  id: z.string().length(36),
+  status: z.enum(MAINTENANCE_ORDER_STATUS),
+});
+
+export const updateMaintenanceOrderStatus = defineAction(
+  WRITE,
+  updateOrderStatusSchema,
+  async (ctx, { id, status }) =>
+    ok(await maintenanceSvc.updateMaintenanceOrderStatus(ctx, getTenantDb(ctx), id, status)),
+);
+
+export const listMaintenanceDue = defineAction(READ, noInput, async (ctx) =>
+  ok(await maintenanceSvc.listMaintenanceDue(ctx, getTenantDb(ctx))),
+);
+
+const findOverlapSchema = z.object({
+  tractorId: z.string().length(36).optional(),
+  trailerId: z.string().length(36).optional(),
+  start: z.union([z.string(), z.date()]).transform((v) => new Date(v)),
+  end: z.union([z.string(), z.date()]).transform((v) => new Date(v)),
+});
+
+export const findMaintenanceOverlap = defineAction(READ, findOverlapSchema, async (ctx, input) =>
+  ok(await maintenanceSvc.findMaintenanceOverlap(ctx, getTenantDb(ctx), input)),
+);
+
