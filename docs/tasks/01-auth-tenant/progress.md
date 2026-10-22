@@ -88,3 +88,6 @@ Kiểm tra cuối:
 - Mọi Server Action mới: `defineAction` chưa có action nghiệp vụ nào (chưa có module nghiệp vụ); 5 action viết tay (`login`, `selectTenant`, `switchTenant`, `logout`, `setTheme`) đều validate zod (trừ `logout` không có input) và nằm trong danh sách ngoại lệ có lý do. Mọi repo mới (`identity`, `audit`) có test tenant isolation.
 Chưa kiểm tra: CI trên GitHub (task 01 chưa được commit nên chưa đẩy nhánh; job e2e đã thêm MariaDB và biến môi trường, cần xem kết quả lần chạy đầu).
 Việc anh/chị cần làm thủ công: (1) sửa `DATABASE_URL` trong `.env` thành `mysql://tms:change-me@localhost:3307/tms`; (2) quyết định commit: 8 bước chưa được commit (xem báo cáo cuối); (3) trả lời các câu hỏi mở trong decisions.md (quên mật khẩu, ma trận quyền ô "theo ma trận", `OWNER` ghi Order).
+
+### Hoàn tất — CI
+Đã commit `b295e50` và đẩy nhánh `feat/01-auth-tenant`; CI (run 39726935523) xanh cả 4 job: Typecheck/lint/test/build, Playwright e2e (có MariaDB + migrate + seed), Migration trên DB tạm, Quét lỗ hổng phụ thuộc.
