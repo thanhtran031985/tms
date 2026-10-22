@@ -54,3 +54,57 @@ export const LOCATION_TYPES = [
   'GARAGE',
   'PARKING',
 ] as const;
+
+export const TRACTOR_OWNERSHIP = ['OWNED', 'LEASED'] as const;
+export type TractorOwnership = (typeof TRACTOR_OWNERSHIP)[number];
+
+export const TRACTOR_STATUS = [
+  'AVAILABLE',
+  'IN_USE',
+  'MAINTENANCE',
+  'INACTIVE',
+] as const;
+export type TractorStatus = (typeof TRACTOR_STATUS)[number];
+
+export const TRAILER_TYPES = [
+  '20FT',
+  '40FT',
+  '40FT_COMBO',
+  '45FT',
+] as const;
+export type TrailerType = (typeof TRAILER_TYPES)[number];
+
+export const TRAILER_STATUS = [
+  'AVAILABLE',
+  'IN_USE',
+  'DROPPED',
+  'MAINTENANCE',
+  'INACTIVE',
+] as const;
+export type TrailerStatus = (typeof TRAILER_STATUS)[number];
+
+export const DRIVER_EMPLOYMENT_TYPES = ['FULL_TIME', 'CONTRACT'] as const;
+export type DriverEmploymentType = (typeof DRIVER_EMPLOYMENT_TYPES)[number];
+
+export const DRIVER_STATUS = [
+  'AVAILABLE',
+  'ON_DUTY',
+  'OFF_DUTY',
+  'INACTIVE',
+] as const;
+export type DriverStatus = (typeof DRIVER_STATUS)[number];
+
+export const MAINTENANCE_ORDER_TYPES = [
+  'SCHEDULED',
+  'BREAKDOWN',
+  'TIRE',
+] as const;
+export type MaintenanceOrderType = (typeof MAINTENANCE_ORDER_TYPES)[number];
+
+export const MAINTENANCE_ORDER_STATUS = [
+  'PLANNED',
+  'IN_PROGRESS',
+  'DONE',
+  'CANCELLED',
+] as const;
+export type MaintenanceOrderStatus = (typeof MAINTENANCE_ORDER_STATUS)[number];
