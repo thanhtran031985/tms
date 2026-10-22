@@ -39,3 +39,6 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 ### Bước 6 — Hoàn tất (22/10/2026)
 - `pnpm typecheck`, `lint`, `format:check`, `build` sạch; `pnpm test` 161 test xanh (core 115, web 45, worker 1); `pnpm e2e` 42 xanh. Migration `0002` chạy trên DB trống (Testcontainers) và DB dev đã có dữ liệu task 01; `pnpm db:seed` hai lần không trùng. Spec 02, PRD E3, decisions.md đã cập nhật.
 - Việc người dùng cần làm: xác nhận ma trận quyền danh mục (Kế toán chỉ sửa thanh toán của khách; Điều vận ghi được); xem lại tọa độ seed (gần đúng); sửa `DATABASE_URL` trong `.env` sang cổng 3307.
+
+### Hoàn tất — CI (22/10/2026)
+- Commit `3e53a65` đã đẩy lên `feat/02-master-data`; GitHub Actions run 39731328236 xanh cả 4 job (typecheck/lint/test/build, Playwright e2e, migration trên DB tạm, quét lỗ hổng).
