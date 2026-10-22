@@ -5,9 +5,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | Bước | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
 | 1 | Schema đội xe, migration và tenant isolation | ✅ | `0c667d1` |
-| 2 | Service đầu kéo, rơ moóc, tài xế và che dữ liệu cá nhân | ✅ | |
-| 3 | Rà hạn giấy tờ và seed | 🔄 | |
-| 4 | Kế hoạch và lệnh bảo dưỡng | ⬜ | |
+| 2 | Service đầu kéo, rơ moóc, tài xế và che dữ liệu cá nhân | ✅ | `688a22f` |
+| 3 | Rà hạn giấy tờ và seed | ✅ | |
+| 4 | Kế hoạch và lệnh bảo dưỡng | 🔄 | |
 | 5 | Job hằng ngày cảnh báo giấy tờ | ⬜ | |
 | 6 | Màn đội xe, tài xế và giấy tờ | ⬜ | |
 | 7 | Hoàn tất | ⬜ | |
@@ -28,3 +28,11 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Cập nhật quyền `fleet.view` và `fleet.write` trong `packages/core/modules/identity/permissions.ts`.
 - Viết Server Actions tại `apps/web/src/features/fleet/actions.ts` theo khuôn `defineAction`.
 - Kiểm tra: 7 test trong `fleet.service.int.test.ts` xanh (tổng cộng 19/19 fleet tests xanh); typecheck và eslint xanh 100%.
+
+### Bước 3 — Rà hạn giấy tờ và seed (22/10/2026)
+- Viết test trước `packages/core/modules/fleet/documents.service.int.test.ts` kiểm thử rà soát toàn bộ các loại giấy tờ (đăng kiểm, bảo hiểm TNDS, phù hiệu vận tải, kiểm định rơ moóc, GPLX, chứng chỉ hàng nguy hiểm); kiểm tra mốc hôm nay, ngày mai, ngày thứ 15, ngày thứ 16, hôm qua; kiểm tra ranh giới ngày theo múi giờ tenant (23:30 vs 00:30).
+- Viết `packages/core/modules/fleet/documents.service.ts` (`listExpiringDocuments`).
+- Tạo seed data `packages/core/lib/db/seeds/fleet.test-data.ts` và seeder `packages/core/lib/db/seeds/fleet.ts` với ngày hết hạn tính tương đối theo ngày chạy seed (51C-482.17, 51C-228.40 hết hạn đăng kiểm, rơ moóc 20FT, 40FT, 40FT_COMBO có chốt giữa và genset, tài xế Trần Văn Lộc GPLX còn 2 ngày, v.v.).
+- Tích hợp `seedFleet` vào `seed.ts` và viết test `packages/core/lib/db/seeds/fleet.int.test.ts` (4 test).
+- Thêm Server Action `listExpiringDocuments` trong `apps/web/src/features/fleet/actions.ts`.
+- Kiểm tra: 26/26 tests xanh; `pnpm db:seed` thành công; typecheck và lint xanh 100%.

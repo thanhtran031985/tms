@@ -3,6 +3,7 @@
 // Server Action cho Đội xe, Tài xế (task 05). Khuôn defineAction: requireRole → zod → service → Result.
 import { getTenantDb } from '@core/lib/db/tenant-db';
 import { rolesFor } from '@core/modules/identity/permissions';
+import * as documentsSvc from '@core/modules/fleet/documents.service';
 import * as fleetSvc from '@core/modules/fleet/fleet.service';
 import { ok } from '@shared/result';
 import {
@@ -82,3 +83,17 @@ export const softDeleteDriver = defineAction(WRITE, idInputSchema, async (ctx, {
   await fleetSvc.softDeleteDriver(ctx, getTenantDb(ctx), id);
   return ok({ id });
 });
+
+// ================= GIẤY TỜ SẮP HẾT HẠN =================
+const listExpiringDocsSchema = z.object({
+  withinDays: z.number().int().min(1).max(365).optional().default(15),
+  filter: z.enum(['ALL', 'EXPIRING_SOON', 'EXPIRED']).optional().default('ALL'),
+  targetType: z.enum(['TRACTOR', 'TRAILER', 'DRIVER']).optional(),
+});
+
+export const listExpiringDocuments = defineAction(
+  READ,
+  listExpiringDocsSchema,
+  async (ctx, input) =>
+    ok(await documentsSvc.listExpiringDocuments(ctx, getTenantDb(ctx), input)),
+);

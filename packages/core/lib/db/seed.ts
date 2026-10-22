@@ -1,6 +1,7 @@
 import type { Db } from './client';
 import { closeDb, getDb } from './client';
 import { requireEnv } from '../env';
+import { seedFleet } from './seeds/fleet';
 import { seedIdentity } from './seeds/identity';
 import { seedMasterData } from './seeds/master-data';
 
@@ -14,6 +15,7 @@ const seeders: Seeder[] = [
     run: (db) => seedIdentity(db, { password: requireEnv('SEED_DEV_PASSWORD') }),
   },
   { name: 'master-data', run: (db) => seedMasterData(db) },
+  { name: 'fleet', run: (db) => seedFleet(db) },
 ];
 
 try {
