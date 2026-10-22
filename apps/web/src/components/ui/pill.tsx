@@ -27,3 +27,39 @@ export function Badge({ children, className }: { children: ReactNode; className?
     </span>
   );
 }
+
+// StatusChip: trạng thái luôn kèm icon và chữ (designs/components/StatusChip), không chỉ báo bằng màu.
+const chipTones = {
+  ok: 'bg-ok-soft text-ok',
+  warn: 'bg-warn-soft text-warn',
+  crit: 'bg-crit-soft text-crit',
+  info: 'bg-info-soft text-info',
+  off: 'bg-off-soft text-off',
+} as const;
+
+export function StatusChip({
+  tone,
+  icon,
+  children,
+  className,
+}: {
+  tone: keyof typeof chipTones;
+  icon: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-6 whitespace-nowrap rounded-chip px-8 py-2 text-chip',
+        chipTones[tone],
+        className,
+      )}
+    >
+      <span aria-hidden="true" className="flex-none">
+        {icon}
+      </span>
+      {children}
+    </span>
+  );
+}

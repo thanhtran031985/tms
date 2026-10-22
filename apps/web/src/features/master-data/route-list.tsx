@@ -2,7 +2,12 @@
 
 import { Route } from 'lucide-react';
 import { useState } from 'react';
+import type { StopType } from '@shared/enums';
 import { TextField } from '@/components/ui/field';
+import {
+  RouteStopTemplateEditor,
+  RouteTemplatesProvider,
+} from '@/features/orders/route-stop-template';
 import { MainCell } from '@/components/ui/work-table';
 import { createRoute, listRoutes, restoreRoute, softDeleteRoute, updateRoute } from './actions';
 import { CatalogView, type CatalogAccess } from './catalog-view';
@@ -90,36 +95,48 @@ function RouteForm(props: FormProps<RouteDto>) {
         disabled={readOnly}
         hint="Quãng đường chuẩn dùng tính định mức dầu và phân bổ chi phí."
       />
+      {row ? <RouteStopTemplateEditor routeId={row.id} readOnly={readOnly} /> : null}
     </form>
   );
 }
 
-export function RouteList({ rows, access }: { rows: RouteDto[]; access: CatalogAccess }) {
+export function RouteList({
+  rows,
+  access,
+  templates,
+}: {
+  rows: RouteDto[];
+  access: CatalogAccess;
+  /** Chuỗi Stop nội địa đã cấu hình theo tuyến (task 04). */
+  templates: Record<string, StopType[]>;
+}) {
   return (
-    <CatalogView<RouteDto>
-      title="Tuyến"
-      singular="tuyến"
-      icon={Route}
-      emptyReason="Tuyến là cặp khu vực đi và đến, là chiều đầu tiên của bảng giá. Thêm các tuyến công ty hay chạy."
-      initialRows={rows}
-      access={access}
-      columns={[
-        { id: 'code', header: 'Mã', cell: (r) => <MainCell mono>{r.routeCode}</MainCell> },
-        { id: 'name', header: 'Tên tuyến', cell: (r) => <MainCell>{r.name}</MainCell> },
-        { id: 'from', header: 'Khu vực đi', cell: (r) => r.originZone },
-        { id: 'to', header: 'Khu vực đến', cell: (r) => r.destinationZone },
-        {
-          id: 'km',
-          header: 'Km chuẩn',
-          cell: (r) => <span className="font-mono">{r.standardDistanceKm}</span>,
-        },
-      ]}
-      searchText={(r) => `${r.routeCode} ${r.name} ${r.originZone} ${r.destinationZone}`}
-      rowCode={(r) => r.routeCode}
-      list={() => listRoutes({})}
-      softDelete={(id) => softDeleteRoute({ id })}
-      restore={(id) => restoreRoute({ id })}
-      Form={RouteForm}
-    />
+    <RouteTemplatesProvider value={templates}>
+      <CatalogView<RouteDto>
+        title="Tuyến"
+        singular="tuyến"
+        icon={Route}
+        emptyReason="Tuyến là cặp khu vực đi và đến, là chiều đầu tiên của bảng giá. Thêm các tuyến công ty hay chạy."
+        initialRows={rows}
+        access={access}
+        columns={[
+          { id: 'code', header: 'Mã', cell: (r) => <MainCell mono>{r.routeCode}</MainCell> },
+          { id: 'name', header: 'Tên tuyến', cell: (r) => <MainCell>{r.name}</MainCell> },
+          { id: 'from', header: 'Khu vực đi', cell: (r) => r.originZone },
+          { id: 'to', header: 'Khu vực đến', cell: (r) => r.destinationZone },
+          {
+            id: 'km',
+            header: 'Km chuẩn',
+            cell: (r) => <span className="font-mono">{r.standardDistanceKm}</span>,
+          },
+        ]}
+        searchText={(r) => `${r.routeCode} ${r.name} ${r.originZone} ${r.destinationZone}`}
+        rowCode={(r) => r.routeCode}
+        list={() => listRoutes({})}
+        softDelete={(id) => softDeleteRoute({ id })}
+        restore={(id) => restoreRoute({ id })}
+        Form={RouteForm}
+      />
+    </RouteTemplatesProvider>
   );
 }

@@ -26,8 +26,22 @@
     {
       "idx": 3,
       "version": "5",
-      "when": 1792652654940,
-      "tag": "0003_fleet",
+      "when": 1792650881452,
+      "tag": "0003_tariffs",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1792660108124,
+      "tag": "0004_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1792675065626,
+      "tag": "0005_fleet",
       "breakpoints": true
     }
   ]

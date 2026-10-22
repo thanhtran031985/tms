@@ -4,6 +4,8 @@ import { requireEnv } from '../env';
 import { seedFleet } from './seeds/fleet';
 import { seedIdentity } from './seeds/identity';
 import { seedMasterData } from './seeds/master-data';
+import { seedOrders } from './seeds/orders';
+import { seedTariffs } from './seeds/tariffs';
 
 // Mỗi seeder phải idempotent: chạy lại nhiều lần không sinh bản ghi trùng (dùng upsert hoặc kiểm tra tồn tại).
 // Dữ liệu mẫu chỉ dành cho dev/test; không chạy ở production.
@@ -16,6 +18,8 @@ const seeders: Seeder[] = [
   },
   { name: 'master-data', run: (db) => seedMasterData(db) },
   { name: 'fleet', run: (db) => seedFleet(db) },
+  { name: 'tariffs', run: (db) => seedTariffs(db) },
+  { name: 'orders', run: (db) => seedOrders(db) },
 ];
 
 try {

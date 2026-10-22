@@ -173,4 +173,7 @@ body {
   --container-form-wide: 480px; /* bề rộng bước chọn công ty */
   --container-intro: 520px; /* bề rộng tối đa khối giới thiệu */
   --container-table: 860px; /* bề rộng tối thiểu của bảng trong WorkTable (designs/components/WorkTable) */
+  --container-cell-sm: 120px; /* bề rộng tối thiểu ô nhập ngắn trong bảng dòng container (seal, VGM, nhiệt độ) */
+  --container-cell: 176px; /* ô nhập vừa: số container, loại, ngày giờ */
+  --container-cell-lg: 240px; /* ô nhập dài: giá tay kèm lý do */
 }

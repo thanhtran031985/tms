@@ -18,7 +18,13 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: repoRoot,
   turbopack: { root: repoRoot },
   // Thư viện native/đi kèm kết nối: để Node nạp thay vì đóng gói.
-  serverExternalPackages: ['@node-rs/argon2', 'mysql2', 'ioredis'],
+  serverExternalPackages: [
+    '@node-rs/argon2',
+    'mysql2',
+    'ioredis',
+    'read-excel-file',
+    'write-excel-file',
+  ],
 };
 
 export default nextConfig;

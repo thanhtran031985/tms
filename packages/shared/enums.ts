@@ -108,3 +108,44 @@ export const MAINTENANCE_ORDER_STATUS = [
   'CANCELLED',
 ] as const;
 export type MaintenanceOrderStatus = (typeof MAINTENANCE_ORDER_STATUS)[number];
+// Nhóm phí của bảng phí (spec 02, fee_tariffs): chỉ 3 giá trị; FEE_CATEGORIES (4 giá trị) dùng cho khoản phí trên Order/chuyến.
+export const FEE_TARIFF_CATEGORIES = ['COST_NORM', 'REVENUE_SURCHARGE', 'PASS_THROUGH'] as const;
+export const CALC_BASES = ['PER_TRIP', 'PER_CONTAINER', 'PER_DAY', 'PER_KM'] as const;
+
+// Đơn hàng và container (spec 02 nhóm 5).
+export const ORDER_TYPES = ['IMPORT', 'EXPORT', 'DOMESTIC'] as const;
+export const ORDER_STATUSES = [
+  'DRAFT',
+  'CONFIRMED',
+  'IN_PROGRESS',
+  'PARTIALLY_DELIVERED',
+  'DELIVERED',
+  'RECONCILED',
+  'INVOICED',
+  'CANCELLED',
+] as const;
+export const CONTAINER_STATUSES = [
+  'PENDING',
+  'PLANNED',
+  'IN_PROGRESS',
+  'DELIVERED',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
+export const PORT_READINESS = [
+  'PENDING',
+  'READY_EDO',
+  'READY_EMPTY_RELEASE',
+  'HOLD_CUSTOMS',
+  'HOLD_LINE',
+] as const;
+export const STOP_STATUSES = ['PENDING', 'ARRIVED', 'COMPLETED', 'SKIPPED'] as const;
+export const ORDER_FEE_CATEGORIES = ['REVENUE_SURCHARGE', 'PASS_THROUGH'] as const;
+export const ORDER_FEE_SOURCES = ['TARIFF', 'DEM_DET_JOB', 'MANUAL', 'EXPENSE_REBILL'] as const;
+
+export type ContainerType = (typeof CONTAINER_TYPES)[number];
+export type OrderType = (typeof ORDER_TYPES)[number];
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export type ContainerStatus = (typeof CONTAINER_STATUSES)[number];
+export type StopType = (typeof STOP_TYPES)[number];
+export type TripMode = (typeof TRIP_MODES)[number];

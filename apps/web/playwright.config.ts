@@ -14,6 +14,7 @@ export default defineConfig({
   testDir: './e2e',
   globalSetup: './e2e/global-setup.ts',
   // next dev biên dịch từng route lần đầu nên cho phép chờ lâu hơn mặc định.
+  timeout: 60_000,
   expect: { timeout: 20_000 },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

@@ -44,6 +44,24 @@ describe('ma trận quyền', () => {
     expect(can('DISPATCHER', 'costAllocation.view')).toBe(true);
   });
 
+  it('đơn hàng: Chủ công ty, Quản trị, Điều vận ghi; Kế toán chỉ nhập giá tay; người xem chỉ đọc', () => {
+    expect(rolesFor('order.write')).toEqual(['OWNER', 'ADMIN', 'DISPATCHER']);
+    expect(rolesFor('order.manualPrice')).toEqual(['ADMIN', 'DISPATCHER', 'ACCOUNTANT']);
+    expect(can('ACCOUNTANT', 'order.write')).toBe(false);
+    expect(can('OWNER', 'order.manualPrice')).toBe(false);
+    for (const role of [
+      'OWNER',
+      'ADMIN',
+      'DISPATCHER',
+      'ACCOUNTANT',
+      'FLEET_MANAGER',
+      'VIEWER',
+    ] as const) {
+      expect(can(role, 'order.view'), role).toBe(true);
+    }
+    expect(can('VIEWER', 'order.write')).toBe(false);
+  });
+
   it('danh mục: điều vận ghi, kế toán chỉ sửa thanh toán của khách, đội xe và người xem chỉ đọc', () => {
     expect(rolesFor('masterData.write')).toEqual(['OWNER', 'ADMIN', 'DISPATCHER']);
     expect(can('ACCOUNTANT', 'masterData.write')).toBe(false);
@@ -53,6 +71,14 @@ describe('ma trận quyền', () => {
       expect(can(role, 'masterData.write')).toBe(false);
       expect(can(role, 'masterData.editBilling')).toBe(false);
     }
+  });
+
+  it('bảng giá: Chủ công ty, Quản trị, Kế toán tạo giá mới; chỉ Quản trị sửa giá đang hiệu lực; còn lại chỉ xem', () => {
+    expect(rolesFor('tariff.write')).toEqual(['OWNER', 'ADMIN', 'ACCOUNTANT']);
+    expect(can('DISPATCHER', 'tariff.write')).toBe(false);
+    expect(can('DISPATCHER', 'tariff.view')).toBe(true);
+    expect(can('ACCOUNTANT', 'pricing.editActive')).toBe(false);
+    expect(can('OWNER', 'pricing.editActive')).toBe(false);
   });
 
   it('rolesFor trả mảng dùng thẳng cho requireRole', () => {

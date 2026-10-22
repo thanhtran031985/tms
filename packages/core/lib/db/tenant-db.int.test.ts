@@ -1,4 +1,4 @@
-import { eq, or, sql } from 'drizzle-orm';
+import { asc, desc, eq, or, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startTestInfra, type TestInfra } from '../../test/containers';
 import { auditLogs } from './schema';
@@ -137,5 +137,46 @@ describe('getTenantDb: cách ly dữ liệu giữa các tenant', () => {
 
   it('từ chối ctx không có tenantId', () => {
     expect(() => getTenantDb({ tenantId: '' }, { db: infra.db })).toThrow();
+  });
+
+  it('select hỗ trợ orderBy và limit mà vẫn chỉ trong tenant của mình', async () => {
+    for (const entity of ['opt-a', 'opt-c', 'opt-b']) await insertAuditA(entity);
+    await dbB().insert(auditLogs, {
+      entity: 'opt-z',
+      entityId,
+      action: 'CREATE',
+      createdAt: new Date(),
+    });
+    const only = or(
+      eq(auditLogs.entity, 'opt-a'),
+      eq(auditLogs.entity, 'opt-b'),
+      eq(auditLogs.entity, 'opt-c'),
+      eq(auditLogs.entity, 'opt-z'),
+    );
+
+    const desc1 = await dbA().select(auditLogs, only, {
+      orderBy: [desc(auditLogs.entity)],
+      limit: 1,
+    });
+    const asc2 = await dbA().select(auditLogs, only, {
+      orderBy: [asc(auditLogs.entity)],
+      limit: 2,
+    });
+
+    expect(desc1.map((r) => r.entity)).toEqual(['opt-c']); // opt-z của tenant B không lọt vào
+    expect(asc2.map((r) => r.entity)).toEqual(['opt-a', 'opt-b']);
+  });
+
+  it('select forUpdate chạy được trong transaction và vẫn bị chặn theo tenant', async () => {
+    const row = await insertAuditA('opt-lock');
+    const seenByA = await dbA().transaction((tx) =>
+      tx.select(auditLogs, eq(auditLogs.id, row.id), { forUpdate: true }),
+    );
+    const seenByB = await dbB().transaction((tx) =>
+      tx.select(auditLogs, eq(auditLogs.id, row.id), { forUpdate: true }),
+    );
+
+    expect(seenByA).toHaveLength(1);
+    expect(seenByB).toEqual([]);
   });
 });

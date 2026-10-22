@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   Database,
   Truck,
+  Tags,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -32,7 +33,7 @@ type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Trang chủ', href: '/', icon: House },
   { label: 'Điều vận', icon: Columns3 },
-  { label: 'Đơn hàng', icon: FileText },
+  { label: 'Đơn hàng', href: '/orders', match: '/orders', icon: FileText },
   { label: 'Bản đồ đội xe', icon: MapIcon },
   { label: 'Đội xe & Tài xế', href: '/fleet/tractors', match: '/fleet', icon: Truck },
   { label: 'Phiếu dầu', icon: Fuel },
@@ -40,6 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Phân bổ chi phí', icon: CircleDollarSign },
   { label: 'Báo cáo', icon: BarChart3 },
   { label: 'Danh mục', href: '/master-data/customers', match: '/master-data', icon: Database },
+  { label: 'Bảng giá', href: '/billing/tariffs', match: '/billing', icon: Tags },
 ];
 
 const itemClass =

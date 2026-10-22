@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "74a0f5ab-298a-43f3-b22b-4980bf2d7f01",
+  "id": "fa645e0c-b2f7-44e3-bd68-2b2fd8c41dcb",
   "prevId": "458c4de0-848a-4936-9002-fac135ea03b4",
   "tables": {
     "audit_logs": {
@@ -74,11 +74,7 @@
       "indexes": {
         "idx_audit_entity": {
           "name": "idx_audit_entity",
-          "columns": [
-            "tenant_id",
-            "entity",
-            "entity_id"
-          ],
+          "columns": ["tenant_id", "entity", "entity_id"],
           "isUnique": false
         }
       },
@@ -87,12 +83,8 @@
           "name": "audit_logs_tenant_id_tenants_id_fk",
           "tableFrom": "audit_logs",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -100,9 +92,7 @@
       "compositePrimaryKeys": {
         "audit_logs_id": {
           "name": "audit_logs_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -140,12 +130,8 @@
           "name": "number_sequences_tenant_id_tenants_id_fk",
           "tableFrom": "number_sequences",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -153,10 +139,7 @@
       "compositePrimaryKeys": {
         "number_sequences_tenant_id_seq_key_pk": {
           "name": "number_sequences_tenant_id_seq_key_pk",
-          "columns": [
-            "tenant_id",
-            "seq_key"
-          ]
+          "columns": ["tenant_id", "seq_key"]
         }
       },
       "uniqueConstraints": {},
@@ -227,10 +210,7 @@
       "indexes": {
         "uq_membership": {
           "name": "uq_membership",
-          "columns": [
-            "tenant_id",
-            "user_id"
-          ],
+          "columns": ["tenant_id", "user_id"],
           "isUnique": true
         }
       },
@@ -239,12 +219,8 @@
           "name": "tenant_memberships_tenant_id_tenants_id_fk",
           "tableFrom": "tenant_memberships",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -252,12 +228,8 @@
           "name": "tenant_memberships_user_id_users_id_fk",
           "tableFrom": "tenant_memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -265,9 +237,7 @@
       "compositePrimaryKeys": {
         "tenant_memberships_id": {
           "name": "tenant_memberships_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -357,9 +327,7 @@
       "compositePrimaryKeys": {
         "tenants_id": {
           "name": "tenants_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -453,16 +421,12 @@
       "indexes": {
         "uq_users_email": {
           "name": "uq_users_email",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         },
         "uq_users_phone": {
           "name": "uq_users_phone",
-          "columns": [
-            "phone"
-          ],
+          "columns": ["phone"],
           "isUnique": true
         }
       },
@@ -470,9 +434,7 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -572,10 +534,7 @@
       "indexes": {
         "uq_customer_code": {
           "name": "uq_customer_code",
-          "columns": [
-            "tenant_id",
-            "code"
-          ],
+          "columns": ["tenant_id", "code"],
           "isUnique": true
         }
       },
@@ -584,12 +543,8 @@
           "name": "customers_tenant_id_tenants_id_fk",
           "tableFrom": "customers",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -597,9 +552,7 @@
       "compositePrimaryKeys": {
         "customers_id": {
           "name": "customers_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -727,10 +680,7 @@
       "indexes": {
         "uq_location_code": {
           "name": "uq_location_code",
-          "columns": [
-            "tenant_id",
-            "code"
-          ],
+          "columns": ["tenant_id", "code"],
           "isUnique": true
         }
       },
@@ -739,12 +689,8 @@
           "name": "locations_tenant_id_tenants_id_fk",
           "tableFrom": "locations",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -752,12 +698,8 @@
           "name": "locations_customer_id_customers_id_fk",
           "tableFrom": "locations",
           "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -765,12 +707,8 @@
           "name": "locations_vendor_id_vendors_id_fk",
           "tableFrom": "locations",
           "tableTo": "vendors",
-          "columnsFrom": [
-            "vendor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vendor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -778,9 +716,7 @@
       "compositePrimaryKeys": {
         "locations_id": {
           "name": "locations_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -872,10 +808,7 @@
       "indexes": {
         "uq_route_code": {
           "name": "uq_route_code",
-          "columns": [
-            "tenant_id",
-            "route_code"
-          ],
+          "columns": ["tenant_id", "route_code"],
           "isUnique": true
         }
       },
@@ -884,12 +817,8 @@
           "name": "routes_tenant_id_tenants_id_fk",
           "tableFrom": "routes",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -897,9 +826,7 @@
       "compositePrimaryKeys": {
         "routes_id": {
           "name": "routes_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -978,10 +905,7 @@
       "indexes": {
         "uq_sl_code": {
           "name": "uq_sl_code",
-          "columns": [
-            "tenant_id",
-            "code"
-          ],
+          "columns": ["tenant_id", "code"],
           "isUnique": true
         }
       },
@@ -990,12 +914,8 @@
           "name": "shipping_lines_tenant_id_tenants_id_fk",
           "tableFrom": "shipping_lines",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1003,9 +923,7 @@
       "compositePrimaryKeys": {
         "shipping_lines_id": {
           "name": "shipping_lines_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -1098,10 +1016,7 @@
       "indexes": {
         "uq_vendor_code": {
           "name": "uq_vendor_code",
-          "columns": [
-            "tenant_id",
-            "code"
-          ],
+          "columns": ["tenant_id", "code"],
           "isUnique": true
         }
       },
@@ -1110,12 +1025,8 @@
           "name": "vendors_tenant_id_tenants_id_fk",
           "tableFrom": "vendors",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1123,16 +1034,14 @@
       "compositePrimaryKeys": {
         "vendors_id": {
           "name": "vendors_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "drivers": {
-      "name": "drivers",
+    "fee_tariffs": {
+      "name": "fee_tariffs",
       "columns": {
         "id": {
           "name": "id",
@@ -1148,235 +1057,69 @@
           "notNull": true,
           "autoincrement": false
         },
-        "user_id": {
-          "name": "user_id",
+        "route_id": {
+          "name": "route_id",
           "type": "char(36)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "full_name": {
-          "name": "full_name",
+        "container_type": {
+          "name": "container_type",
+          "type": "enum('20DC','40DC','40HC','45HC','20RF','40RF','20OT','40OT','20FR','40FR','20TK')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "trip_mode": {
+          "name": "trip_mode",
+          "type": "enum('SINGLE','TWIN_20','COMBINED')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'SINGLE'"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fee_category": {
+          "name": "fee_category",
+          "type": "enum('COST_NORM','REVENUE_SURCHARGE','PASS_THROUGH')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fee_code": {
+          "name": "fee_code",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fee_name": {
+          "name": "fee_name",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "phone": {
-          "name": "phone",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "national_id_no": {
-          "name": "national_id_no",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "license_no": {
-          "name": "license_no",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "license_class": {
-          "name": "license_class",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "license_expiry": {
-          "name": "license_expiry",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "dg_certificate_no": {
-          "name": "dg_certificate_no",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "dg_certificate_expiry": {
-          "name": "dg_certificate_expiry",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "employment_type": {
-          "name": "employment_type",
-          "type": "enum('FULL_TIME','CONTRACT')",
+        "calc_basis": {
+          "name": "calc_basis",
+          "type": "enum('PER_TRIP','PER_CONTAINER','PER_DAY','PER_KM')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'FULL_TIME'"
+          "default": "'PER_TRIP'"
         },
-        "status": {
-          "name": "status",
-          "type": "enum('AVAILABLE','ON_DUTY','OFF_DUTY','INACTIVE')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'AVAILABLE'"
-        },
-        "version": {
-          "name": "version",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "drivers_tenant_id_tenants_id_fk": {
-          "name": "drivers_tenant_id_tenants_id_fk",
-          "tableFrom": "drivers",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "drivers_user_id_users_id_fk": {
-          "name": "drivers_user_id_users_id_fk",
-          "tableFrom": "drivers",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "drivers_id": {
-          "name": "drivers_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "maintenance_orders": {
-      "name": "maintenance_orders",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tractor_id": {
-          "name": "tractor_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "trailer_id": {
-          "name": "trailer_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "vendor_id": {
-          "name": "vendor_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "type": {
-          "name": "type",
-          "type": "enum('SCHEDULED','BREAKDOWN','TIRE')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "odometer_at": {
-          "name": "odometer_at",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "planned_start": {
-          "name": "planned_start",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "planned_end": {
-          "name": "planned_end",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "cost": {
-          "name": "cost",
+        "amount": {
+          "name": "amount",
           "type": "decimal(18,2)",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "currency": {
@@ -1387,530 +1130,42 @@
           "autoincrement": false,
           "default": "'VND'"
         },
-        "status": {
-          "name": "status",
-          "type": "enum('PLANNED','IN_PROGRESS','DONE','CANCELLED')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'PLANNED'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "maintenance_orders_tenant_id_tenants_id_fk": {
-          "name": "maintenance_orders_tenant_id_tenants_id_fk",
-          "tableFrom": "maintenance_orders",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "maintenance_orders_tractor_id_tractors_id_fk": {
-          "name": "maintenance_orders_tractor_id_tractors_id_fk",
-          "tableFrom": "maintenance_orders",
-          "tableTo": "tractors",
-          "columnsFrom": [
-            "tractor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "maintenance_orders_trailer_id_trailers_id_fk": {
-          "name": "maintenance_orders_trailer_id_trailers_id_fk",
-          "tableFrom": "maintenance_orders",
-          "tableTo": "trailers",
-          "columnsFrom": [
-            "trailer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "maintenance_orders_vendor_id_vendors_id_fk": {
-          "name": "maintenance_orders_vendor_id_vendors_id_fk",
-          "tableFrom": "maintenance_orders",
-          "tableTo": "vendors",
-          "columnsFrom": [
-            "vendor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "maintenance_orders_id": {
-          "name": "maintenance_orders_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "maintenance_plans": {
-      "name": "maintenance_plans",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tractor_id": {
-          "name": "tractor_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "trailer_id": {
-          "name": "trailer_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "task_code": {
-          "name": "task_code",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "interval_km": {
-          "name": "interval_km",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "interval_days": {
-          "name": "interval_days",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "last_done_odometer": {
-          "name": "last_done_odometer",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "last_done_at": {
-          "name": "last_done_at",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "maintenance_plans_tenant_id_tenants_id_fk": {
-          "name": "maintenance_plans_tenant_id_tenants_id_fk",
-          "tableFrom": "maintenance_plans",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "maintenance_plans_tractor_id_tractors_id_fk": {
-          "name": "maintenance_plans_tractor_id_tractors_id_fk",
-          "tableFrom": "maintenance_plans",
-          "tableTo": "tractors",
-          "columnsFrom": [
-            "tractor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "maintenance_plans_trailer_id_trailers_id_fk": {
-          "name": "maintenance_plans_trailer_id_trailers_id_fk",
-          "tableFrom": "maintenance_plans",
-          "tableTo": "trailers",
-          "columnsFrom": [
-            "trailer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "maintenance_plans_id": {
-          "name": "maintenance_plans_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "tractors": {
-      "name": "tractors",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "plate_number": {
-          "name": "plate_number",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "model": {
-          "name": "model",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "ownership": {
-          "name": "ownership",
-          "type": "enum('OWNED','LEASED')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'OWNED'"
-        },
-        "fuel_norm_liters_per_100km": {
-          "name": "fuel_norm_liters_per_100km",
+        "vat_rate_percent": {
+          "name": "vat_rate_percent",
           "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "current_odometer": {
-          "name": "current_odometer",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "odometer_updated_at": {
-          "name": "odometer_updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "next_maintenance_odometer": {
-          "name": "next_maintenance_odometer",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "registration_expiry": {
-          "name": "registration_expiry",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "insurance_expiry": {
-          "name": "insurance_expiry",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "transport_badge_expiry": {
-          "name": "transport_badge_expiry",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "permitted_gross_weight_tons": {
-          "name": "permitted_gross_weight_tons",
-          "type": "decimal(6,2)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "gps_device_id": {
-          "name": "gps_device_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "enum('AVAILABLE','IN_USE','MAINTENANCE','INACTIVE')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'AVAILABLE'"
-        },
-        "version": {
-          "name": "version",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "uq_tractor_plate": {
-          "name": "uq_tractor_plate",
-          "columns": [
-            "tenant_id",
-            "plate_number"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "tractors_tenant_id_tenants_id_fk": {
-          "name": "tractors_tenant_id_tenants_id_fk",
-          "tableFrom": "tractors",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "tractors_id": {
-          "name": "tractors_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "trailers": {
-      "name": "trailers",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "plate_number": {
-          "name": "plate_number",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "trailer_type": {
-          "name": "trailer_type",
-          "type": "enum('20FT','40FT','40FT_COMBO','45FT')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "can_carry_twin_20": {
-          "name": "can_carry_twin_20",
+        "is_excluded": {
+          "name": "is_excluded",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": false
         },
-        "has_genset_power": {
-          "name": "has_genset_power",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": false
-        },
-        "tare_weight_tons": {
-          "name": "tare_weight_tons",
-          "type": "decimal(5,2)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "max_payload_tons": {
-          "name": "max_payload_tons",
-          "type": "decimal(5,2)",
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "inspection_expiry": {
-          "name": "inspection_expiry",
+        "valid_to": {
+          "name": "valid_to",
           "type": "date",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "current_location_id": {
-          "name": "current_location_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "current_location_note": {
-          "name": "current_location_note",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "enum('AVAILABLE','IN_USE','DROPPED','MAINTENANCE','INACTIVE')",
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'AVAILABLE'"
-        },
-        "version": {
-          "name": "version",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
+          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -1934,59 +1189,222 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_fee_4d": {
+          "name": "idx_fee_4d",
+          "columns": [
+            "tenant_id",
+            "route_id",
+            "container_type",
+            "trip_mode",
+            "customer_id",
+            "fee_code",
+            "valid_from"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fee_tariffs_tenant_id_tenants_id_fk": {
+          "name": "fee_tariffs_tenant_id_tenants_id_fk",
+          "tableFrom": "fee_tariffs",
+          "tableTo": "tenants",
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
-        "deleted_at": {
-          "name": "deleted_at",
+        "fee_tariffs_route_id_routes_id_fk": {
+          "name": "fee_tariffs_route_id_routes_id_fk",
+          "tableFrom": "fee_tariffs",
+          "tableTo": "routes",
+          "columnsFrom": ["route_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fee_tariffs_customer_id_customers_id_fk": {
+          "name": "fee_tariffs_customer_id_customers_id_fk",
+          "tableFrom": "fee_tariffs",
+          "tableTo": "customers",
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "fee_tariffs_id": {
+          "name": "fee_tariffs_id",
+          "columns": ["id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "freight_tariffs": {
+      "name": "freight_tariffs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "route_id": {
+          "name": "route_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "container_type": {
+          "name": "container_type",
+          "type": "enum('20DC','40DC','40HC','45HC','20RF','40RF','20OT','40OT','20FR','40FR','20TK')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "trip_mode": {
+          "name": "trip_mode",
+          "type": "enum('SINGLE','TWIN_20','COMBINED')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'SINGLE'"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "base_price": {
+          "name": "base_price",
+          "type": "decimal(18,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'VND'"
+        },
+        "vat_rate_percent": {
+          "name": "vat_rate_percent",
+          "type": "decimal(5,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valid_to": {
+          "name": "valid_to",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP(3)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP(3)"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "char(36)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {
-        "uq_trailer_plate": {
-          "name": "uq_trailer_plate",
+        "idx_freight_4d": {
+          "name": "idx_freight_4d",
           "columns": [
             "tenant_id",
-            "plate_number"
+            "route_id",
+            "container_type",
+            "trip_mode",
+            "customer_id",
+            "valid_from"
           ],
-          "isUnique": true
+          "isUnique": false
         }
       },
       "foreignKeys": {
-        "trailers_tenant_id_tenants_id_fk": {
-          "name": "trailers_tenant_id_tenants_id_fk",
-          "tableFrom": "trailers",
+        "freight_tariffs_tenant_id_tenants_id_fk": {
+          "name": "freight_tariffs_tenant_id_tenants_id_fk",
+          "tableFrom": "freight_tariffs",
           "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tenant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "trailers_current_location_id_locations_id_fk": {
-          "name": "trailers_current_location_id_locations_id_fk",
-          "tableFrom": "trailers",
-          "tableTo": "locations",
-          "columnsFrom": [
-            "current_location_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+        "freight_tariffs_route_id_routes_id_fk": {
+          "name": "freight_tariffs_route_id_routes_id_fk",
+          "tableFrom": "freight_tariffs",
+          "tableTo": "routes",
+          "columnsFrom": ["route_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "freight_tariffs_customer_id_customers_id_fk": {
+          "name": "freight_tariffs_customer_id_customers_id_fk",
+          "tableFrom": "freight_tariffs",
+          "tableTo": "customers",
+          "columnsFrom": ["customer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "trailers_id": {
-          "name": "trailers_id",
-          "columns": [
-            "id"
-          ]
+        "freight_tariffs_id": {
+          "name": "freight_tariffs_id",
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},

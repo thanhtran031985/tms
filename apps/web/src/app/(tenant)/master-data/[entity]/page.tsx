@@ -9,7 +9,7 @@ import { RouteList } from '@/features/master-data/route-list';
 import { ShippingLineList } from '@/features/master-data/shipping-line-list';
 import { VendorList } from '@/features/master-data/vendor-list';
 import { requireRole } from '@/server';
-import { getMasterDataService } from '@/server/services';
+import { getMasterDataService, getOrderService } from '@/server/services';
 
 // Chỉ định tuyến + nạp dữ liệu đầu. Cột cho client được chọn từng trường, không gửi createdBy hay mốc thời gian.
 export default async function MasterDataPage({ params }: { params: Promise<{ entity: string }> }) {
@@ -112,10 +112,14 @@ export default async function MasterDataPage({ params }: { params: Promise<{ ent
       );
     }
     case 'routes': {
-      const rows = await service.list(ctx, 'routes');
+      const [rows, templates] = await Promise.all([
+        service.list(ctx, 'routes'),
+        getOrderService().listRouteStopTemplates(ctx),
+      ]);
       return (
         <RouteList
           access={access}
+          templates={templates}
           rows={rows.map((r) => ({
             id: r.id,
             routeCode: r.routeCode,

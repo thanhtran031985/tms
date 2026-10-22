@@ -11,10 +11,18 @@ export const PERMISSIONS = {
   'masterData.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
   'masterData.write': ['OWNER', 'ADMIN', 'DISPATCHER'],
   'masterData.editBilling': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
+  // Bảng giá (task 03): xem cho mọi vai trò web; tạo giá mới, sửa bản chưa hiệu lực, import cho Chủ công ty, Quản trị, Kế toán.
+  // Sửa hoặc đóng giá ĐANG hiệu lực chỉ có pricing.editActive (PRD A4: Quản trị).
+  'tariff.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
+  'tariff.write': ['OWNER', 'ADMIN', 'ACCOUNTANT'],
   'identity.manageUsers': ['OWNER', 'ADMIN'],
   'tenant.configure': ['OWNER', 'ADMIN'],
   'pricing.editActive': ['ADMIN'],
-  'order.write': ['ADMIN', 'DISPATCHER'],
+  // Đơn hàng (task 04): xem cho mọi vai trò web; tạo, sửa, xác nhận, hủy theo task.md gồm cả Chủ công ty (PRD A4 ghi "theo ma trận",
+  // chờ PO xác nhận). Giá tay cho container không có bảng giá: Điều vận, Kế toán, Quản trị.
+  'order.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
+  'order.write': ['OWNER', 'ADMIN', 'DISPATCHER'],
+  'order.manualPrice': ['ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
   'dispatch.overrideDriveHours': ['ADMIN'],
   'fuelVoucher.issue': ['ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
   'fuelVoucher.approve': ['ACCOUNTANT'],
