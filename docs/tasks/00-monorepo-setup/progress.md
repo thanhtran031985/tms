@@ -9,9 +9,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 3 | Vitest, Testcontainers và test mẫu | ✅ | |
 | 4 | apps/web: Next.js, token, font, Tailwind và Playwright | ✅ | |
 | 5 | apps/worker, apps/driver-app và lệnh pnpm dev | ✅ | |
-| 6 | CI GitHub Actions | ⬜ | |
-| 7 | Lệnh dashboard tiến độ và mục Lệnh thường dùng | ⬜ | |
-| 8 | Hoàn tất | ⬜ | |
+| 6 | CI GitHub Actions | ✅ | |
+| 7 | Lệnh dashboard tiến độ và mục Lệnh thường dùng | ✅ | |
+| 8 | Hoàn tất | ✅ | |
 
 ## Nhật ký
 <!-- Sau mỗi bước: ngày, đã làm gì, kết quả Kiểm tra, việc người dùng cần làm thủ công. -->
@@ -64,3 +64,25 @@ Kiểm tra:
 - `pnpm --filter driver-app typecheck`: mã 0. `pnpm typecheck`, `pnpm lint`, `pnpm format:check`: sạch. `pnpm test`: 17 test xanh (core 16, worker 1).
 - Không kiểm tra được Ctrl+C thật trong môi trường này (không có bàn phím tương tác); đã dừng các tiến trình bằng cách kết thúc tiến trình và xác nhận không còn tiến trình node nào của dự án. Đường tắt êm đã được test qua `stop()`. Anh/chị thử `pnpm dev` rồi Ctrl+C ở terminal của mình để xác nhận.
 Việc anh/chị cần làm thủ công: thử Ctrl+C như trên; Docker Desktop phải đang chạy khi `pnpm dev` (worker cần Redis ở `redis://localhost:6379`, có sẵn giá trị mặc định khi không đặt `REDIS_URL` và không ở production).
+
+### Bước 6 — 22/10/2026
+Đã làm: `.github/workflows/ci.yml` với 4 job chạy khi push và pull request: `check` (cài `--frozen-lockfile`, typecheck, lint, format:check, test gồm Testcontainers, build), `e2e` (Chromium, Playwright, tải báo cáo khi lỗi), `migration` (dịch vụ MariaDB 11.4: `db:migrate` hai lần rồi `db:seed` hai lần), `audit` (`pnpm audit:deps`); cache pnpm qua `setup-node`; `scripts/audit.mjs`; `pnpm-workspace.yaml` có `allowBuilds` và `auditConfig.ignoreGhsas`.
+Kiểm tra (nhánh `feat/00-monorepo-setup` đã đẩy lên GitHub, tra kết quả qua API công khai):
+- Lần chạy đầu đỏ ở bước `pnpm install` của cả 4 job (`ERR_PNPM_IGNORED_BUILDS` khi `CI=true`); sửa bằng `allowBuilds` rồi cả 4 job xanh (run 39711727645).
+- Thêm tạm `ci-red.test.ts` có `expect(1).toBe(2)`: job `Typecheck, lint, test, build` đỏ đúng ở bước `pnpm test`; gỡ file thì xanh lại (commit gỡ: 611188a, đã gỡ test).
+- Job audit đỏ hai lần liên tiếp vì máy chủ audit của npm không trả lời (`ERR_PNPM_AUDIT_BAD_RESPONSE`, hết thời gian); thêm `scripts/audit.mjs` thử lại 3 lần và chỉ cảnh báo khi không gọi được máy chủ, còn có lỗ hổng mức cao thì vẫn đỏ. Run cuối (39713853418) xanh cả 4 job.
+Việc anh/chị cần làm thủ công: không có.
+
+### Bước 7 — 22/10/2026
+Đã làm: script gốc `tasks:dashboard` (`node scripts/tasks-dashboard.mjs`, file có sẵn không viết lại); mục "Lệnh thường dùng" trong CLAUDE.md điền 14 lệnh, mỗi lệnh một dòng giải thích và ghi rõ cần Docker Desktop.
+Kiểm tra: `pnpm tasks:dashboard` thoát mã 0, sinh `docs/tasks/dashboard.html`, dòng 00-monorepo-setup có thanh tiến độ số bước đọc từ progress.md (hiện 5/8 trước khi cập nhật bước 6 đến 8); các lệnh trong CLAUDE.md đã chạy đúng mô tả: `docker compose up -d`, `pnpm dev`, `pnpm test`, `pnpm test --filter core -- money`, `typecheck`, `lint`, `format`, `format:check`, `build`, `db:generate`, `db:migrate`, `db:seed`, `e2e`, `tasks:dashboard`, `node scripts/design-system.mjs` (không đổi DESIGN_SYSTEM.md), `node scripts/fetch-fonts.mjs`.
+Việc anh/chị cần làm thủ công: không có.
+
+### Bước 8 — 22/10/2026
+Chạy toàn bộ kiểm tra cuối:
+- `pnpm typecheck` (0 lỗi trên 5 package), `pnpm lint`, `pnpm format:check`, `pnpm build`: sạch.
+- `pnpm test`: 17 test xanh (core 16, worker 1), gồm test tích hợp Testcontainers.
+- `pnpm e2e`: 2 test xanh.
+- `pnpm db:migrate` chạy được trên DB trống (nhiều lần) và trên DB đã có dữ liệu (tạo bảng tạm có 1 dòng, migrate và seed xong dữ liệu còn nguyên); `pnpm db:seed` chạy được.
+- "Chấp nhận khi" của TICKET-00: `pnpm dev` chạy web (cổng 3000) + worker (heartbeat); CI xanh 4 job với test mẫu.
+Việc anh/chị cần làm thủ công: (1) thử Ctrl+C với `pnpm dev` ở terminal của anh/chị; (2) cập nhật `.env` theo `.env.example` (cổng MariaDB 3307; thêm `REDIS_URL`, `S3_*`, `MINIO_*`, `MARIADB_*`); (3) cân nhắc bảo vệ nhánh `main` yêu cầu CI xanh; (4) tạo pull request `feat/00-monorepo-setup` vào `main` khi đồng ý.
