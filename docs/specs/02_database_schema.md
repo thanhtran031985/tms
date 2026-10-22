@@ -231,6 +231,8 @@ export const drivers = mysqlTable('drivers', {
   licenseNo: varchar('license_no', { length: 20 }),
   licenseClass: varchar('license_class', { length: 10 }), // hạng GPLX được kéo rơ moóc theo quy định hiện hành
   licenseExpiry: date('license_expiry'),
+  dgCertificateNo: varchar('dg_certificate_no', { length: 30 }), // [BỔ SUNG task 05, spec 03 Rule 6] chứng chỉ hàng nguy hiểm
+  dgCertificateExpiry: date('dg_certificate_expiry'),            // [BỔ SUNG task 05, spec 03 Rule 6] hạn chứng chỉ hàng nguy hiểm
   employmentType: mysqlEnum('employment_type', ['FULL_TIME', 'CONTRACT']).default('FULL_TIME').notNull(),
   status: mysqlEnum('status', ['AVAILABLE', 'ON_DUTY', 'OFF_DUTY', 'INACTIVE']).default('AVAILABLE').notNull(),
   version: int('version').default(0).notNull(),

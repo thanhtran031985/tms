@@ -9,8 +9,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 3 | Rà hạn giấy tờ và seed | ✅ | `c912398` |
 | 4 | Kế hoạch và lệnh bảo dưỡng | ✅ | `08311a8` |
 | 5 | Job hằng ngày cảnh báo giấy tờ | ✅ | `db054e6` |
-| 6 | Màn đội xe, tài xế và giấy tờ | ✅ | |
-| 7 | Hoàn tất | 🔄 | |
+| 6 | Màn đội xe, tài xế và giấy tờ | ✅ | `278e886` |
+| 7 | Hoàn tất | ✅ | `8487803` |
 
 ## Nhật ký
 <!-- Sau mỗi bước: ngày, đã làm gì, kết quả Kiểm tra, việc người dùng cần làm thủ công. -->
@@ -67,4 +67,14 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
   - Kiểm tra danh sách đầu kéo và rơ moóc hiển thị đầy đủ biển số font-mono và chip trạng thái.
 - Cập nhật số đếm menu trong `apps/web/e2e/shell.spec.ts` (10 mục, 3 link hoạt động).
 - Kiểm tra: `pnpm typecheck`, `pnpm lint`, `pnpm build`, `playwright test e2e/fleet.spec.ts` (5/5 passed), `playwright test e2e/shell.spec.ts` (11/11 passed) xanh 100%.
+
+### Bước 7 — Hoàn tất (22/10/2026)
+- Rà soát toàn diện và chạy bộ kiểm thử: `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm test` (30/30 unit/integration tests xanh), `pnpm e2e` xanh 100%.
+- Cập nhật tài liệu:
+  - `docs/specs/02_database_schema.md`: bổ sung 2 cột `dg_certificate_no` và `dg_certificate_expiry` cho bảng `drivers`.
+  - `docs/tasks/05-fleet-drivers/decisions.md`: ghi nhận đầy đủ 7 quyết định kiến trúc và nghiệp vụ (chứng chỉ hàng nguy hiểm, quy tắc moóc 20FT, khoảng hạn 15 ngày theo múi giờ tenant, che PII theo vai trò, job worker idempotent, logic chồng lấn bảo dưỡng chặn điều xe).
+  - `docs/tasks/README.md`: đánh dấu hoàn tất task 05 (`✅`).
+  - `docs/tasks/05-fleet-drivers/progress.md`: cập nhật hoàn thành toàn bộ 7 bước.
+- Chạy `tasks:dashboard` kiểm tra trạng thái bảng task.
+
 
