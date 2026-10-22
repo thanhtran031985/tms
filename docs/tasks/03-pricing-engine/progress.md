@@ -49,3 +49,6 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Đạt "Chấp nhận khi": toàn bộ bảng test spec 06 mục 2 xanh; hai giao dịch song song không lọt giá chồng; mọi Server Action có `requireRole` + zod (rào chắn `actions-guard` xanh) và `VIEWER`/`DISPATCHER` bị `FORBIDDEN`; repo billing có test cách ly tenant.
 - Việc người dùng cần làm: xác nhận `pricing.editActive` giữ ADMIN-only (task.md ghi "và OWNER", PRD A4 chỉ Admin); xem lại giá seed (chỉ là số mẫu, VAT mẫu 8%); sửa `DATABASE_URL` trong `.env` sang cổng 3307.
 - Lưu ý môi trường: thư mục `.fleet/` ở gốc repo là git worktree của task 05 (nhánh `feat/05-fleet-drivers`, bị `.git/info/exclude`), không thuộc task này; `pnpm format:check` chạy trên toàn repo sẽ báo các file trong đó chưa định dạng, nên tôi kiểm Prettier riêng cho các thư mục của task.
+
+### Hoàn tất — CI (22/10/2026)
+- Commit `33b1004` đã đẩy lên `feat/03-pricing-engine`; GitHub Actions run 39750975908 xanh cả 4 job (typecheck/lint/test/build, Playwright e2e, migration trên DB tạm, quét lỗ hổng).
