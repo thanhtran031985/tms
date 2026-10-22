@@ -24,8 +24,8 @@ export const PERMISSIONS = {
   'costAllocation.view': ['ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
   'accounting.manage': ['ACCOUNTANT'], // đối soát, hóa đơn, thanh toán, khóa kỳ
   'accounting.reopenPeriod': ['ADMIN'],
-  'fleet.write': ['ADMIN', 'FLEET_MANAGER'],
-  'fleet.view': ['ADMIN', 'DISPATCHER', 'FLEET_MANAGER'],
+  'fleet.write': ['OWNER', 'ADMIN', 'FLEET_MANAGER'],
+  'fleet.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'FLEET_MANAGER', 'VIEWER'],
   'report.view': ['OWNER', 'ADMIN', 'ACCOUNTANT', 'VIEWER'],
   // App tài xế: chỉ lệnh của chính mình, không dùng web.
   'driverApp.use': ['DRIVER'],

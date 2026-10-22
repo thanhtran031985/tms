@@ -39,9 +39,9 @@ export const tractors = mysqlTable(
     currentOdometer: int('current_odometer').default(0).notNull(),
     odometerUpdatedAt: ts('odometer_updated_at'),
     nextMaintenanceOdometer: int('next_maintenance_odometer'),
-    registrationExpiry: date('registration_expiry'),
-    insuranceExpiry: date('insurance_expiry'),
-    transportBadgeExpiry: date('transport_badge_expiry'),
+    registrationExpiry: date('registration_expiry', { mode: 'string' }),
+    insuranceExpiry: date('insurance_expiry', { mode: 'string' }),
+    transportBadgeExpiry: date('transport_badge_expiry', { mode: 'string' }),
     permittedGrossWeightTons: decimal('permitted_gross_weight_tons', {
       precision: 6,
       scale: 2,
@@ -66,7 +66,7 @@ export const trailers = mysqlTable(
     hasGensetPower: boolean('has_genset_power').default(false).notNull(),
     tareWeightTons: decimal('tare_weight_tons', { precision: 5, scale: 2 }),
     maxPayloadTons: decimal('max_payload_tons', { precision: 5, scale: 2 }).notNull(),
-    inspectionExpiry: date('inspection_expiry'),
+    inspectionExpiry: date('inspection_expiry', { mode: 'string' }),
     currentLocationId: ref('current_location_id').references(() => locations.id),
     currentLocationNote: varchar('current_location_note', { length: 255 }),
     status: mysqlEnum('status', TRAILER_STATUS).default('AVAILABLE').notNull(),
@@ -86,9 +86,9 @@ export const drivers = mysqlTable('drivers', {
   nationalIdNo: varchar('national_id_no', { length: 20 }),
   licenseNo: varchar('license_no', { length: 20 }),
   licenseClass: varchar('license_class', { length: 10 }),
-  licenseExpiry: date('license_expiry'),
+  licenseExpiry: date('license_expiry', { mode: 'string' }),
   dgCertificateNo: varchar('dg_certificate_no', { length: 30 }),
-  dgCertificateExpiry: date('dg_certificate_expiry'),
+  dgCertificateExpiry: date('dg_certificate_expiry', { mode: 'string' }),
   employmentType: mysqlEnum('employment_type', DRIVER_EMPLOYMENT_TYPES)
     .default('FULL_TIME')
     .notNull(),
@@ -107,7 +107,7 @@ export const maintenancePlans = mysqlTable('maintenance_plans', {
   intervalKm: int('interval_km'),
   intervalDays: int('interval_days'),
   lastDoneOdometer: int('last_done_odometer'),
-  lastDoneAt: date('last_done_at'),
+  lastDoneAt: date('last_done_at', { mode: 'string' }),
   ...timestamps(),
 });
 
