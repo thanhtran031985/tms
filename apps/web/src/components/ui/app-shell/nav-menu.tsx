@@ -10,6 +10,7 @@ import {
   Map as MapIcon,
   ArrowUpDown,
   Database,
+  Tags,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -38,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Phân bổ chi phí', icon: CircleDollarSign },
   { label: 'Báo cáo', icon: BarChart3 },
   { label: 'Danh mục', href: '/master-data/customers', match: '/master-data', icon: Database },
+  { label: 'Bảng giá', href: '/billing/tariffs', match: '/billing', icon: Tags },
 ];
 
 const itemClass =

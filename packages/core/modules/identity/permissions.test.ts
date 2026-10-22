@@ -55,6 +55,14 @@ describe('ma trận quyền', () => {
     }
   });
 
+  it('bảng giá: Chủ công ty, Quản trị, Kế toán tạo giá mới; chỉ Quản trị sửa giá đang hiệu lực; còn lại chỉ xem', () => {
+    expect(rolesFor('tariff.write')).toEqual(['OWNER', 'ADMIN', 'ACCOUNTANT']);
+    expect(can('DISPATCHER', 'tariff.write')).toBe(false);
+    expect(can('DISPATCHER', 'tariff.view')).toBe(true);
+    expect(can('ACCOUNTANT', 'pricing.editActive')).toBe(false);
+    expect(can('OWNER', 'pricing.editActive')).toBe(false);
+  });
+
   it('rolesFor trả mảng dùng thẳng cho requireRole', () => {
     expect(rolesFor('identity.manageUsers')).toEqual(['OWNER', 'ADMIN']);
   });

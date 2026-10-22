@@ -22,9 +22,16 @@ type InsertValues<T extends TenantTable> = Omit<T['$inferInsert'], 'tenantId' | 
 };
 type UpdateValues<T extends TenantTable> = Partial<Omit<T['$inferInsert'], 'tenantId' | 'id'>>;
 
+// Tùy chọn cho SELECT: sắp xếp, giới hạn dòng, khóa dòng (SELECT … FOR UPDATE, chỉ có nghĩa trong transaction).
+export type SelectOptions = { orderBy?: SQL[]; limit?: number; forUpdate?: boolean };
+
 export type TenantDb = {
   readonly ctx: TenantCtx;
-  select<T extends TenantTable>(table: T, where?: SQL): Promise<T['$inferSelect'][]>;
+  select<T extends TenantTable>(
+    table: T,
+    where?: SQL,
+    options?: SelectOptions,
+  ): Promise<T['$inferSelect'][]>;
   insert<T extends TenantTable>(
     table: T,
     values: InsertValues<T> | InsertValues<T>[],
@@ -54,8 +61,12 @@ function build(ctx: TenantCtx, exec: Executor, root: Db): TenantDb {
     ctx,
     _unsafeExecutor: exec,
 
-    select(table, where) {
-      return exec.select().from(table).where(guard(table, where)) as never;
+    select(table, where, options) {
+      let query = exec.select().from(table).where(guard(table, where)).$dynamic();
+      if (options?.orderBy?.length) query = query.orderBy(...options.orderBy);
+      if (options?.limit !== undefined) query = query.limit(options.limit);
+      if (options?.forUpdate) query = query.for('update');
+      return query as never;
     },
 
     async insert(table, values) {

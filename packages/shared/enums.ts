@@ -54,3 +54,9 @@ export const LOCATION_TYPES = [
   'GARAGE',
   'PARKING',
 ] as const;
+// Nhóm phí của bảng phí (spec 02, fee_tariffs): chỉ 3 giá trị; FEE_CATEGORIES (4 giá trị) dùng cho khoản phí trên Order/chuyến.
+export const FEE_TARIFF_CATEGORIES = ['COST_NORM', 'REVENUE_SURCHARGE', 'PASS_THROUGH'] as const;
+export const CALC_BASES = ['PER_TRIP', 'PER_CONTAINER', 'PER_DAY', 'PER_KM'] as const;
+
+export type ContainerType = (typeof CONTAINER_TYPES)[number];
+export type TripMode = (typeof TRIP_MODES)[number];

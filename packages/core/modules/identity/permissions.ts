@@ -11,6 +11,10 @@ export const PERMISSIONS = {
   'masterData.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
   'masterData.write': ['OWNER', 'ADMIN', 'DISPATCHER'],
   'masterData.editBilling': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
+  // Bảng giá (task 03): xem cho mọi vai trò web; tạo giá mới, sửa bản chưa hiệu lực, import cho Chủ công ty, Quản trị, Kế toán.
+  // Sửa hoặc đóng giá ĐANG hiệu lực chỉ có pricing.editActive (PRD A4: Quản trị).
+  'tariff.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
+  'tariff.write': ['OWNER', 'ADMIN', 'ACCOUNTANT'],
   'identity.manageUsers': ['OWNER', 'ADMIN'],
   'tenant.configure': ['OWNER', 'ADMIN'],
   'pricing.editActive': ['ADMIN'],

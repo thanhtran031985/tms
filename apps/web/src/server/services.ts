@@ -3,6 +3,7 @@ import { getTenantDb } from '@core/lib/db/tenant-db';
 import { getSystemDb } from '@core/lib/db/system-db';
 import { createAuthService, type AuthService } from '@core/modules/identity/auth.service';
 import { createMasterDataService, type MasterDataService } from '@core/modules/master-data/service';
+import { createTariffService, type TariffService } from '@core/modules/billing/tariffs.service';
 import { createIdentityRepo, type IdentityRepo } from '@core/modules/identity/repo';
 
 let repo: IdentityRepo | undefined;
@@ -23,4 +24,11 @@ let masterData: MasterDataService | undefined;
 export function getMasterDataService(): MasterDataService {
   masterData ??= createMasterDataService({ tenantDb: (ctx) => getTenantDb(ctx) });
   return masterData;
+}
+
+let tariffs: TariffService | undefined;
+
+export function getTariffService(): TariffService {
+  tariffs ??= createTariffService({ tenantDb: (ctx) => getTenantDb(ctx) });
+  return tariffs;
 }

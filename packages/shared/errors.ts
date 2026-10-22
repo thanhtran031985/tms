@@ -14,6 +14,10 @@ export const ERROR_MESSAGES = {
   NOT_FOUND:
     'Không tìm thấy dữ liệu này. Có thể dữ liệu đã bị xóa hoặc không thuộc công ty của bạn.',
   DUPLICATE_CODE: 'Mã này đã có trong công ty của bạn. Dùng mã khác hoặc mở bản ghi đã có để sửa.',
+  TARIFF_NOT_FOUND:
+    'Chưa có giá cho tuyến, loại container, chế độ chạy và khách này vào ngày tra giá. Nhập giá tay hoặc thêm bảng giá.',
+  TARIFF_OVERLAP:
+    'Đã có giá cùng khóa với khoảng hiệu lực chồng lên khoảng này. Đổi ngày hiệu lực hoặc điều chỉnh giá đang có.',
   INTERNAL_ERROR:
     'Hệ thống gặp sự cố ngoài ý muốn. Thử lại sau ít phút; nếu vẫn lỗi, báo bộ phận hỗ trợ kèm giờ xảy ra.',
 } as const;
