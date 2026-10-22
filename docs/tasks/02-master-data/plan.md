@@ -1,3 +1,53 @@
-# Kế hoạch 02-master-data
+# Kế hoạch task 02-master-data — Danh mục cơ bản
 
-_Chưa có. Khi kế hoạch ở Plan mode được duyệt, Claude lưu nguyên văn vào đây._
+## Bối cảnh
+Task 00, 01 xong (✅). Task 02 thêm 5 danh mục dùng chung cho bảng giá, Order, chuyến xe: khách hàng, hãng tàu, nhà cung cấp, địa điểm (tọa độ + geofence), tuyến. Mã trùng trong tenant bị chặn, tenant khác dùng cùng mã vẫn được; xóa mềm; có màn danh sách + form.
+Làm đúng 6 bước trong `docs/tasks/02-master-data/task.md`, test viết trước, dừng chờ "continue" sau mỗi bước.
+Nhánh `feat/02-master-data` tạo từ `feat/01-auth-tenant` (task 01 chưa merge vào `main`). Sau khi duyệt: lưu kế hoạch nguyên văn vào `plan.md`, README dòng 02 đổi sang 🔄.
+Không cần cài package mới (native `<dialog>` cho ngăn kéo/xác nhận; decimal.js, zod, lucide đã có).
+
+## Đã chốt với người dùng
+- Thêm cột `code` cho cả `vendors` và `locations` (unique theo tenant: `uq_vendor_code`, `uq_location_code`). Sửa spec 02 và PRD E3 (bảng Nhà cung cấp/Địa điểm thêm "Mã"), ghi decisions.md.
+
+## Lựa chọn kỹ thuật (ghi vào decisions.md)
+- **Schema** `packages/core/lib/db/schema/master-data.ts` đúng spec 02 + `shipping_lines.deleted_at` + `vendors.code`, `locations.code` (varchar 50, NOT NULL). Enum `VENDOR_TYPES`, `LOCATION_TYPES` thêm vào `packages/shared/enums.ts`, `mysqlEnum()` mới cho từng cột. Migration `0002_master_data` (chỉ tạo bảng mới nên chạy được trên DB trống và DB đã có dữ liệu task 01). Sửa `docs/specs/02_database_schema.md`.
+- **Repo** `modules/master-data/repo.ts`: nhận `TenantDb` (không dùng db thô). Hàm chung `list/get/insert/update/setDeleted` theo bảng + hàm tìm theo mã (kể cả dòng đã xóa mềm). `TenantDb.select` không có orderBy/limit nên sắp theo tên ở service. Danh mục một công ty nhỏ (hàng trăm dòng): tải cả danh sách, lọc/tìm ở client; phân trang để task sau nếu cần (ghi decisions.md).
+- **Service** `modules/master-data/service.ts` (+ `schema.ts` zod; zod dùng chung nằm ở `packages/shared/schemas/master-data.ts`). Hàm `list/get/create/update/softDelete/restore` cho 5 danh mục, nhận `(ctx, input)`; ghi `createdBy = ctx.userId`. Danh mục không bắt buộc audit (Rule 8).
+- **Trùng mã:** thêm `DUPLICATE_CODE` vào `packages/shared/errors.ts`; `AppError` thêm `details` tùy chọn để mang `{ field: 'code', deletedId? }`. Service tra mã trước (gồm dòng đã xóa mềm): nếu dòng cũ đã xóa mềm thì trả `DUPLICATE_CODE` kèm `deletedId` để UI đề xuất "Khôi phục" thay vì tạo mới; vẫn bắt lỗi unique 1062 của MariaDB (đua nhau) rồi đổi thành `DUPLICATE_CODE`. Thông báo nói mã nào đã có và cách xử lý. Cùng cách cho `create`, `update`, `restore`.
+- **Tham chiếu cùng tenant:** trước khi ghi `locations.customerId/vendorId`, tra bằng TenantDb; không thấy hoặc đã xóa mềm → `NOT_FOUND`. Xóa mềm khách/nhà cung cấp đang được địa điểm tham chiếu vẫn cho phép (Order cũ cần hiển thị đúng).
+- **Validate (zod):** `lat` [-90,90], `lng` [-180,180] (lưu DECIMAL(9,6), nhận chuỗi/số, chuẩn hóa 6 số lẻ), `geofenceRadiusM` nguyên > 0 (mặc định 300), `standardDistanceKm` nguyên > 0, `paymentTermDays` nguyên ≥ 0, `creditLimit` chuỗi tiền không âm, đi qua decimal.js (`lib/money`), lưu DECIMAL(18,2). Mã: chữ-số-gạch, viết hoa, trim.
+- **Quyền** (khóa mới trong `permissions.ts`): `masterData.view` = mọi vai trò web; `masterData.write` = OWNER, ADMIN, DISPATCHER; `masterData.editBilling` = OWNER, ADMIN, DISPATCHER, ACCOUNTANT. Kế toán chỉ sửa `taxCode`, `billingAddress`, `paymentTermDays`, `creditLimit` của khách qua action riêng `updateCustomerBilling` (schema chỉ chứa 4 trường đó). `VIEWER`, `FLEET_MANAGER` chỉ đọc. Cập nhật `permissions.test.ts`.
+- **Server Action** `apps/web/src/features/master-data/actions.ts`, mỗi action một `export const x = defineAction(rolesFor(...), schema, handler)` (khớp rào chắn `actions-guard.test.ts`): `list*` (đọc, để nút "Thử lại" giữ dữ liệu cũ), `create*`, `update*`, `softDelete*`, `restore*` cho 5 danh mục + `updateCustomerBilling`. Service dựng lười ở `src/server/services.ts` (thêm `getMasterDataService()` dùng `getTenantDb(ctx)` mỗi request).
+- **Giao diện:** route `app/(tenant)/master-data/page.tsx` (chuyển về `/master-data/customers`) và `[entity]/page.tsx` (slug: `customers`, `shipping-lines`, `vendors`, `locations`, `routes`; slug lạ → `notFound`), `loading.tsx` (skeleton), `error.tsx`. Trang là server component nạp dữ liệu đầu; view client trong `features/master-data/` giữ danh sách trong state, lọc/tìm ở client (tìm theo mã/tên, `FilterTabs` theo loại với số đếm; sắp theo tên), mutation xong gọi `list*` nạp lại. Lỗi nạp lại: giữ dòng cũ, `Alert` warn + "Thử lại". 4 trạng thái: skeleton, trống (lý do + nút "Thêm …"), lỗi, có dữ liệu.
+- **Thành phần mới** `src/components/ui/`: `work-table.tsx` (khối `tms-card`, head có H2 + meta + tabs, `tms-table-wrap` cuộn ngang trong khối, `min-width` ~860px, cột cuối đúng một nút, `tms-card-foot` aria-live), `filter-tabs.tsx` (role tablist, số đếm), `drawer.tsx` (ngăn kéo phải theo PRD Screen11, dựng bằng `<dialog>` native: Esc đóng, khóa nền, trả focus), `confirm-dialog.tsx`, `entity-tabs.tsx` (chuyển giữa 5 danh mục bằng liên kết, `aria-current`). Dựng theo `designs/components/WorkTable|FilterTabs|Field|Alert|EmptyState|Button` và `bundle.css`; chỉ token. Token thiếu (chiều rộng ngăn kéo…) thêm vào `globals.css` và liệt kê trong báo cáo.
+- **Form (ngăn kéo)** dùng `Field`: nhãn trên ô, lỗi dưới ô; lỗi `DUPLICATE_CODE` hiện dưới ô Mã kèm nút "Khôi phục bản ghi đã xóa" khi có `deletedId`; nút chính "Lưu khách hàng"… ; xóa mềm có xác nhận; hãng tàu có công tắc "Cho phép đảo vỏ"; địa điểm có chọn loại, tọa độ, bán kính, chủ sở hữu (khách hoặc nhà cung cấp, nạp từ danh sách đang hoạt động); người chỉ-đọc không thấy nút ghi.
+- **Menu:** thêm mục "Danh mục" (`/master-data/customers`, icon `Database`) vào `NAV_ITEMS`; `NavMenu` đánh dấu active theo tiền tố đường dẫn. Cập nhật `shell.spec.ts` (số liên kết thật 2, mục chưa có trang vẫn 7).
+- **Seed** `lib/db/seeds/master-data.ts` + `master-data.test-data.ts` (UUID cố định, upsert; thư mục là `seeds/` như task 01, không phải `seed/` như task.md) và đăng ký trong `lib/db/seed.ts`. Tenant Phúc An: tuyến Cát Lái – Sóng Thần (km chuẩn ~28), cảng Cát Lái, Depot Phước Long + 1 depot, kho Phúc Thịnh (KCN Sóng Thần), Kho Thép Nam Long (KCN Biên Hòa 2), Kho KCN VSIP, 1 cây xăng, 1 garage, 4–5 khách, hãng tàu ONE, MSK (Maersk), WHL (Wan Hai), CMA. Tọa độ là giá trị gần đúng cho dữ liệu mẫu (nói rõ trong báo cáo). Tenant Sao Việt: vài bản ghi, trong đó một mã khách trùng với Phúc An để chứng minh khác tenant dùng chung mã được.
+
+## Các bước
+1. **Schema + migration + repo + test cách ly tenant.** Viết `modules/master-data/repo.int.test.ts` trước (đỏ): với mỗi trong 5 repo, tenant B không đọc/sửa/xóa được bản ghi tenant A (5 test). Rồi `schema/master-data.ts`, enum, `pnpm db:generate` (review SQL: utf8mb4, `DATETIME(3)`, unique bắt đầu bằng `tenant_id`), `repo.ts`, và seed tối thiểu cho test.
+   Kiểm tra: `pnpm db:migrate` trên DB trống và DB có dữ liệu task 01; `pnpm test --filter core -- master-data.*repo` xanh (đủ 5 test).
+2. **Service + zod + quy tắc.** `service.int.test.ts` trước: trùng mã khách cùng tenant → `DUPLICATE_CODE`, khác tenant → được (cùng cho hãng tàu, tuyến, nhà cung cấp, địa điểm); bản ghi xóa mềm không hiện trong list; địa điểm gắn `customerId`/`vendorId` tenant khác hoặc đã xóa → `NOT_FOUND`; tạo lại mã đã xóa mềm → `DUPLICATE_CODE` kèm `deletedId`, `restore` đưa về; đua tạo song song cùng mã chỉ một thành công; test unit zod (biên lat/lng, km, tiền). Rồi `shared/schemas/master-data.ts`, `service.ts`, `AppError.details`, `DUPLICATE_CODE`.
+   Kiểm tra: `pnpm test --filter core -- master-data` xanh, có test trùng mã khách cùng tenant và khác tenant.
+3. **Quyền, Server Action, seed.** Cập nhật `permissions.ts` + test; test action (mock `@/server` bằng `createDefineAction` với `requireRole` giả): `VIEWER` tạo khách → `FORBIDDEN`, thiếu tên → `VALIDATION_ERROR`, `ACCOUNTANT` sửa được tiền/MST nhưng không đổi tên khách; rồi `actions.ts`, seed.
+   Kiểm tra: `pnpm test --filter web -- master-data` xanh; `pnpm db:seed` hai lần không trùng; `SELECT route_code FROM routes` có tuyến Cát Lái – Sóng Thần.
+4. **Màn danh sách.** Thành phần `work-table`, `filter-tabs`, `entity-tabs`; route + `loading.tsx` + `error.tsx`; view 5 danh mục (cột theo spec: khách — mã mono, tên, MST, hạn TT; hãng tàu — mã, tên, đảo vỏ; nhà cung cấp — mã, tên, loại, MST; địa điểm — mã, tên, loại, khu vực, bán kính; tuyến — mã, tên, đi, đến, km); mục menu "Danh mục". E2E đọc: `/master-data/customers` và `/locations` thấy dữ liệu seed, tab lọc loại có số đếm, không tràn ngang trang.
+   Kiểm tra: mở ở 1440×900 và 1366×768, bảng cuộn ngang trong khối; thử đủ 4 trạng thái đúng `WorkTable/README.md`.
+5. **Form tạo, sửa, xóa mềm, khôi phục.** Ngăn kéo + `Field` + xác nhận xóa; `e2e/master-data.spec.ts`: tạo khách mới (mã duy nhất mỗi lần chạy) thấy trong danh sách; tạo trùng mã thấy lỗi dưới ô Mã; xóa mềm rồi mất khỏi danh sách; tạo lại mã đã xóa thấy "Khôi phục"; `DISPATCHER` thấy nút Thêm, `VIEWER` không; điều hướng form bằng bàn phím, viền focus 3px.
+   Kiểm tra: `pnpm e2e -- master-data` xanh.
+6. **Hoàn tất.** Sửa spec 02 (`shipping_lines.deleted_at`, `vendors.code`, `locations.code`) và PRD E3; progress.md, decisions.md, README dòng 02 → ✅; `pnpm typecheck`, `lint`, `format:check`, `test`, `build`, `e2e`; migrate trên DB trống + DB có dữ liệu; rà mọi Server Action có `requireRole` + zod, mọi repo có test cách ly tenant; đẩy nhánh và theo dõi CI.
+
+Mỗi bước kết thúc: cập nhật progress.md, `pnpm tasks:dashboard`, báo cáo ngắn, đề xuất commit `02-master-data: step N — …`, DỪNG chờ "continue".
+
+## File quan trọng tái dùng
+`packages/core/lib/db/tenant-db.ts` (getTenantDb), `lib/db/schema/_helpers.ts`, `lib/db/seeds/identity*.ts` (mẫu seed), `lib/money`, `packages/shared/{errors,result,enums}.ts`, `modules/identity/permissions.ts`, `apps/web/src/server/{define-action,services,index}.ts`, `components/ui/{button,field,alert,empty-state,pill}.tsx`, `components/ui/app-shell/nav-menu.tsx`, `test/containers.ts` (`startTestInfra`), `apps/web/e2e/global-setup.ts`.
+
+## Rủi ro và việc anh/chị làm thủ công
+- `DATABASE_URL` trong `.env` vẫn cổng 3306; khi chạy tay tôi truyền biến trên dòng lệnh (3307).
+- Tọa độ seed là gần đúng, không dùng cho vận hành thật.
+- Lọc/tìm ở client, không phân trang: đủ cho vài trăm dòng; nếu tenant lớn hơn thì xử lý sau.
+- Task 01 chưa merge vào `main`; nhánh 02 xếp chồng trên 01.
+- Hạn mức tín dụng chỉ lưu giá trị, chưa chặn Order (ngoài phạm vi).
+
+## Kiểm tra cuối
+`pnpm typecheck`, `lint`, `test`, `build`, `e2e` mã 0; test chứng minh tenant B không đọc/sửa/xóa được 5 danh mục của tenant A; tạo trùng mã khách cùng tenant bị chặn, khác tenant được; mọi action ghi từ chối `VIEWER`; CI xanh.

@@ -38,3 +38,19 @@ export const FEE_CATEGORIES = [
   'PASS_THROUGH',
   'ON_ROUTE_EXPENSE',
 ] as const;
+export const VENDOR_TYPES = [
+  'FUEL_STATION',
+  'SUB_CONTRACTOR',
+  'GARAGE',
+  'PORT',
+  'DEPOT',
+  'TIRE_SUPPLIER',
+] as const;
+export const LOCATION_TYPES = [
+  'PORT',
+  'DEPOT',
+  'WAREHOUSE',
+  'FUEL_STATION',
+  'GARAGE',
+  'PARKING',
+] as const;

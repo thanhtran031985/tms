@@ -172,4 +172,5 @@ body {
   --container-form: 400px; /* bề rộng form đăng nhập */
   --container-form-wide: 480px; /* bề rộng bước chọn công ty */
   --container-intro: 520px; /* bề rộng tối đa khối giới thiệu */
+  --container-table: 860px; /* bề rộng tối thiểu của bảng trong WorkTable (designs/components/WorkTable) */
 }

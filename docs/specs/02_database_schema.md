@@ -137,22 +137,25 @@ export const shippingLines = mysqlTable('shipping_lines', {   // [BỔ SUNG] tha
   name: varchar('name', { length: 255 }).notNull(),
   allowsStreetTurn: boolean('allows_street_turn').default(false).notNull(),
   ...timestamps(),
+  deletedAt: ts('deleted_at'),                             // [BỔ SUNG task 02] mọi danh mục xóa mềm
 }, (t) => ({ codeUq: uniqueIndex('uq_sl_code').on(t.tenantId, t.code) }));
 
 export const vendors = mysqlTable('vendors', {
   id: pk(),
   tenantId: tenantId(),
+  code: varchar('code', { length: 50 }).notNull(),         // [BỔ SUNG task 02] unique theo tenant: uq_vendor_code
   name: varchar('name', { length: 255 }).notNull(),
   taxCode: varchar('tax_code', { length: 20 }),
   type: mysqlEnum('type', ['FUEL_STATION', 'SUB_CONTRACTOR', 'GARAGE', 'PORT', 'DEPOT', 'TIRE_SUPPLIER']).notNull(),
   paymentTermDays: int('payment_term_days').default(30),
   ...timestamps(),
   deletedAt: ts('deleted_at'),
-});
+}, (t) => ({ codeUq: uniqueIndex('uq_vendor_code').on(t.tenantId, t.code) }));
 
 export const locations = mysqlTable('locations', {             // [BỔ SUNG] bắt buộc cho geofence
   id: pk(),
   tenantId: tenantId(),
+  code: varchar('code', { length: 50 }).notNull(),         // [BỔ SUNG task 02] unique theo tenant: uq_location_code
   type: mysqlEnum('type', ['PORT', 'DEPOT', 'WAREHOUSE', 'FUEL_STATION', 'GARAGE', 'PARKING']).notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   address: varchar('address', { length: 500 }),
@@ -164,7 +167,7 @@ export const locations = mysqlTable('locations', {             // [BỔ SUNG] b�
   zone: varchar('zone', { length: 100 }),                  // dùng để suy ra route
   ...timestamps(),
   deletedAt: ts('deleted_at'),
-});
+}, (t) => ({ codeUq: uniqueIndex('uq_location_code').on(t.tenantId, t.code) }));
 
 export const routes = mysqlTable('routes', {
   id: pk(),

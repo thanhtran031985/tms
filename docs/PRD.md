@@ -284,8 +284,8 @@ Tên, mã số thuế, múi giờ; phương pháp phân bổ mặc định (`COS
 |---|---|
 | Khách hàng | Mã, tên, mã số thuế, địa chỉ hóa đơn, hạn thanh toán, hạn mức công nợ |
 | Hãng tàu | Mã (MSK, ONE, CMA...), tên, cho đảo vỏ hay không |
-| Nhà cung cấp | Tên, mã số thuế, loại (cây xăng, nhà xe ngoài, garage, cảng, depot, lốp), hạn thanh toán |
-| Địa điểm | Loại (cảng, depot, kho khách, cây xăng, garage, bãi đỗ), địa chỉ, tọa độ, bán kính geofence (300 m), khu vực, chủ sở hữu |
+| Nhà cung cấp | Mã, tên, mã số thuế, loại (cây xăng, nhà xe ngoài, garage, cảng, depot, lốp), hạn thanh toán |
+| Địa điểm | Mã, loại (cảng, depot, kho khách, cây xăng, garage, bãi đỗ), địa chỉ, tọa độ, bán kính geofence (300 m), khu vực, chủ sở hữu |
 | Tuyến | Mã, tên, khu vực đi, khu vực đến, km chuẩn |
 
 Dữ liệu mẫu: tuyến Cát Lái – Sóng Thần, vài cảng, depot, kho.

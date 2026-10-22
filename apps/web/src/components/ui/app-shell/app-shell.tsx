@@ -28,7 +28,7 @@ export function AppShell({
   children,
 }: AppShellProps) {
   return (
-    <div className="grid min-h-screen bg-bg text-ink sm:grid-cols-[var(--size-nav)_minmax(0,1fr)]">
+    <div className="grid min-h-screen grid-cols-[minmax(0,1fr)] bg-bg text-ink sm:grid-cols-[var(--size-nav)_minmax(0,1fr)]">
       <nav
         aria-label="Điều hướng chính"
         className="flex flex-col gap-4 border-b border-line bg-surface px-12 py-16 sm:border-r sm:border-b-0"

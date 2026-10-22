@@ -6,7 +6,7 @@ Bảng tổng các task của dự án, chia theo giai đoạn GĐ0–GĐ6 trong
 |---|---|---|---|---|
 | 00 | [00-monorepo-setup](00-monorepo-setup/task.md) — Monorepo, CI và môi trường | ✅ | — | `feat/00-monorepo-setup` |
 | 01 | [01-auth-tenant](01-auth-tenant/task.md) — Đăng nhập, tenant và phân quyền | ✅ | 00 | `feat/01-auth-tenant` |
-| 02 | [02-master-data](02-master-data/task.md) — Danh mục cơ bản | ⬜ | 01 | `feat/02-master-data` |
+| 02 | [02-master-data](02-master-data/task.md) — Danh mục cơ bản | ✅ | 01 | `feat/02-master-data` |
 | 03 | [03-pricing-engine](03-pricing-engine/task.md) — Bảng giá và 4D Pricing Engine | ⬜ | 02 | `feat/03-pricing-engine` |
 | 04 | [04-orders-containers](04-orders-containers/task.md) — Order nhiều container và tự sinh Stop | ⬜ | 02, 03 | `feat/04-orders-containers` |
 | 05 | [05-fleet-drivers](05-fleet-drivers/task.md) — Đội xe, tài xế và giấy tờ | ⬜ | 02 | `feat/05-fleet-drivers` |

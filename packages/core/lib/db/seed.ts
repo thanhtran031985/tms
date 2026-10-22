@@ -2,6 +2,7 @@ import type { Db } from './client';
 import { closeDb, getDb } from './client';
 import { requireEnv } from '../env';
 import { seedIdentity } from './seeds/identity';
+import { seedMasterData } from './seeds/master-data';
 
 // Mỗi seeder phải idempotent: chạy lại nhiều lần không sinh bản ghi trùng (dùng upsert hoặc kiểm tra tồn tại).
 // Dữ liệu mẫu chỉ dành cho dev/test; không chạy ở production.
@@ -12,6 +13,7 @@ const seeders: Seeder[] = [
     name: 'identity',
     run: (db) => seedIdentity(db, { password: requireEnv('SEED_DEV_PASSWORD') }),
   },
+  { name: 'master-data', run: (db) => seedMasterData(db) },
 ];
 
 try {

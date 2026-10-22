@@ -6,6 +6,11 @@ import type { Role } from '../../lib/context';
 export const PERMISSIONS = {
   // Cổng web: mọi vai trò trừ tài xế.
   'web.access': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
+  // Danh mục cơ bản (task 02): xem cho mọi vai trò web; ghi cho quản trị và điều vận;
+  // Kế toán chỉ sửa thông tin thanh toán của khách (MST, địa chỉ hóa đơn, hạn thanh toán, hạn mức).
+  'masterData.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
+  'masterData.write': ['OWNER', 'ADMIN', 'DISPATCHER'],
+  'masterData.editBilling': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
   'identity.manageUsers': ['OWNER', 'ADMIN'],
   'tenant.configure': ['OWNER', 'ADMIN'],
   'pricing.editActive': ['ADMIN'],

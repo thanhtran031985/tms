@@ -31,9 +31,9 @@ test.describe('khung AppShell', () => {
 
     const home = nav(page).getByRole('link', { name: 'Trang chủ' });
     await expect(home).toHaveAttribute('aria-current', 'page');
-    // Chỉ "Trang chủ" là liên kết thật; các phân hệ chưa làm hiện ở trạng thái chưa có trang.
-    await expect(nav(page).getByRole('link')).toHaveCount(8);
-    await expect(nav(page).locator('a')).toHaveCount(1);
+    // "Trang chủ" và "Danh mục" là liên kết thật; các phân hệ chưa làm hiện ở trạng thái chưa có trang.
+    await expect(nav(page).getByRole('link')).toHaveCount(9);
+    await expect(nav(page).locator('a')).toHaveCount(2);
     const pending = nav(page).locator('[aria-disabled="true"]');
     await expect(pending).toHaveCount(7);
     await expect(pending.first()).toHaveAttribute('title', 'Chưa có trang');

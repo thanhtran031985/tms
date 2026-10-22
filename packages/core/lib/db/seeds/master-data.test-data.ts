@@ -1,0 +1,332 @@
+// Dữ liệu mẫu danh mục dùng chung cho seed, test tích hợp và e2e. UUID cố định để seed chạy lại không sinh trùng.
+// Tọa độ là giá trị GẦN ĐÚNG cho dữ liệu mẫu, không dùng cho vận hành thật.
+import { SEED_TENANTS } from './identity.test-data';
+
+const id = (n: number) => `0190a000-0000-7000-9000-${n.toString(16).padStart(12, '0')}`;
+
+const phucAn = SEED_TENANTS.phucAn.id;
+const saoViet = SEED_TENANTS.saoViet.id;
+
+export const SEED_CUSTOMERS = {
+  thepNamLong: {
+    id: id(0x101),
+    tenantId: phucAn,
+    code: 'THEPNL',
+    name: 'Công ty TNHH Thép Nam Long',
+    taxCode: '3600112233',
+    billingAddress: 'KCN Biên Hòa 2, Đồng Nai',
+    paymentTermDays: 30,
+    creditLimit: '500000000.00',
+  },
+  phucThinh: {
+    id: id(0x102),
+    tenantId: phucAn,
+    code: 'PHUCTHINH',
+    name: 'Công ty CP Phúc Thịnh',
+    taxCode: '3700445566',
+    billingAddress: 'KCN Sóng Thần, Dĩ An, Bình Dương',
+    paymentTermDays: 45,
+    creditLimit: '300000000.00',
+  },
+  vsip: {
+    id: id(0x103),
+    tenantId: phucAn,
+    code: 'VSIP',
+    name: 'Công ty TNHH Kho vận VSIP',
+    taxCode: '3700778899',
+    billingAddress: 'KCN VSIP I, Thuận An, Bình Dương',
+    paymentTermDays: 30,
+    creditLimit: null,
+  },
+  hoaSen: {
+    id: id(0x104),
+    tenantId: phucAn,
+    code: 'HOASEN',
+    name: 'Công ty CP Nông sản Hoa Sen',
+    taxCode: '0309988776',
+    billingAddress: '25 Nguyễn Văn Linh, Quận 7, TP.HCM',
+    paymentTermDays: 15,
+    creditLimit: '100000000.00',
+  },
+  // Cùng mã THEPNL với Phúc An để thấy hai công ty dùng chung mã được.
+  saoVietThep: {
+    id: id(0x111),
+    tenantId: saoViet,
+    code: 'THEPNL',
+    name: 'Công ty CP Thép Việt Nhật',
+    taxCode: '0312000111',
+    billingAddress: 'Quận 9, TP.HCM',
+    paymentTermDays: 30,
+    creditLimit: null,
+  },
+  saoVietDet: {
+    id: id(0x112),
+    tenantId: saoViet,
+    code: 'DETMK',
+    name: 'Công ty TNHH Dệt may Minh Khang',
+    taxCode: '0313222333',
+    billingAddress: 'Quận Tân Phú, TP.HCM',
+    paymentTermDays: 30,
+    creditLimit: null,
+  },
+} as const;
+
+export const SEED_SHIPPING_LINES = [
+  { id: id(0x201), tenantId: phucAn, code: 'ONE', name: 'Ocean Network Express', st: false },
+  { id: id(0x202), tenantId: phucAn, code: 'MSK', name: 'Maersk', st: true },
+  { id: id(0x203), tenantId: phucAn, code: 'WHL', name: 'Wan Hai Lines', st: false },
+  { id: id(0x204), tenantId: phucAn, code: 'CMA', name: 'CMA CGM', st: true },
+  { id: id(0x211), tenantId: saoViet, code: 'ONE', name: 'Ocean Network Express', st: false },
+  { id: id(0x212), tenantId: saoViet, code: 'MSK', name: 'Maersk', st: false },
+] as const;
+
+export const SEED_VENDORS = {
+  fuelThuDuc: {
+    id: id(0x301),
+    tenantId: phucAn,
+    code: 'CX-THUDUC',
+    name: 'Cây xăng Thủ Đức 1',
+    taxCode: '0300111222',
+    type: 'FUEL_STATION',
+    paymentTermDays: 15,
+  },
+  garage: {
+    id: id(0x302),
+    tenantId: phucAn,
+    code: 'GR-TANPHU',
+    name: 'Garage Ô tô Tân Phú',
+    taxCode: '0300333444',
+    type: 'GARAGE',
+    paymentTermDays: 30,
+  },
+  nhaXeNgoai: {
+    id: id(0x303),
+    tenantId: phucAn,
+    code: 'NX-HOABINH',
+    name: 'Nhà xe Hòa Bình',
+    taxCode: '3700555666',
+    type: 'SUB_CONTRACTOR',
+    paymentTermDays: 30,
+  },
+  saoVietFuel: {
+    id: id(0x311),
+    tenantId: saoViet,
+    code: 'CX-THUDUC',
+    name: 'Cây xăng Quận 9',
+    taxCode: null,
+    type: 'FUEL_STATION',
+    paymentTermDays: 15,
+  },
+} as const;
+
+type SeedLocation = {
+  id: string;
+  tenantId: string;
+  code: string;
+  type: 'PORT' | 'DEPOT' | 'WAREHOUSE' | 'FUEL_STATION' | 'GARAGE' | 'PARKING';
+  name: string;
+  address: string | null;
+  customerId: string | null;
+  vendorId: string | null;
+  lat: string;
+  lng: string;
+  geofenceRadiusM: number;
+  zone: string;
+};
+
+export const SEED_LOCATIONS: SeedLocation[] = [
+  {
+    id: id(0x401),
+    tenantId: phucAn,
+    code: 'CATLAI',
+    type: 'PORT',
+    name: 'Cảng Cát Lái',
+    address: 'Đường Đồng Văn Cống, Thủ Đức, TP.HCM',
+    customerId: null,
+    vendorId: null,
+    lat: '10.759500',
+    lng: '106.790800',
+    geofenceRadiusM: 500,
+    zone: 'Cát Lái',
+  },
+  {
+    id: id(0x402),
+    tenantId: phucAn,
+    code: 'DEPOT-PL',
+    type: 'DEPOT',
+    name: 'Depot Phước Long',
+    address: 'Xa lộ Hà Nội, Thủ Đức, TP.HCM',
+    customerId: null,
+    vendorId: null,
+    lat: '10.818600',
+    lng: '106.775500',
+    geofenceRadiusM: 300,
+    zone: 'Thủ Đức',
+  },
+  {
+    id: id(0x403),
+    tenantId: phucAn,
+    code: 'DEPOT-LB',
+    type: 'DEPOT',
+    name: 'Depot Long Bình',
+    address: 'Long Bình, Biên Hòa, Đồng Nai',
+    customerId: null,
+    vendorId: null,
+    lat: '10.883600',
+    lng: '106.876000',
+    geofenceRadiusM: 300,
+    zone: 'Biên Hòa',
+  },
+  {
+    id: id(0x404),
+    tenantId: phucAn,
+    code: 'KHO-PT',
+    type: 'WAREHOUSE',
+    name: 'Kho Phúc Thịnh',
+    address: 'KCN Sóng Thần, Dĩ An, Bình Dương',
+    customerId: SEED_CUSTOMERS.phucThinh.id,
+    vendorId: null,
+    lat: '10.901500',
+    lng: '106.746800',
+    geofenceRadiusM: 300,
+    zone: 'Sóng Thần',
+  },
+  {
+    id: id(0x405),
+    tenantId: phucAn,
+    code: 'KHO-NL',
+    type: 'WAREHOUSE',
+    name: 'Kho Thép Nam Long',
+    address: 'KCN Biên Hòa 2, Đồng Nai',
+    customerId: SEED_CUSTOMERS.thepNamLong.id,
+    vendorId: null,
+    lat: '10.910600',
+    lng: '106.900600',
+    geofenceRadiusM: 300,
+    zone: 'Biên Hòa',
+  },
+  {
+    id: id(0x406),
+    tenantId: phucAn,
+    code: 'KHO-VSIP',
+    type: 'WAREHOUSE',
+    name: 'Kho KCN VSIP',
+    address: 'KCN VSIP I, Thuận An, Bình Dương',
+    customerId: SEED_CUSTOMERS.vsip.id,
+    vendorId: null,
+    lat: '10.918700',
+    lng: '106.710600',
+    geofenceRadiusM: 250,
+    zone: 'VSIP',
+  },
+  {
+    id: id(0x407),
+    tenantId: phucAn,
+    code: 'CX-THUDUC',
+    type: 'FUEL_STATION',
+    name: 'Cây xăng Thủ Đức 1',
+    address: 'Xa lộ Hà Nội, Thủ Đức, TP.HCM',
+    customerId: null,
+    vendorId: SEED_VENDORS.fuelThuDuc.id,
+    lat: '10.846000',
+    lng: '106.771000',
+    geofenceRadiusM: 150,
+    zone: 'Thủ Đức',
+  },
+  {
+    id: id(0x408),
+    tenantId: phucAn,
+    code: 'GR-TANPHU',
+    type: 'GARAGE',
+    name: 'Garage Ô tô Tân Phú',
+    address: 'Quận Tân Phú, TP.HCM',
+    customerId: null,
+    vendorId: SEED_VENDORS.garage.id,
+    lat: '10.790000',
+    lng: '106.628000',
+    geofenceRadiusM: 200,
+    zone: 'Tân Phú',
+  },
+  {
+    id: id(0x409),
+    tenantId: phucAn,
+    code: 'BAI-CL',
+    type: 'PARKING',
+    name: 'Bãi đỗ xe Cát Lái',
+    address: 'Cát Lái, Thủ Đức, TP.HCM',
+    customerId: null,
+    vendorId: null,
+    lat: '10.766000',
+    lng: '106.794000',
+    geofenceRadiusM: 300,
+    zone: 'Cát Lái',
+  },
+  // Cùng mã CATLAI với Phúc An.
+  {
+    id: id(0x411),
+    tenantId: saoViet,
+    code: 'CATLAI',
+    type: 'PORT',
+    name: 'Cảng Cát Lái',
+    address: 'Thủ Đức, TP.HCM',
+    customerId: null,
+    vendorId: null,
+    lat: '10.759500',
+    lng: '106.790800',
+    geofenceRadiusM: 500,
+    zone: 'Cát Lái',
+  },
+  {
+    id: id(0x412),
+    tenantId: saoViet,
+    code: 'KHO-DETMK',
+    type: 'WAREHOUSE',
+    name: 'Kho Minh Khang',
+    address: 'Quận Tân Phú, TP.HCM',
+    customerId: SEED_CUSTOMERS.saoVietDet.id,
+    vendorId: null,
+    lat: '10.795000',
+    lng: '106.630000',
+    geofenceRadiusM: 300,
+    zone: 'Tân Phú',
+  },
+];
+
+export const SEED_ROUTES = [
+  {
+    id: id(0x501),
+    tenantId: phucAn,
+    routeCode: 'CL-ST',
+    name: 'Cát Lái – Sóng Thần',
+    originZone: 'Cát Lái',
+    destinationZone: 'Sóng Thần',
+    standardDistanceKm: 28,
+  },
+  {
+    id: id(0x502),
+    tenantId: phucAn,
+    routeCode: 'CL-BH',
+    name: 'Cát Lái – Biên Hòa',
+    originZone: 'Cát Lái',
+    destinationZone: 'Biên Hòa',
+    standardDistanceKm: 32,
+  },
+  {
+    id: id(0x503),
+    tenantId: phucAn,
+    routeCode: 'CL-VSIP',
+    name: 'Cát Lái – VSIP',
+    originZone: 'Cát Lái',
+    destinationZone: 'VSIP',
+    standardDistanceKm: 30,
+  },
+  {
+    id: id(0x511),
+    tenantId: saoViet,
+    routeCode: 'CL-ST',
+    name: 'Cát Lái – Sóng Thần',
+    originZone: 'Cát Lái',
+    destinationZone: 'Sóng Thần',
+    standardDistanceKm: 28,
+  },
+] as const;

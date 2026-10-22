@@ -129,3 +129,80 @@ export function PasswordField({
     </FieldFrame>
   );
 }
+
+type SelectFieldProps = Omit<ComponentProps<'select'>, 'id'> & {
+  id?: string;
+  label: string;
+  hint?: ReactNode;
+  error?: ReactNode;
+  options: { value: string; label: string }[];
+  /** Dòng đầu không chọn gì, ví dụ "Chọn loại". */
+  placeholder?: string;
+};
+
+// Danh sách chọn native, cùng kiểu ô nhập, nhãn trên ô và lỗi dưới ô.
+export function SelectField({
+  id,
+  label,
+  hint,
+  error,
+  options,
+  placeholder,
+  className,
+  ...rest
+}: SelectFieldProps) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  return (
+    <FieldFrame id={fieldId} label={label} hint={hint} error={error}>
+      <select
+        id={fieldId}
+        className={cn(inputClass, 'pr-14', className)}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(fieldId, hint, error)}
+        {...rest}
+      >
+        {placeholder !== undefined ? <option value="">{placeholder}</option> : null}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </FieldFrame>
+  );
+}
+
+type SwitchFieldProps = Omit<ComponentProps<'input'>, 'id' | 'type' | 'role'> & {
+  id?: string;
+  label: string;
+  hint?: ReactNode;
+};
+
+// Công tắc bật/tắt (role="switch") có nhãn và mô tả bên cạnh, vùng bấm cao tối thiểu 44px.
+export function SwitchField({ id, label, hint, className, ...rest }: SwitchFieldProps) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  return (
+    <div className={cn('flex min-h-hit items-start gap-12', className)}>
+      <input
+        id={fieldId}
+        type="checkbox"
+        role="switch"
+        aria-describedby={hint ? `${fieldId}-hint` : undefined}
+        className="mt-4 size-24 flex-none cursor-pointer accent-primary"
+        {...rest}
+      />
+      <div className="min-w-0">
+        <label htmlFor={fieldId} className="cursor-pointer text-label text-ink">
+          {label}
+        </label>
+        {hint ? (
+          <p id={`${fieldId}-hint`} className="text-small text-ink-soft">
+            {hint}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}

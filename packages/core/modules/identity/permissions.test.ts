@@ -44,6 +44,17 @@ describe('ma trận quyền', () => {
     expect(can('DISPATCHER', 'costAllocation.view')).toBe(true);
   });
 
+  it('danh mục: điều vận ghi, kế toán chỉ sửa thanh toán của khách, đội xe và người xem chỉ đọc', () => {
+    expect(rolesFor('masterData.write')).toEqual(['OWNER', 'ADMIN', 'DISPATCHER']);
+    expect(can('ACCOUNTANT', 'masterData.write')).toBe(false);
+    expect(can('ACCOUNTANT', 'masterData.editBilling')).toBe(true);
+    for (const role of ['FLEET_MANAGER', 'VIEWER'] as const) {
+      expect(can(role, 'masterData.view')).toBe(true);
+      expect(can(role, 'masterData.write')).toBe(false);
+      expect(can(role, 'masterData.editBilling')).toBe(false);
+    }
+  });
+
   it('rolesFor trả mảng dùng thẳng cho requireRole', () => {
     expect(rolesFor('identity.manageUsers')).toEqual(['OWNER', 'ADMIN']);
   });

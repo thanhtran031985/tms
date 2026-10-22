@@ -41,7 +41,9 @@ export function createDefineAction(requireRole: RequireRole, options: DefineActi
         }
         return await handler(ctx, parsed.data);
       } catch (error) {
-        if (error instanceof AppError) return fail(error.code, error.message);
+        if (error instanceof AppError) {
+          return fail(error.code, error.message, error.details ? { details: error.details } : {});
+        }
         onError(error);
         return fail('INTERNAL_ERROR');
       }

@@ -9,6 +9,7 @@ import {
   House,
   Map as MapIcon,
   ArrowUpDown,
+  Database,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -20,6 +21,8 @@ type NavItem = {
   label: string;
   /** Chưa có href: phân hệ chưa làm, hiện ở trạng thái chưa có trang. */
   href?: string;
+  /** Tiền tố đường dẫn cũng tính là đang ở mục này (vd. /master-data/*). */
+  match?: string;
   icon: LucideIcon;
   badge?: number;
 };
@@ -34,6 +37,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Đối soát', icon: ArrowUpDown },
   { label: 'Phân bổ chi phí', icon: CircleDollarSign },
   { label: 'Báo cáo', icon: BarChart3 },
+  { label: 'Danh mục', href: '/master-data/customers', match: '/master-data', icon: Database },
 ];
 
 const itemClass =
@@ -43,7 +47,7 @@ export function NavMenu({ items = NAV_ITEMS }: { items?: NavItem[] }) {
   const pathname = usePathname();
   return (
     <ul className="m-0 flex list-none flex-col gap-4 p-0">
-      {items.map(({ label, href, icon: Icon, badge }) => {
+      {items.map(({ label, href, match, icon: Icon, badge }) => {
         const content = (
           <>
             <Icon className="size-20 flex-none" aria-hidden="true" />
@@ -65,7 +69,7 @@ export function NavMenu({ items = NAV_ITEMS }: { items?: NavItem[] }) {
             </li>
           );
         }
-        const current = pathname === href;
+        const current = pathname === href || (!!match && pathname.startsWith(`${match}/`));
         return (
           <li key={label}>
             <Link
