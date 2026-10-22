@@ -1,3 +1,10 @@
 packages:
   - apps/*
   - packages/*
+
+# Hai lỗ hổng mức cao dưới đây nằm trong công cụ build của Expo/Metro (apps/driver-app), chưa có bản vá
+# ("patched: none"), không chạy trong app trên điện thoại. Xem lại khi làm task 10 (app tài xế) và task 24.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-86w9-cpqp-85rv # node-forge qua @expo/cli
+    - GHSA-vfj7-8cjw-p6xm # braces qua metro-file-map
