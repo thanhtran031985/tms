@@ -70,4 +70,4 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - `pnpm audit:deps`: vẫn 1 lỗ hổng mức vừa (`uuid`) có sẵn từ trước, không đổi.
 - Spec 02 (bảng `route_stop_templates`, định dạng `orderNo`) và spec 06 mục 2 (nguồn `targetDate`) đã cập nhật; decisions.md ghi các quyết định và câu hỏi mở cho PO.
 - Đạt "Chấp nhận khi": đơn có cont không có giá không thể `CONFIRMED` với giá 0; chuyển trạng thái sai thứ tự bị chặn; Order 5 cont sinh đúng 5 bộ Stop; tổng tiền Order = tổng tiền các cont; hủy 1 cont không làm hủy Order.
-- Chưa commit, chưa đẩy nhánh, chưa chạy CI (chờ người dùng đồng ý).
+- Commit `63162e7`, đã đẩy nhánh `feat/04-orders-containers`; CI run 39765407550 xanh cả 4 job (kiểm tra, e2e, migration, audit).
