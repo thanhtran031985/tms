@@ -32,7 +32,7 @@ type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Trang chủ', href: '/', icon: House },
   { label: 'Điều vận', icon: Columns3 },
-  { label: 'Đơn hàng', icon: FileText },
+  { label: 'Đơn hàng', href: '/orders', match: '/orders', icon: FileText },
   { label: 'Bản đồ đội xe', icon: MapIcon },
   { label: 'Phiếu dầu', icon: Fuel },
   { label: 'Đối soát', icon: ArrowUpDown },

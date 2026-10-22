@@ -1,8 +1,14 @@
 import type {
   CALC_BASES,
+  CONTAINER_STATUSES,
   FEE_TARIFF_CATEGORIES,
   LOCATION_TYPES,
+  ORDER_STATUSES,
+  ORDER_TYPES,
+  PORT_READINESS,
   ROLES,
+  STOP_STATUSES,
+  STOP_TYPES,
   TRIP_MODES,
   VENDOR_TYPES,
 } from './enums';
@@ -55,4 +61,58 @@ export const CALC_BASIS_LABELS: Record<(typeof CALC_BASES)[number], string> = {
   PER_CONTAINER: 'Theo container',
   PER_DAY: 'Theo ngày',
   PER_KM: 'Theo km',
+};
+
+// Đơn hàng (task 04): chiều, trạng thái Order, trạng thái container, trạng thái cảng, loại Stop.
+export const ORDER_TYPE_LABELS: Record<(typeof ORDER_TYPES)[number], string> = {
+  IMPORT: 'Nhập',
+  EXPORT: 'Xuất',
+  DOMESTIC: 'Nội địa',
+};
+
+export const ORDER_STATUS_LABELS: Record<(typeof ORDER_STATUSES)[number], string> = {
+  DRAFT: 'Nháp',
+  CONFIRMED: 'Đã xác nhận',
+  IN_PROGRESS: 'Đang thực hiện',
+  PARTIALLY_DELIVERED: 'Giao một phần',
+  DELIVERED: 'Đã giao',
+  RECONCILED: 'Đã đối soát',
+  INVOICED: 'Đã xuất hóa đơn',
+  CANCELLED: 'Đã hủy',
+};
+
+export const CONTAINER_STATUS_LABELS: Record<(typeof CONTAINER_STATUSES)[number], string> = {
+  PENDING: 'Chờ điều',
+  PLANNED: 'Đã lên chuyến',
+  IN_PROGRESS: 'Đang chạy',
+  DELIVERED: 'Đã giao',
+  COMPLETED: 'Hoàn tất',
+  CANCELLED: 'Đã hủy',
+};
+
+export const PORT_READINESS_LABELS: Record<(typeof PORT_READINESS)[number], string> = {
+  PENDING: 'Chờ xác nhận cảng',
+  READY_EDO: 'Có EDO',
+  READY_EMPTY_RELEASE: 'Có lệnh cấp rỗng',
+  HOLD_CUSTOMS: 'Hải quan giữ',
+  HOLD_LINE: 'Hãng tàu giữ',
+};
+
+export const STOP_TYPE_LABELS: Record<(typeof STOP_TYPES)[number], string> = {
+  PICK_EMPTY: 'Lấy rỗng',
+  PICK_FULL: 'Lấy hàng',
+  STUFFING: 'Đóng hàng',
+  UNSTUFFING: 'Dỡ hàng',
+  PORT_IN: 'Hạ cảng',
+  RETURN_EMPTY: 'Trả rỗng',
+  DROP_TRAILER: 'Thả rơ moóc',
+  HOOK_TRAILER: 'Móc rơ moóc',
+  STREET_TURN: 'Street Turn',
+};
+
+export const STOP_STATUS_LABELS: Record<(typeof STOP_STATUSES)[number], string> = {
+  PENDING: 'Chưa thực hiện',
+  ARRIVED: 'Đã đến',
+  COMPLETED: 'Hoàn thành',
+  SKIPPED: 'Bỏ qua',
 };

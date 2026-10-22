@@ -18,7 +18,11 @@ export const PERMISSIONS = {
   'identity.manageUsers': ['OWNER', 'ADMIN'],
   'tenant.configure': ['OWNER', 'ADMIN'],
   'pricing.editActive': ['ADMIN'],
-  'order.write': ['ADMIN', 'DISPATCHER'],
+  // Đơn hàng (task 04): xem cho mọi vai trò web; tạo, sửa, xác nhận, hủy theo task.md gồm cả Chủ công ty (PRD A4 ghi "theo ma trận",
+  // chờ PO xác nhận). Giá tay cho container không có bảng giá: Điều vận, Kế toán, Quản trị.
+  'order.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
+  'order.write': ['OWNER', 'ADMIN', 'DISPATCHER'],
+  'order.manualPrice': ['ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
   'dispatch.overrideDriveHours': ['ADMIN'],
   'fuelVoucher.issue': ['ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
   'fuelVoucher.approve': ['ACCOUNTANT'],

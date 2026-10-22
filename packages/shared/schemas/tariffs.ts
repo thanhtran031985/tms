@@ -18,7 +18,7 @@ const optionalDate = z
   .optional()
   .transform((value) => value || null);
 
-function moneyOf(label: string, { allowZero }: { allowZero: boolean }) {
+export function moneyOf(label: string, { allowZero }: { allowZero: boolean }) {
   return z.union([z.string(), z.number()], { error: `Nhập ${label}.` }).transform((value, ctx) => {
     const text = String(value).trim().replace(/\s/g, '');
     if (!/^\d{1,16}(\.\d{1,2})?$/.test(text)) {

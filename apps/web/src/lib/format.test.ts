@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, formatMoney, formatTime } from './format';
+import {
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  formatShortDateTime,
+  formatTime,
+  vnDay,
+  vnLocalToIso,
+} from './format';
 
 describe('định dạng giờ Việt Nam', () => {
   it('đổi UTC sang giờ Việt Nam (+7)', () => {
@@ -23,5 +31,23 @@ describe('định dạng ngày nghiệp vụ và tiền', () => {
     expect(formatMoney('950.50')).toBe('950,5 ₫');
     expect(formatMoney('0.00')).toBe('0 ₫');
     expect(formatMoney('1234567890.25', 'USD')).toBe('1.234.567.890,25 USD');
+  });
+});
+
+describe('định dạng ngày giờ cho màn Đơn hàng', () => {
+  it('ngày giờ gọn dd/MM HH:mm theo giờ Việt Nam', () => {
+    expect(formatShortDateTime('2026-10-17T09:35:00Z')).toBe('17/10 16:35');
+  });
+
+  it('ngày dương lịch Việt Nam, không phải ngày UTC', () => {
+    expect(vnDay('2026-10-31T17:30:00Z')).toBe('2026-11-01');
+    expect(vnDay('2026-10-31T16:30:00Z')).toBe('2026-10-31');
+  });
+
+  it('ô datetime-local (giờ Việt Nam) đổi sang ISO UTC; sai định dạng thì null', () => {
+    expect(vnLocalToIso('2026-10-28T10:00')).toBe('2026-10-28T03:00:00.000Z');
+    expect(vnLocalToIso('2026-11-01T00:30')).toBe('2026-10-31T17:30:00.000Z');
+    expect(vnLocalToIso('')).toBeNull();
+    expect(vnLocalToIso('28/10/2026 10:00')).toBeNull();
   });
 });

@@ -10,6 +10,7 @@ AI Developer: Sử dụng chính xác thiết kế Schema dưới đây. **[SỬ
 - **Cột chuẩn:** `created_at`, `updated_at`, `created_by`; bảng danh mục có thêm `deleted_at` (xóa mềm). Bảng tài chính bất biến (ledger) KHÔNG có `updated_at`/`deleted_at`.
 - **Khóa lạc quan:** Bảng bị nhiều người sửa (`orders`, `consolidated_trips`, `dispatch_assignments`) có cột `version INT`; `UPDATE ... WHERE version = :v` để phát hiện ghi đè.
 - **Enum [SỬA]:** Không chia sẻ một instance `mysqlEnum(...)` giữa nhiều bảng (builder của Drizzle bị `.notNull()/.default()` làm thay đổi, gây rò rỉ cấu hình giữa các bảng). Khai báo mảng giá trị `as const` trong `packages/shared/enums.ts` và gọi `mysqlEnum()` mới cho từng cột.
+- **Số Order [BỔ SUNG task 04]:** `orderNo` dạng `{IMP|EXP|DOM}-{YYMM}-{NNN}` (vd. `EXP-2610-044`): chiều Nhập, Xuất, Nội địa + năm tháng theo múi giờ tenant lúc tạo + số thứ tự ≥ 3 chữ số, đếm riêng theo tenant, chiều và tháng (`seq_key = 'ORD:EXP:2610'`).
 - **Đánh số chứng từ:** `tripCode`, `voucherCode`, `invoiceNo`... sinh từ bảng `number_sequences` trong cùng transaction, unique theo tenant. **[SỬA task 01]** Dùng một câu `INSERT ... ON DUPLICATE KEY UPDATE last_value = LAST_INSERT_ID(last_value + 1)` rồi đọc `LAST_INSERT_ID()` (hàm `nextNumber` ở `packages/core/lib/db/numbering.ts`) thay cho `INSERT IGNORE` + `SELECT ... FOR UPDATE`: cùng khóa dòng tới khi commit, rollback hoàn số, nhưng không deadlock khi nhiều giao dịch cùng tạo dòng đầu tiên.
 - **Charset [BỔ SUNG task 01]:** migration `0000_db_charset` đặt mặc định DB là `utf8mb4` / `utf8mb4_unicode_ci` (MariaDB 11.4 mặc định `utf8mb4_uca1400_ai_ci`).
 - **Bảo mật PII:** Số CCCD, số GPLX, số điện thoại tài xế là dữ liệu cá nhân; chỉ hiển thị cho role có quyền, ghi audit khi xuất file.
@@ -96,7 +97,7 @@ export const auditLogs = mysqlTable('audit_logs', {
 
 export const numberSequences = mysqlTable('number_sequences', {
   tenantId: tenantId(),
-  seqKey: varchar('seq_key', { length: 50 }).notNull(), // 'TRIP:2026-10', 'FUEL_VOUCHER:2026', 'INVOICE:2026'
+  seqKey: varchar('seq_key', { length: 50 }).notNull(), // 'TRIP:2026-10', 'FUEL_VOUCHER:2026', 'INVOICE:2026', 'ORD:EXP:2610'
   lastValue: int('last_value').default(0).notNull(),
 }, (t) => ({ pk: primaryKey({ columns: [t.tenantId, t.seqKey] }) }));
 
@@ -494,6 +495,17 @@ export const tripContainers = mysqlTable('trip_containers', {   // [SỬA] thay 
   ocIdx: index('idx_trip_containers_oc').on(t.tenantId, t.orderContainerId),
   orderIdx: index('idx_trip_containers_order').on(t.tenantId, t.orderId),
 }));
+
+// [BỔ SUNG task 04] Chuỗi Stop chuẩn của đơn DOMESTIC theo tuyến (spec chưa có nơi lưu "cấu hình theo tuyến").
+// Đơn IMPORT/EXPORT dùng chuỗi chuẩn trong code (packages/core/modules/orders/stops.ts); tuyến chưa có mẫu thì không tạo được đơn DOMESTIC.
+export const routeStopTemplates = mysqlTable('route_stop_templates', {
+  id: pk(),
+  tenantId: tenantId(),
+  routeId: ref('route_id').notNull().references(() => routes.id),
+  sequenceNo: int('sequence_no').notNull(),
+  stopType: mysqlEnum('stop_type', STOP_TYPES).notNull(),
+  ...timestamps(),
+}, (t) => ({ seqUq: uniqueIndex('uq_route_stop_seq').on(t.routeId, t.sequenceNo) }));
 
 export const orderStops = mysqlTable('order_stops', {
   id: pk(),

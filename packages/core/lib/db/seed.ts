@@ -3,6 +3,7 @@ import { closeDb, getDb } from './client';
 import { requireEnv } from '../env';
 import { seedIdentity } from './seeds/identity';
 import { seedMasterData } from './seeds/master-data';
+import { seedOrders } from './seeds/orders';
 import { seedTariffs } from './seeds/tariffs';
 
 // Mỗi seeder phải idempotent: chạy lại nhiều lần không sinh bản ghi trùng (dùng upsert hoặc kiểm tra tồn tại).
@@ -16,6 +17,7 @@ const seeders: Seeder[] = [
   },
   { name: 'master-data', run: (db) => seedMasterData(db) },
   { name: 'tariffs', run: (db) => seedTariffs(db) },
+  { name: 'orders', run: (db) => seedOrders(db) },
 ];
 
 try {

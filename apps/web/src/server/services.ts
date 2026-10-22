@@ -5,6 +5,7 @@ import { createAuthService, type AuthService } from '@core/modules/identity/auth
 import { createMasterDataService, type MasterDataService } from '@core/modules/master-data/service';
 import { createTariffService, type TariffService } from '@core/modules/billing/tariffs.service';
 import { createIdentityRepo, type IdentityRepo } from '@core/modules/identity/repo';
+import { createOrderService, type OrderService } from '@core/modules/orders/service';
 
 let repo: IdentityRepo | undefined;
 let service: AuthService | undefined;
@@ -31,4 +32,11 @@ let tariffs: TariffService | undefined;
 export function getTariffService(): TariffService {
   tariffs ??= createTariffService({ tenantDb: (ctx) => getTenantDb(ctx) });
   return tariffs;
+}
+
+let orders: OrderService | undefined;
+
+export function getOrderService(): OrderService {
+  orders ??= createOrderService({ tenantDb: (ctx) => getTenantDb(ctx) });
+  return orders;
 }

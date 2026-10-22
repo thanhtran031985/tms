@@ -71,6 +71,7 @@ export async function resolveFreight(ctx: TenantCtx, k: LookupKey) {
 | Ngày tra cứu sát nửa đêm theo giờ VN | Dùng ngày theo múi giờ tenant, không theo UTC |
 
 **[BỔ SUNG] Ngày dùng để tra giá (`targetDate`):** mặc định là ngày của Stop đầu tiên theo kế hoạch (ngày thực hiện dịch vụ), không phải ngày tạo đơn. Cấu hình được theo tenant.
+**[BỔ SUNG task 04] Khi Stop đầu chưa hẹn giờ (`windowStart` rỗng):** lấy `eta` của Order (Nhập, Nội địa) hoặc `cutOffAt` (Xuất); nếu cũng không có thì lấy ngày xác nhận Order. Mọi ngày tính theo múi giờ tenant. Order nháp hiện giá dự kiến bằng cùng cách tra nhưng không ghi gì; giá chỉ chốt (snapshot) khi xác nhận.
 
 ## 3. Tách biệt Doanh thu (Container/Order) và Chi phí (Consolidated Trip) khi Ghép/Kết hợp Cont
 Khi Điều vận gom 2 đơn hàng vào 1 `consolidated_trips` (TWIN_20 hoặc COMBINED):

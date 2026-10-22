@@ -46,3 +46,22 @@ export function formatMoney(value: string | number, currency = 'VND'): string {
   const unit = currency === 'VND' ? '₫' : currency;
   return `${grouped}${decimals} ${unit}`;
 }
+
+// "17/10 16:35": ngày giờ gọn khi cùng năm đang xem (bảng Order).
+export function formatShortDateTime(value: Date | string | number): string {
+  const p = parts(value);
+  return `${p.day}/${p.month} ${p.hour}:${p.minute}`;
+}
+
+// Ngày dương lịch giờ Việt Nam của một thời điểm, dạng "2026-10-22" (lọc theo ngày tạo).
+export function vnDay(value: Date | string | number): string {
+  const p = parts(value);
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+// "2026-10-28T10:00" (giá trị ô datetime-local, giờ Việt Nam) → chuỗi ISO UTC; rỗng hoặc sai thì null.
+export function vnLocalToIso(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}:00+07:00`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
