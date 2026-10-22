@@ -174,7 +174,7 @@ Cần Docker Desktop đang chạy cho `docker compose`, `pnpm dev` (worker cần
 - `pnpm db:generate`: sinh migration SQL từ schema Drizzle (review SQL rồi mới commit; không dùng `drizzle-kit push`).
 - `pnpm db:migrate`: chạy migration trên DB trong `DATABASE_URL`; chạy lại nhiều lần an toàn.
 - `pnpm db:seed`: nạp dữ liệu mẫu, chạy lại không sinh bản ghi trùng.
-- `pnpm e2e`: Playwright cho `apps/web` (tự bật `next dev` ở cổng 3100; lần đầu cần `pnpm --filter web exec playwright install chromium`).
+- `pnpm e2e`: Playwright cho `apps/web` (tự bật `next dev` ở cổng 3100, tự chạy `db:migrate` + `db:seed` trước khi chạy nên cần MariaDB đang chạy và `DATABASE_URL`, `SEED_DEV_PASSWORD` trong `.env`; lần đầu cần `pnpm --filter web exec playwright install chromium`).
 - `pnpm tasks:dashboard`: sinh `docs/tasks/dashboard.html` từ `docs/tasks/README.md` và các `progress.md`.
 - `node scripts/design-system.mjs`: sinh lại `docs/DESIGN_SYSTEM.md` sau khi tải thiết kế mới về `designs/`.
 - `node scripts/fetch-fonts.mjs`: tải lại Fira Sans, Fira Code về `apps/web/public/fonts` và sinh `fonts.css` (hiếm khi cần).

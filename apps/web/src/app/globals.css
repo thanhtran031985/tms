@@ -158,3 +158,18 @@ body {
   --color-input: var(--line-strong);
   --color-ring: var(--focus);
 }
+
+/* Giá trị thiết kế (designs/components/Screen01-Login, TenantPicker, bundle.css) chưa có trong tokens.css: thêm làm token theme. */
+@theme {
+  --spacing-2: 2px; /* lề nút mắt trong ô mật khẩu, đệm chip */
+  --spacing-14: 14px; /* đệm ngang ô nhập, nút gọn */
+  --spacing-18: 18px; /* icon nhỏ cạnh chữ */
+  --spacing-28: 28px; /* logo thanh bên, avatar, chữ tắt công ty */
+  --spacing-42: 42px; /* chừa chỗ cho icon kính lúp trong ô tìm */
+  --spacing-52: 52px; /* chừa chỗ cho nút mắt trong ô mật khẩu */
+  --spacing-64: 64px; /* lề ngang cột giới thiệu */
+  --spacing-72: 72px; /* chiều cao tối thiểu một dòng TenantPicker */
+  --container-form: 400px; /* bề rộng form đăng nhập */
+  --container-form-wide: 480px; /* bề rộng bước chọn công ty */
+  --container-intro: 520px; /* bề rộng tối đa khối giới thiệu */
+}

@@ -13,13 +13,15 @@ const migrationsFolder = fileURLToPath(new URL('../lib/db/migrations', import.me
 export type TestInfra = {
   db: ReturnType<typeof createDb>['db'];
   pool: ReturnType<typeof createDb>['pool'];
+  /** Chỉ có khi khởi động với { redis: true } (mặc định). */
   redis: Redis;
   databaseUrl: string;
   redisUrl: string;
   stop: () => Promise<void>;
 };
 
-export async function startTestInfra(): Promise<TestInfra> {
+export async function startTestInfra(options: { redis?: boolean } = {}): Promise<TestInfra> {
+  const withRedis = options.redis ?? true;
   const [mariadb, redisContainer] = await Promise.all([
     new MariaDbContainer('mariadb:11.4')
       .withDatabase('tms_test')
@@ -29,16 +31,20 @@ export async function startTestInfra(): Promise<TestInfra> {
         '--default-time-zone=+00:00',
       ])
       .start(),
-    new GenericContainer('redis:7')
-      .withExposedPorts(6379)
-      .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
-      .start(),
+    withRedis
+      ? new GenericContainer('redis:7')
+          .withExposedPorts(6379)
+          .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
+          .start()
+      : Promise.resolve(undefined),
   ]);
 
   const databaseUrl = mariadb.getConnectionUri();
-  const redisUrl = `redis://${redisContainer.getHost()}:${redisContainer.getMappedPort(6379)}`;
+  const redisUrl = redisContainer
+    ? `redis://${redisContainer.getHost()}:${redisContainer.getMappedPort(6379)}`
+    : '';
   const { db, pool } = createDb(databaseUrl);
-  const redis = createRedis(redisUrl);
+  const redis = (redisUrl ? createRedis(redisUrl) : undefined) as Redis;
 
   await migrate(db, { migrationsFolder });
 
@@ -49,9 +55,9 @@ export async function startTestInfra(): Promise<TestInfra> {
     databaseUrl,
     redisUrl,
     stop: async () => {
-      await redis.quit();
+      await redis?.quit();
       await pool.end();
-      await Promise.all([mariadb.stop(), redisContainer.stop()]);
+      await Promise.all([mariadb.stop(), redisContainer?.stop()]);
     },
   };
 }

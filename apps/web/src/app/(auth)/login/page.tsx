@@ -1,8 +1,13 @@
-// Giữ chỗ: màn đăng nhập dựng ở task 01 theo designs/components/Screen01-Login.
-export default function LoginPage() {
-  return (
-    <main className="p-24">
-      <h1 className="text-screen-title text-ink">Đăng nhập</h1>
-    </main>
-  );
+import type { Metadata } from 'next';
+import { LoginForm } from '@/features/identity/login-form';
+
+export const metadata: Metadata = { title: 'Đăng nhập – TMS Container' };
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  return <LoginForm next={next} />;
 }

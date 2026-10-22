@@ -10,7 +10,8 @@ AI Developer: Sử dụng chính xác thiết kế Schema dưới đây. **[SỬ
 - **Cột chuẩn:** `created_at`, `updated_at`, `created_by`; bảng danh mục có thêm `deleted_at` (xóa mềm). Bảng tài chính bất biến (ledger) KHÔNG có `updated_at`/`deleted_at`.
 - **Khóa lạc quan:** Bảng bị nhiều người sửa (`orders`, `consolidated_trips`, `dispatch_assignments`) có cột `version INT`; `UPDATE ... WHERE version = :v` để phát hiện ghi đè.
 - **Enum [SỬA]:** Không chia sẻ một instance `mysqlEnum(...)` giữa nhiều bảng (builder của Drizzle bị `.notNull()/.default()` làm thay đổi, gây rò rỉ cấu hình giữa các bảng). Khai báo mảng giá trị `as const` trong `packages/shared/enums.ts` và gọi `mysqlEnum()` mới cho từng cột.
-- **Đánh số chứng từ:** `tripCode`, `voucherCode`, `invoiceNo`... sinh từ bảng `number_sequences` bằng `SELECT ... FOR UPDATE` trong cùng transaction, unique theo tenant.
+- **Đánh số chứng từ:** `tripCode`, `voucherCode`, `invoiceNo`... sinh từ bảng `number_sequences` trong cùng transaction, unique theo tenant. **[SỬA task 01]** Dùng một câu `INSERT ... ON DUPLICATE KEY UPDATE last_value = LAST_INSERT_ID(last_value + 1)` rồi đọc `LAST_INSERT_ID()` (hàm `nextNumber` ở `packages/core/lib/db/numbering.ts`) thay cho `INSERT IGNORE` + `SELECT ... FOR UPDATE`: cùng khóa dòng tới khi commit, rollback hoàn số, nhưng không deadlock khi nhiều giao dịch cùng tạo dòng đầu tiên.
+- **Charset [BỔ SUNG task 01]:** migration `0000_db_charset` đặt mặc định DB là `utf8mb4` / `utf8mb4_unicode_ci` (MariaDB 11.4 mặc định `utf8mb4_uca1400_ai_ci`).
 - **Bảo mật PII:** Số CCCD, số GPLX, số điện thoại tài xế là dữ liệu cá nhân; chỉ hiển thị cho role có quyền, ghi audit khi xuất file.
 
 ## 2. Schema
@@ -67,6 +68,8 @@ export const users = mysqlTable('users', {
   fullName: varchar('full_name', { length: 255 }).notNull(),
   passwordHash: varchar('password_hash', { length: 255 }),
   isActive: boolean('is_active').default(true).notNull(),
+  failedLoginCount: int('failed_login_count').default(0).notNull(), // [BỔ SUNG task 01] sai mật khẩu liên tiếp; 5 lần thì khóa 15 phút
+  lockedUntil: ts('locked_until'),                                  // [BỔ SUNG task 01] đang khóa tạm tới thời điểm này (UTC)
   ...timestamps(),
 }, (t) => ({ emailUq: uniqueIndex('uq_users_email').on(t.email), phoneUq: uniqueIndex('uq_users_phone').on(t.phone) }));
 
@@ -75,6 +78,7 @@ export const tenantMemberships = mysqlTable('tenant_memberships', {
   tenantId: tenantId(),
   userId: ref('user_id').notNull().references(() => users.id),
   role: mysqlEnum('role', ROLES).notNull(),
+  lastLoginAt: ts('last_login_at'), // [BỔ SUNG task 01] lần đăng nhập gần nhất vào công ty này; TenantPicker sắp xếp theo cột này
   ...timestamps(),
 }, (t) => ({ uq: uniqueIndex('uq_membership').on(t.tenantId, t.userId) }));
 

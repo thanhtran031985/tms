@@ -1,13 +1,23 @@
 import type { Db } from './client';
 import { closeDb, getDb } from './client';
+import { requireEnv } from '../env';
+import { seedIdentity } from './seeds/identity';
 
 // Mỗi seeder phải idempotent: chạy lại nhiều lần không sinh bản ghi trùng (dùng upsert hoặc kiểm tra tồn tại).
-// Dữ liệu mẫu tối thiểu 2 tenant được thêm ở task 01; task 00 chỉ dựng khung.
+// Dữ liệu mẫu chỉ dành cho dev/test; không chạy ở production.
 type Seeder = { name: string; run: (db: Db) => Promise<void> };
 
-const seeders: Seeder[] = [];
+const seeders: Seeder[] = [
+  {
+    name: 'identity',
+    run: (db) => seedIdentity(db, { password: requireEnv('SEED_DEV_PASSWORD') }),
+  },
+];
 
 try {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Không chạy seed dữ liệu mẫu ở production.');
+  }
   const { db } = getDb();
   for (const seeder of seeders) {
     await seeder.run(db);

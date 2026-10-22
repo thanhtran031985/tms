@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 test('trang chủ nạp token và font của Design System', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/login');
 
-  await expect(page.getByRole('heading', { name: 'TMS Container' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible();
 
   const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
   expect(bodyFont).toContain('Fira Sans');
@@ -28,7 +28,8 @@ test('trang chủ nạp token và font của Design System', async ({ page }) =>
 });
 
 test('chế độ Tối đổi màu nền theo token', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/login');
+  await page.waitForLoadState('networkidle'); // đợi hydrate xong rồi mới đổi data-theme bằng tay
   const light = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   const dark = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
