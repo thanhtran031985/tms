@@ -10,6 +10,7 @@ import {
   Map as MapIcon,
   ArrowUpDown,
   Database,
+  Truck,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -33,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Điều vận', icon: Columns3 },
   { label: 'Đơn hàng', icon: FileText },
   { label: 'Bản đồ đội xe', icon: MapIcon },
+  { label: 'Đội xe & Tài xế', href: '/fleet/tractors', match: '/fleet', icon: Truck },
   { label: 'Phiếu dầu', icon: Fuel },
   { label: 'Đối soát', icon: ArrowUpDown },
   { label: 'Phân bổ chi phí', icon: CircleDollarSign },
