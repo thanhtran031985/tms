@@ -7,9 +7,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 1 | Schema đội xe, migration và tenant isolation | ✅ | `0c667d1` |
 | 2 | Service đầu kéo, rơ moóc, tài xế và che dữ liệu cá nhân | ✅ | `688a22f` |
 | 3 | Rà hạn giấy tờ và seed | ✅ | `c912398` |
-| 4 | Kế hoạch và lệnh bảo dưỡng | ✅ | |
-| 5 | Job hằng ngày cảnh báo giấy tờ | 🔄 | |
-| 6 | Màn đội xe, tài xế và giấy tờ | ⬜ | |
+| 4 | Kế hoạch và lệnh bảo dưỡng | ✅ | `08311a8` |
+| 5 | Job hằng ngày cảnh báo giấy tờ | ✅ | |
+| 6 | Màn đội xe, tài xế và giấy tờ | 🔄 | |
 | 7 | Hoàn tất | ⬜ | |
 
 ## Nhật ký
@@ -43,3 +43,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Viết `packages/core/modules/fleet/maintenance.service.ts`: `createMaintenancePlan`, `listMaintenancePlans`, `createMaintenanceOrder`, `updateMaintenanceOrderStatus`, `findMaintenanceOverlap`, `listMaintenanceDue`.
 - Bổ sung Server Actions tương ứng tại `apps/web/src/features/fleet/actions.ts`.
 - Kiểm tra: 30/30 tests xanh; typecheck và lint xanh 100%.
+
+### Bước 5 — Job hằng ngày cảnh báo giấy tờ (22/10/2026)
+- Viết test trước `apps/worker/src/jobs/document-expiry.int.test.ts` (Testcontainers MariaDB + Redis): chạy 2 lần cùng ngày chỉ phát 1 sự kiện (idempotent qua key `DOC_EXPIRY:{tenantId}:{yyyy-mm-dd}`); tenant khác múi giờ tính đúng ngày địa phương; lỗi DB ném lỗi để BullMQ retry; log JSON có `tenantId`, không log PII (SĐT, số GPLX).
+- Viết `apps/worker/src/jobs/document-expiry.ts` (`processDocumentExpiryJob`), phát sự kiện `fleet.documents_expiring` qua Redis pub/sub.
+- Đăng ký hàng đợi `fleet.document-expiry` và worker vào `apps/worker/src/worker.ts`.
+- Kiểm tra: 4/4 test worker xanh; typecheck và lint xanh 100%.
