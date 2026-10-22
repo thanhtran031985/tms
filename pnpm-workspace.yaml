@@ -2,6 +2,17 @@ packages:
   - apps/*
   - packages/*
 
+# Script build của các gói dưới đây chỉ biên dịch bản gốc tùy chọn (có bản JS thay thế hoặc gói nhị phân
+# đi kèm qua optionalDependencies), nên từ chối rõ ràng. Nếu không khai báo, pnpm báo ERR_PNPM_IGNORED_BUILDS
+# và làm CI đỏ. Cần chạy thêm gói nào thì đổi sang true ở đây.
+allowBuilds:
+  cpu-features: false
+  esbuild: false
+  msgpackr-extract: false
+  protobufjs: false
+  ssh2: false
+  unrs-resolver: false
+
 # Hai lỗ hổng mức cao dưới đây nằm trong công cụ build của Expo/Metro (apps/driver-app), chưa có bản vá
 # ("patched: none"), không chạy trong app trên điện thoại. Xem lại khi làm task 10 (app tài xế) và task 24.
 auditConfig:
