@@ -162,9 +162,19 @@ Các `preview.html` KHÔNG phải React: đó là HTML tĩnh dùng biến CSS c�
   và nói tôi điền vào `.env`.
 
 ## Lệnh thường dùng
-(Task 00 tạo các script này và cập nhật lại mục này cho đúng.)
-- `docker compose up -d` (MariaDB, Redis, MinIO)
-- `pnpm db:generate` · `pnpm db:migrate` · `pnpm db:seed`
-- `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm build` · `pnpm dev` · `pnpm e2e`
-- `pnpm tasks:dashboard` (sinh `docs/tasks/dashboard.html`)
-- `node scripts/design-system.mjs` (sinh lại `docs/DESIGN_SYSTEM.md` sau khi tải thiết kế mới về `designs/`)
+Cần Docker Desktop đang chạy cho `docker compose`, `pnpm dev` (worker cần Redis) và `pnpm test` (Testcontainers).
+- `docker compose up -d`: bật MariaDB (cổng máy chủ 3307), Redis (6379), MinIO (API 9000, console 9001) và tạo bucket `tms-dev`.
+- `pnpm dev`: chạy song song web Next.js (cổng 3000) và worker BullMQ; `apps/driver-app` chạy riêng bằng Expo.
+- `pnpm test`: chạy mọi test đơn vị và tích hợp của workspace (test tích hợp tự dựng MariaDB và Redis bằng Testcontainers).
+- `pnpm test --filter core -- <tên>`: chạy test của một package theo tên file hoặc tên test (vd. `money`).
+- `pnpm typecheck`: kiểm tra kiểu TypeScript cho cả 5 package.
+- `pnpm lint`: ESLint cho cả repo (có luật chặn import client db thô trong `packages/core/modules`).
+- `pnpm format` · `pnpm format:check`: Prettier ghi lại hoặc chỉ kiểm tra định dạng.
+- `pnpm build`: build các package có script build (hiện là `apps/web`).
+- `pnpm db:generate`: sinh migration SQL từ schema Drizzle (review SQL rồi mới commit; không dùng `drizzle-kit push`).
+- `pnpm db:migrate`: chạy migration trên DB trong `DATABASE_URL`; chạy lại nhiều lần an toàn.
+- `pnpm db:seed`: nạp dữ liệu mẫu, chạy lại không sinh bản ghi trùng.
+- `pnpm e2e`: Playwright cho `apps/web` (tự bật `next dev` ở cổng 3100; lần đầu cần `pnpm --filter web exec playwright install chromium`).
+- `pnpm tasks:dashboard`: sinh `docs/tasks/dashboard.html` từ `docs/tasks/README.md` và các `progress.md`.
+- `node scripts/design-system.mjs`: sinh lại `docs/DESIGN_SYSTEM.md` sau khi tải thiết kế mới về `designs/`.
+- `node scripts/fetch-fonts.mjs`: tải lại Fira Sans, Fira Code về `apps/web/public/fonts` và sinh `fonts.css` (hiếm khi cần).
