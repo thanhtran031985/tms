@@ -52,6 +52,8 @@ export const consolidatedTrips = mysqlTable(
     allocationAdjustedBy: ref('allocation_adjusted_by'),
     allocationAdjustedAt: ts('allocation_adjusted_at'),
     costLockedAt: ts('cost_locked_at'),
+    // [BỔ SUNG task 08] Tách chuyến đã đặt lại phân bổ sửa tay về số hệ thống: Kế toán cần xem lại (spec 06 mục 3).
+    allocationReviewRequired: boolean('allocation_review_required').default(false).notNull(),
     status: mysqlEnum('status', TRIP_STATUSES).default('PLANNED').notNull(),
     version: int('version').default(0).notNull(),
     ...timestamps(),

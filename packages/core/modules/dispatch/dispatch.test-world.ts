@@ -2,23 +2,32 @@
 // tài nguyên, container, chuyến mới có biển số/số cont riêng để mỗi test độc lập nhau.
 import { AppError } from '@shared/errors';
 import { computeCheckDigit } from '@shared/iso6346';
+import type { StopType } from '@shared/enums';
 import { expect } from 'vitest';
 import type { RequestContext, Role } from '../../lib/context';
 import { seedFleet } from '../../lib/db/seeds/fleet';
 import { seedIdentity } from '../../lib/db/seeds/identity';
 import { SEED_TENANTS, SEED_USERS } from '../../lib/db/seeds/identity.test-data';
 import { seedMasterData } from '../../lib/db/seeds/master-data';
-import { SEED_LOCATIONS, SEED_ROUTES } from '../../lib/db/seeds/master-data.test-data';
+import {
+  SEED_CUSTOMERS,
+  SEED_LOCATIONS,
+  SEED_ROUTES,
+  SEED_SHIPPING_LINES,
+} from '../../lib/db/seeds/master-data.test-data';
 import { seedOrders } from '../../lib/db/seeds/orders';
 import { SEED_ORDERS } from '../../lib/db/seeds/orders.test-data';
 import { seedTariffs } from '../../lib/db/seeds/tariffs';
 import { getTenantDb } from '../../lib/db/tenant-db';
-import { publishDispatchEvent } from '../../lib/redis/publish';
+import { publishDispatchEvent, type DispatchEvent } from '../../lib/redis/publish';
 import { startTestInfra, type TestInfra } from '../../test/containers';
+import { createTariffRepo } from '../billing/repo';
 import { createFleetRepo } from '../fleet/repo';
-import { createOrderRepo } from '../orders/repo';
+import { createOrderRepo, type OrderRow } from '../orders/repo';
+import { createOrderService } from '../orders/service';
 import { createDispatchService, type DispatchService } from './index';
 import { createDispatchRepo } from './repo';
+import { detachContainersFromTrips } from './split.service';
 
 export const A = SEED_TENANTS.phucAn.id;
 export const B = SEED_TENANTS.saoViet.id;
@@ -83,15 +92,43 @@ const ORDER_OF = {
   EXPORT: SEED_ORDERS.find((o) => o.orderNo === 'EXP-2610-046')!,
 };
 
+/** Hãng tàu mẫu của tenant A: MSK và CMA cho Street Turn, ONE và WHL không cho (seed master-data). */
+export const LINE = Object.fromEntries(
+  SEED_SHIPPING_LINES.filter((l) => l.tenantId === A).map((l) => [l.code, l.id]),
+) as Record<'ONE' | 'MSK' | 'WHL' | 'CMA', string>;
+export const CUSTOMER = {
+  vsip: SEED_CUSTOMERS.vsip.id,
+  thepNamLong: SEED_CUSTOMERS.thepNamLong.id,
+  phucThinh: SEED_CUSTOMERS.phucThinh.id,
+};
+
+/** Mốc giờ của từng loại Stop (windowStart / deadlineTime) để thử thứ tự Stop của Rule 3 và Rule 4. */
+export type StopTimes = Partial<
+  Record<StopType, { start?: Date | null; end?: Date | null }>
+>;
+
 export type ContainerOptions = {
   kind?: 'IMPORT' | 'EXPORT';
+  /** Order dựng bằng newOrder; bỏ trống thì dùng Order mẫu IMP-2610-031 / EXP-2610-046. */
+  order?: OrderRow;
   containerType?: '20DC' | '40DC' | '40HC' | '20RF' | '40RF';
+  /** null = chưa có số cont (hàng Xuất). */
+  containerNo?: string | null;
   cargoWeightTons?: string | null;
   vgmTons?: string | null;
   isDangerousGoods?: boolean;
   portReadinessStatus?:
     'PENDING' | 'READY_EDO' | 'READY_EMPTY_RELEASE' | 'HOLD_CUSTOMS' | 'HOLD_LINE';
   status?: 'PENDING' | 'PLANNED';
+  stopTimes?: StopTimes;
+};
+
+export type OrderOptions = {
+  kind?: 'IMPORT' | 'EXPORT';
+  customerId?: string;
+  shippingLineId?: string | null;
+  cutOffAt?: Date | null;
+  status?: 'DRAFT' | 'CONFIRMED' | 'CANCELLED';
 };
 
 export type World = Awaited<ReturnType<typeof createWorld>>;
@@ -109,16 +146,32 @@ export async function createWorld(options: { redis?: boolean } = {}) {
   const fleet = (tenantId = A) => createFleetRepo(tdb(tenantId));
   const orders = (tenantId = A) => createOrderRepo(tdb(tenantId));
 
-  const published: unknown[] = [];
+  const published: DispatchEvent[] = [];
+  /** Cấu hình tenant (tenants.settings) mà service đọc; đổi bằng setSettings, nhớ trả về {} sau test. */
+  let settings: unknown = {};
+  const setSettings = (value: unknown) => {
+    settings = value;
+  };
+  const publish = async (event: DispatchEvent) => {
+    published.push(event);
+    if (options.redis) await publishDispatchEvent(infra.redis, event);
+  };
   const service: DispatchService = createDispatchService({
     tenantDb: (ctx) => tdb(ctx.tenantId),
     now: () => NOW,
-    loadSettings: async () => ({}),
-    publish: async (event) => {
-      published.push(event);
-      if (options.redis) await publishDispatchEvent(infra.redis, event);
+    loadSettings: async () => settings,
+    publish,
+  });
+  /** Service Order nối với điều vận: hủy container/Order gỡ container khỏi chuyến (task 08). */
+  const orderService = createOrderService({
+    tenantDb: (ctx) => tdb(ctx.tenantId),
+    now: () => NOW,
+    detachFromTrips: detachContainersFromTrips,
+    publishDispatch: async (events) => {
+      for (const event of events) await publish(event);
     },
   });
+  const tariffs = (tenantId = A) => createTariffRepo(tdb(tenantId));
 
   // ---- Tài nguyên mới: giấy tờ còn hạn tới 2030, trạng thái rảnh.
   const newDriver = (
@@ -161,17 +214,36 @@ export async function createWorld(options: { redis?: boolean } = {}) {
       ...overrides,
     });
 
-  /** Container mới của Order IMP-2610-031 (Nhập) hoặc EXP-2610-046 (Xuất) với 3 Stop chuẩn, đã ở PLANNED. */
-  async function newContainer(options: ContainerOptions = {}) {
+  /** Order mới đã xác nhận (mặc định) cho khách và hãng tàu tùy chọn, để thử ghép cùng khách, khác khách, Street Turn. */
+  async function newOrder(options: OrderOptions = {}): Promise<OrderRow> {
     const kind = options.kind ?? 'IMPORT';
-    const order = ORDER_OF[kind];
+    const seed = ORDER_OF[kind];
+    return orders().orders.insert({
+      orderNo: `T08-${kind === 'IMPORT' ? 'IMP' : 'EXP'}-${next()}`,
+      customerId: options.customerId ?? seed.customerId,
+      orderType: kind,
+      bookingOrBlNo: `BK${next()}`,
+      shippingLineId: options.shippingLineId === undefined ? LINE.MSK : options.shippingLineId,
+      routeId: seed.routeId,
+      cutOffAt: options.cutOffAt ?? null,
+      status: options.status ?? 'CONFIRMED',
+    });
+  }
+
+  /**
+   * Container mới với 3 Stop chuẩn, mặc định đã ở PLANNED (cho test task 06). Thuộc Order mẫu IMP-2610-031 (Nhập) hoặc
+   * EXP-2610-046 (Xuất), hoặc Order dựng bằng newOrder. Test ghép chuyến truyền status 'PENDING'.
+   */
+  async function newContainer(options: ContainerOptions = {}) {
+    const kind = options.order ? (options.order.orderType as 'IMPORT' | 'EXPORT') : (options.kind ?? 'IMPORT');
+    const order = options.order ?? ORDER_OF[kind];
     const route = SEED_ROUTES.find((r) => r.id === order.routeId)!;
     const lineNo = 1000 + next();
     const container = await orders().containers.insert({
       orderId: order.id,
       lineNo,
       routeId: route.id,
-      containerNo: validContainerNo(),
+      containerNo: options.containerNo === undefined ? validContainerNo() : options.containerNo,
       containerType: options.containerType ?? '40HC',
       cargoWeightTons: options.cargoWeightTons === undefined ? '10.00' : options.cargoWeightTons,
       vgmTons: options.vgmTons ?? null,
@@ -187,9 +259,20 @@ export async function createWorld(options: { redis?: boolean } = {}) {
         sequenceNo: index + 1,
         stopType,
         ...place(code),
+        windowStart: options.stopTimes?.[stopType]?.start ?? null,
+        deadlineTime: options.stopTimes?.[stopType]?.end ?? null,
       })),
     );
     return { container, stops, order };
+  }
+
+  /** Hai container 20DC chưa lập chuyến (PENDING) của cùng Order, sẵn sàng ghép TWIN_20. */
+  async function newTwinPair(options: ContainerOptions = {}) {
+    const base = { containerType: '20DC', status: 'PENDING', ...options } as const;
+    const a = await newContainer(base);
+    const b = await newContainer(base);
+    const pair: [typeof a, typeof b] = [a, b];
+    return pair;
   }
 
   /** Chuyến SINGLE chưa gán tài nguyên cho một container mới (hoặc container đã có). */
@@ -212,6 +295,36 @@ export async function createWorld(options: { redis?: boolean } = {}) {
       orderId: orderContainer.orderId,
     });
     return { trip: (await repo().trips.get(trip.id))!, containerId, order: made?.order };
+  }
+
+  /**
+   * Chuyến TWIN_20 mới của hai cont 20DC (cùng khách, hoặc khác khách nếu otherCustomer), qua createConsolidatedTrip.
+   * `assigned` gán luôn xe 40FT_COMBO có chốt giữa.
+   */
+  async function newTwinTrip(options: { otherCustomer?: boolean; assigned?: boolean } = {}) {
+    const otherOrder = options.otherCustomer
+      ? await newOrder({ customerId: CUSTOMER.phucThinh })
+      : undefined;
+    const a = await newContainer({ containerType: '20DC', status: 'PENDING' });
+    const b = await newContainer({
+      containerType: '20DC',
+      status: 'PENDING',
+      ...(otherOrder ? { order: otherOrder } : {}),
+    });
+    const [driver, tractor, trailer] = await Promise.all([
+      newDriver(),
+      newTractor(),
+      newTrailer(A, { trailerType: '40FT_COMBO', canCarryTwin20: true }),
+    ]);
+    const resources = { driverId: driver.id, tractorId: tractor.id, trailerId: trailer.id };
+    const result = await service.createConsolidatedTrip(dispatcher, {
+      tripMode: 'TWIN_20',
+      orderContainerIds: [a.container.id, b.container.id],
+      plannedStart: at('08:00'),
+      plannedEnd: at('12:00'),
+      resources: options.assigned === false ? null : resources,
+    });
+    return { a, b, trip: result.trip, result, resources };
   }
 
   /** Gán qua service; trả kết quả hoặc ném AppError. */
@@ -239,11 +352,17 @@ export async function createWorld(options: { redis?: boolean } = {}) {
   return {
     infra,
     service,
+    orderService,
     published,
+    setSettings,
     tdb,
     repo,
     fleet,
     orders,
+    tariffs,
+    newOrder,
+    newTwinPair,
+    newTwinTrip,
     newDriver,
     newTractor,
     newTrailer,

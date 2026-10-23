@@ -28,6 +28,8 @@ import { mul, toDbString, toMoney } from '../../lib/money';
 import { toTenantDate } from '../../lib/time';
 import type { FeeTariffRow, FreightTariffRow } from '../billing/repo';
 import { resolveFees, resolveFreight, tariffDateOf } from '../billing/pricing-engine';
+import type { DispatchEvent } from '../../lib/redis/publish';
+import type { DetachFromTrips } from '../dispatch/split.service';
 import { can } from '../identity/permissions';
 import { createMasterDataRepo } from '../master-data/repo';
 import {
@@ -63,6 +65,13 @@ export type OrderServiceOptions = {
   tenantDb: (ctx: RequestContext) => TenantDb;
   /** Thời điểm hiện tại; thay được trong test để cố định "hôm nay". */
   now?: () => Date;
+  /**
+   * Gỡ container khỏi chuyến hoạt động khi hủy container hoặc Order (task 08, spec 03 mục 4). Chạy trong transaction hủy;
+   * không truyền thì hủy như task 04 (không biết chuyến).
+   */
+  detachFromTrips?: DetachFromTrips;
+  /** Phát các sự kiện `dispatch.updated` do detachFromTrips trả về, SAU khi commit. */
+  publishDispatch?: (events: DispatchEvent[]) => Promise<void>;
 };
 
 function invalid(field: string, message: string): AppError {

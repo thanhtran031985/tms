@@ -84,21 +84,41 @@ export type DispatchWarning = {
 
 // ---- Cấu hình điều vận của tenant, đọc từ tenants.settings (json, chưa tin cậy nên parse bằng zod).
 export const DEFAULT_MAX_DRIVING_HOURS_PER_DAY = 10;
+/** Cách ghi phí Street Turn do hãng tàu thu (task 08): chi hộ, phụ phí thu khách, hoặc không ghi. */
+export const STREET_TURN_FEE_MODES = ['PASS_THROUGH', 'REVENUE_SURCHARGE', 'NONE'] as const;
+export type StreetTurnFeeMode = (typeof STREET_TURN_FEE_MODES)[number];
+const DEFAULT_DISPATCH_SETTINGS = {
+  maxDrivingHoursPerDay: DEFAULT_MAX_DRIVING_HOURS_PER_DAY,
+  streetTurnFee: 'PASS_THROUGH' as StreetTurnFeeMode,
+};
 const tenantDispatchSettingsSchema = z.object({
   dispatch: z
     .object({
       maxDrivingHoursPerDay: z.number().positive().max(24).catch(DEFAULT_MAX_DRIVING_HOURS_PER_DAY),
+      streetTurnFee: z.enum(STREET_TURN_FEE_MODES).catch(DEFAULT_DISPATCH_SETTINGS.streetTurnFee),
     })
-    .catch({ maxDrivingHoursPerDay: DEFAULT_MAX_DRIVING_HOURS_PER_DAY }),
+    .catch(DEFAULT_DISPATCH_SETTINGS),
 });
 export type TenantDispatchSettings = z.infer<typeof tenantDispatchSettingsSchema>['dispatch'];
 
-/** Giá trị sai kiểu hoặc thiếu thì rơi về mặc định (10 giờ/ngày). */
+/** Giá trị sai kiểu hoặc thiếu thì rơi về mặc định (10 giờ/ngày, phí Street Turn ghi chi hộ). */
 export function parseDispatchSettings(raw: unknown): TenantDispatchSettings {
   const parsed = tenantDispatchSettingsSchema.safeParse(raw ?? {});
-  return parsed.success
-    ? parsed.data.dispatch
-    : { maxDrivingHoursPerDay: DEFAULT_MAX_DRIVING_HOURS_PER_DAY };
+  return parsed.success ? parsed.data.dispatch : DEFAULT_DISPATCH_SETTINGS;
+}
+
+// ---- Cấu hình giá của tenant (task 08): có áp giá ghép cho cặp cont cùng khách hay không (spec 06 mục 3).
+const tenantPricingSettingsSchema = z.object({
+  pricing: z
+    .object({ shareTwinDiscountWithCustomer: z.boolean().catch(true) })
+    .catch({ shareTwinDiscountWithCustomer: true }),
+});
+export type TenantPricingSettings = z.infer<typeof tenantPricingSettingsSchema>['pricing'];
+
+/** Thiếu hoặc sai kiểu thì mặc định bật (spec 06 mục 3). */
+export function parsePricingSettings(raw: unknown): TenantPricingSettings {
+  const parsed = tenantPricingSettingsSchema.safeParse(raw ?? {});
+  return parsed.success ? parsed.data.pricing : { shareTwinDiscountWithCustomer: true };
 }
 
 // ---- Bảng điều vận Kanban (task 07).
@@ -129,3 +149,77 @@ export const loadBoardCardsSchema = z.object({
     .max(100, 'Tối đa 100 container mỗi lần.'),
 });
 export type LoadBoardCardsInput = z.infer<typeof loadBoardCardsSchema>;
+
+// ---- Ghép chuyến, tách chuyến và Street Turn (task 08).
+export const CONSOLIDATED_TRIP_MODES = ['TWIN_20', 'COMBINED'] as const;
+export type ConsolidatedTripMode = (typeof CONSOLIDATED_TRIP_MODES)[number];
+
+const resourceIds = z.object({
+  driverId: id36('Chọn tài xế.'),
+  tractorId: id36('Chọn đầu kéo.'),
+  trailerId: id36('Chọn rơ moóc.'),
+});
+const moneyAmount = z
+  .string({ error: 'Nhập số tiền hợp lệ.' })
+  .regex(/^\d{1,16}(\.\d{1,2})?$/, 'Nhập số tiền hợp lệ.');
+const approvalRef = z
+  .string({ error: 'Nhập số chấp thuận của hãng tàu.' })
+  .trim()
+  .min(1, 'Nhập số chấp thuận của hãng tàu.')
+  .max(50, 'Số chấp thuận tối đa 50 ký tự.');
+const consolidatedMode = z.enum(CONSOLIDATED_TRIP_MODES, {
+  error: 'Chọn chế độ ghép TWIN_20 hoặc COMBINED.',
+});
+
+export const createConsolidatedTripSchema = z
+  .object({
+    tripMode: consolidatedMode,
+    orderContainerIds: z
+      .array(id36('Container không hợp lệ.'))
+      .length(2, 'Chọn đúng 2 container để ghép.'),
+    ...tripWindow,
+    routeId: id36('Tuyến không hợp lệ.').nullish(),
+    /** Có thì gán luôn trong cùng transaction (khóa và kiểm tra mọi tài nguyên); bỏ trống thì chỉ lập chuyến. */
+    resources: resourceIds.nullish(),
+    overrideDrivingHours: assignResourcesSchema.shape.overrideDrivingHours,
+    confirmMissingWeight: z.boolean().nullish(),
+  })
+  .refine(endAfterStart, END_AFTER_START);
+export type CreateConsolidatedTripInput = z.infer<typeof createConsolidatedTripSchema>;
+
+export const addContainerToTripSchema = z.object({
+  tripId: id36('Chuyến không hợp lệ.'),
+  version,
+  orderContainerId: id36('Chọn container cần ghép thêm.'),
+  tripMode: consolidatedMode,
+  confirmMissingWeight: z.boolean().nullish(),
+});
+export type AddContainerToTripInput = z.infer<typeof addContainerToTripSchema>;
+
+export const removeContainerFromTripSchema = z.object({
+  tripId: id36('Chuyến không hợp lệ.'),
+  version,
+  orderContainerId: id36('Chọn container cần tách.'),
+  reason: z.string().trim().max(255, 'Lý do tối đa 255 ký tự.').nullish(),
+});
+export type RemoveContainerFromTripInput = z.infer<typeof removeContainerFromTripSchema>;
+
+export const linkStreetTurnSchema = z.object({
+  importContainerId: id36('Chọn container Nhập.'),
+  exportContainerId: id36('Chọn container Xuất.'),
+  /** Đã có số chấp thuận thì nhập luôn; chưa có thì bổ sung sau bằng setStreetTurnApproval. */
+  approvalRef: approvalRef.nullish(),
+  feeAmount: moneyAmount.nullish(),
+});
+export type LinkStreetTurnInput = z.infer<typeof linkStreetTurnSchema>;
+
+export const setStreetTurnApprovalSchema = z.object({
+  /** Một trong hai container của cặp Street Turn; số chấp thuận ghi cho cả hai. */
+  orderContainerId: id36('Chọn container.'),
+  approvalRef,
+  feeAmount: moneyAmount.nullish(),
+});
+export type SetStreetTurnApprovalInput = z.infer<typeof setStreetTurnApprovalSchema>;
+
+export const listStreetTurnsSchema = z.object({ pendingOnly: z.boolean().nullish() });
+export type ListStreetTurnsInput = z.infer<typeof listStreetTurnsSchema>;

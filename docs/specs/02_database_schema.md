@@ -197,6 +197,7 @@ export const tractors = mysqlTable('tractors', {
   insuranceExpiry: date('insurance_expiry'),         // [BỔ SUNG]
   transportBadgeExpiry: date('transport_badge_expiry'), // [BỔ SUNG] phù hiệu xe container
   permittedGrossWeightTons: decimal('permitted_gross_weight_tons', { precision: 6, scale: 2 }), // khối lượng toàn bộ cho phép kéo theo (giấy kiểm định)
+  tareWeightTons: decimal('tare_weight_tons', { precision: 6, scale: 2 }), // [BỔ SUNG task 08] tự trọng đầu kéo cho Rule 2; NULL = chưa khai báo
   gpsDeviceId: ref('gps_device_id'),
   status: mysqlEnum('status', ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'INACTIVE']).default('AVAILABLE').notNull(),
   version: int('version').default(0).notNull(),
@@ -476,6 +477,7 @@ export const consolidatedTrips = mysqlTable('consolidated_trips', {
   allocationAdjustedBy: ref('allocation_adjusted_by'),
   allocationAdjustedAt: ts('allocation_adjusted_at'),
   costLockedAt: ts('cost_locked_at'),
+  allocationReviewRequired: boolean('allocation_review_required').default(false).notNull(), // [BỔ SUNG task 08] tách chuyến đã đặt lại phân bổ sửa tay: Kế toán cần xem lại
   status: mysqlEnum('status', ['PLANNED', 'DISPATCHED', 'IN_TRANSIT', 'COMPLETED', 'CANCELLED']).default('PLANNED').notNull(),
   version: int('version').default(0).notNull(),
   ...timestamps(),

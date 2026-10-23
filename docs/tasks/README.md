@@ -12,7 +12,7 @@ Bảng tổng các task của dự án, chia theo giai đoạn GĐ0–GĐ6 trong
 | 05 | [05-fleet-drivers](05-fleet-drivers/task.md) — Đội xe, tài xế và giấy tờ | ✅ | 02 | `feat/05-fleet-drivers` |
 | 06 | [06-dispatch-single](06-dispatch-single/task.md) — Điều vận SINGLE, khóa bi quan và chống chồng lấn | ✅ | 04, 05 | `feat/06-dispatch-single` |
 | 07 | [07-dispatch-kanban](07-dispatch-kanban/task.md) — Giao diện Kanban điều vận | ✅ | 06 | `feat/07-dispatch-kanban` |
-| 08 | [08-trip-combining](08-trip-combining/task.md) — Ghép chuyến TWIN_20, COMBINED, Street Turn và tách chuyến | ⬜ | 06, 07 | `feat/08-trip-combining` |
+| 08 | [08-trip-combining](08-trip-combining/task.md) — Ghép chuyến TWIN_20, COMBINED, Street Turn và tách chuyến | 🔄 | 06, 07 | `feat/08-trip-combining` |
 | 09 | [09-drop-hook-rescue](09-drop-hook-rescue/task.md) — Drop & Hook, cứu hộ và bắn xe ngoài | ⬜ | 06 | `feat/09-drop-hook-rescue` |
 | 10 | [10-driver-app](10-driver-app/task.md) — API tài xế và app Expo (online) | ⬜ | 06 | `feat/10-driver-app` |
 | 11 | [11-driver-offline-sync](11-driver-offline-sync/task.md) — Offline-first và đồng bộ app tài xế | ⬜ | 10 | `feat/11-driver-offline-sync` |

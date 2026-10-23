@@ -55,6 +55,26 @@ export const ERROR_MESSAGES = {
     'Container này đã có chuyến đang hoạt động. Mở chuyến đó thay vì tạo chuyến mới.',
   ORDER_NOT_CONFIRMED:
     'Order chưa được xác nhận hoặc đã hủy nên chưa lập được chuyến cho container này.',
+  TRIP_MODE_INVALID:
+    'Chế độ ghép không khớp container: TWIN_20 cần đúng 2 container 20 feet, COMBINED cần 1 container Nhập và 1 container Xuất.',
+  TWIN20_TRAILER_NOT_ALLOWED:
+    'Rơ moóc này không có chốt khóa giữa nên không chở được 2 cont 20 feet (TWIN_20). Chọn rơ moóc 40 hoặc 45 feet có chốt giữa.',
+  TWIN20_CONTAINER_NOT_20FT:
+    'Chuyến TWIN_20 chỉ ghép được 2 container 20 feet. Bỏ container 40 hoặc 45 feet khỏi chuyến này.',
+  DG_TWIN20_MIXED_CUSTOMER:
+    'Hàng nguy hiểm không được ghép TWIN_20 với container của khách hàng khác. Chọn container cùng khách hoặc điều chuyến riêng.',
+  STREET_TURN_LINE_MISMATCH:
+    'Street Turn chỉ đảo vỏ giữa hai Order cùng hãng tàu. Chọn container của cùng hãng tàu.',
+  STREET_TURN_TYPE_MISMATCH:
+    'Street Turn chỉ đảo vỏ giữa hai container cùng loại (ví dụ cùng 40HC). Chọn container cùng loại.',
+  STREET_TURN_NOT_ALLOWED:
+    'Hãng tàu này không cho Street Turn. Trả rỗng cont Nhập về cảng và lấy rỗng cho cont Xuất như bình thường.',
+  STREET_TURN_NOT_APPROVED:
+    'Street Turn chưa có số chấp thuận của hãng tàu nên chưa điều được. Nhập số chấp thuận rồi điều lại.',
+  INVALID_STOP_SEQUENCE:
+    'Thứ tự các Stop không hợp lệ về mặt vật lý (rút hàng Nhập phải xong trước khi đóng hàng Xuất, và rơ moóc không chở quá một cont 40 feet cùng lúc). Đổi giờ hoặc tách chuyến.',
+  TRIP_LAST_CONTAINER:
+    'Đây là container cuối cùng của chuyến nên không tách được. Hủy gán xe hoặc hủy container thay vì tách.',
   INTERNAL_ERROR:
     'Hệ thống gặp sự cố ngoài ý muốn. Thử lại sau ít phút; nếu vẫn lỗi, báo bộ phận hỗ trợ kèm giờ xảy ra.',
 } as const;

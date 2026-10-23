@@ -46,6 +46,8 @@ export const tractors = mysqlTable(
       precision: 6,
       scale: 2,
     }),
+    // [BỔ SUNG task 08] Tự trọng đầu kéo để Rule 2 cộng đủ khối lượng toàn bộ; NULL = chưa khai báo (vẫn cảnh báo).
+    tareWeightTons: decimal('tare_weight_tons', { precision: 6, scale: 2 }),
     gpsDeviceId: ref('gps_device_id'),
     status: mysqlEnum('status', TRACTOR_STATUS).default('AVAILABLE').notNull(),
     version: int('version').default(0).notNull(),
