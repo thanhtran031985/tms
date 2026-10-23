@@ -6,7 +6,7 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 |---|---|---|---|
 | 1 | Truy vấn bảng điều vận | ✅ | |
 | 2 | Mức hạn và chữ đếm ngược | ✅ | |
-| 3 | SSE realtime theo tenant | ⬜ | |
+| 3 | SSE realtime theo tenant | ✅ | |
 | 4 | Giao diện bảng Kanban và lịch xe (chỉ hiển thị) | ⬜ | |
 | 5 | Gán xe: chọn thẻ, kéo thả, optimistic, rollback, hoàn tác | ⬜ | |
 | 6 | E2E hai trình duyệt | ⬜ | |
@@ -25,4 +25,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Đã làm: `packages/shared/deadline.ts` có `deadlineStatus(mốc, now, múi giờ, {hold})` trả `level`, `text` ("còn 2 giờ 15", "còn 1 ngày 16 giờ", "quá 35 phút") và `absolute` (giờ tuyệt đối theo múi giờ tenant, thêm ngày/tháng khi khác ngày); `deadlineLevel` và `formatRemaining` (cách viết cũ của danh sách Order) chuyển sang đây, `apps/web/src/lib/deadline.ts` re-export nên các màn Order không đổi.
 - Package `shared` chưa có chạy test: thêm script `test` và devDependency `vitest ^5.0.5` (đúng phiên bản core và web đang dùng, không tải gói mới; lockfile chỉ thêm liên kết).
 - Kiểm tra: `pnpm test --filter shared -- deadline` 14 test xanh (2 giờ 15 crit, 7 giờ 40 warn, 20 giờ 40 info, quá 35 phút crit, qua nửa đêm giờ Việt Nam, HOLD, ranh giới 3 giờ và 8 giờ); test cũ của web 7 xanh; `pnpm typecheck`, `pnpm lint` sạch.
+- Việc người dùng cần làm: không có.
+
+### 23/10/2026 — Bước 3: SSE realtime theo tenant ✅
+- Đã làm: `features/dispatch/stream-handler.ts` (`createDispatchStreamHandler`: `requireRole(dispatch.view)` rồi đăng ký kênh `tenant:{tenantId}:dispatch` bằng kết nối Redis riêng, đẩy `event: dispatch.updated`, nhịp tim 15 giây, hủy đăng ký khi client ngắt; bỏ thông điệp hỏng hoặc mang tenantId khác); `app/api/v1/stream/dispatch/route.ts` mỏng (GET); `proxy.ts` trả JSON 401 cho `/api/v1/*` chưa đăng nhập thay vì chuyển hướng 307; hook `use-dispatch-stream.ts` (EventSource, tự nối lại có chờ tăng dần, trạng thái `connecting/open/lost`, gọi `onReconnect` để tải lại sau khi nối lại).
+- Kiểm tra: `pnpm test --filter web -- stream` 9 test xanh, gồm 7 test route với Redis thật (tenant A nhận của A không nhận của B, VIEWER nhận được, 401/403, bỏ sự kiện sai tenant, nhịp tim, ngắt kết nối thì NUMSUB về mức cũ, lỗi lạ không bị nuốt); `pnpm typecheck`, `pnpm lint` sạch. Phần `curl -N` đăng nhập thật và 401 qua proxy kiểm trong E2E ở Bước 6.
 - Việc người dùng cần làm: không có.

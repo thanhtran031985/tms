@@ -1,5 +1,6 @@
 // Proxy (Next 16, trước đây là middleware): chặn mọi route chưa đăng nhập, ép chọn công ty trước khi vào route nghiệp vụ.
 // Chỉ là kiểm tra "lạc quan" (không gọi DB); phân quyền thật nằm ở requireRole trong từng Server Action / trang.
+import { ERROR_MESSAGES } from '@shared/errors';
 import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authConfig } from './auth.config';
@@ -14,6 +15,16 @@ export default auth((req) => {
   const session = req.auth;
   const loggedIn = Boolean(session?.user?.id) && !isExpired(session?.expiresAtMs);
   const hasTenant = loggedIn && Boolean(session?.tenantId);
+
+  // API (SSE, tải dữ liệu): trả JSON 401 thay vì chuyển hướng về trang đăng nhập; chọn công ty và quyền do route tự kiểm.
+  if (path.startsWith('/api/v1/')) {
+    return loggedIn
+      ? NextResponse.next()
+      : NextResponse.json(
+          { ok: false, code: 'UNAUTHENTICATED', message: ERROR_MESSAGES.UNAUTHENTICATED },
+          { status: 401 },
+        );
+  }
 
   if (!loggedIn) {
     if (path === '/login') return NextResponse.next();
