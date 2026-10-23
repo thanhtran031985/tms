@@ -148,6 +148,8 @@ test.describe('gán xe trên bảng điều vận', () => {
     await loginAs(page, DISPATCHER, TENANT);
     await page.goto(`/dispatch?date=${DAY}${query}`);
     await expect(waitingCard(page)).toBeVisible();
+    // Khối Street Turn (task 08) đổi chiều cao khi tải xong; chờ nó ổn định trước khi test đo tọa độ kéo thả.
+    await expect(page.getByText('Đang tải danh sách Street Turn')).toHaveCount(0);
   }
 
   // Cont chưa có khối lượng nên có hộp xác nhận; trả lời "Vẫn gán xe".

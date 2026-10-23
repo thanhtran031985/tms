@@ -27,6 +27,11 @@ test.beforeAll(async () => {
   await cleanupConsolidateData();
 });
 
+// Dọn xe e2e sau khi chạy xong để không ảnh hưởng e2e điều vận (danh sách đầu kéo).
+test.afterAll(async () => {
+  await cleanupConsolidateData();
+});
+
 test.describe('ghép chuyến, tách chuyến và Street Turn trên /dispatch', () => {
   let twin: ConsolidateScenario;
 

@@ -1,6 +1,6 @@
 // Rule 2 (spec 03 mục 2) cho chuyến một hoặc nhiều container: cộng khối lượng toàn bộ các cont rồi so với tải trọng rơ moóc và
 // khối lượng cho phép của đầu kéo (cộng tự trọng rơ moóc và, nếu đã khai báo, tự trọng đầu kéo).
-// Khối lượng một cont: VGM, chưa có thì khối lượng hàng + vỏ chuẩn (physical.ts). Thiếu dữ liệu thì bắt xác nhận, không bỏ qua âm thầm.
+// Khối lượng một cont: VGM, chưa có thì khối lượng hàng + vỏ chuẩn (hàm containerWeight bên dưới). Thiếu dữ liệu thì bắt xác nhận, không bỏ qua âm thầm.
 import Decimal from 'decimal.js';
 import type { OrderContainerRow } from '../../orders/repo';
 import type { TractorRow, TrailerRow } from '../../fleet/repo';

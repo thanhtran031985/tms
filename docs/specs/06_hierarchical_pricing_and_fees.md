@@ -120,6 +120,11 @@ Giá được snapshot cho từng container khi Order `CONFIRMED`, nhưng việc
 - Nếu container đã được xuất hóa đơn: không sửa; tạo yêu cầu điều chỉnh hóa đơn cho Kế toán.
 - Phụ phí nhập tay (`MANUAL`) và phí DEM/DET không bị tính lại.
 
+**[BỔ SUNG task 08] Cách cài đặt:**
+- Ghép chuyến chỉ đổi khóa tra giá (`appliedTripMode = tripMode`, `repriceRequired = true`) khi hai cont cùng khách và `tenants.settings.pricing.shareTwinDiscountWithCustomer` bật (mặc định bật); khác khách hoặc tắt cấu hình giữ `SINGLE`, không đặt cờ. Tách chuyến đưa cont có giá ghép về `SINGLE` và đặt cờ cho cả hai cont.
+- Cờ `repriceRequired` trong DB là nguồn sự thật. Sau commit, dịch vụ phát `pricing.reprice_required` lên Redis (`tenant:{tenantId}:pricing`); worker (`pricing.reprice`) nhận sự kiện rồi tính lại, và job quét `pricing.reprice-sweep` (5 phút một lần theo từng tenant ACTIVE) nhặt cờ treo khi mất sự kiện. Core và web không có BullMQ nên không đẩy job trực tiếp.
+- `reprice.service` khóa Order rồi container; cont giá tay giữ giá và xóa cờ; cont có `order_fees.invoiceId` giữ giá và giữ cờ (task 21 tạo yêu cầu điều chỉnh); không tìm thấy giá thì `TARIFF_NOT_FOUND`, giữ giá cũ và cờ. Phụ phí TARIFF được cập nhật hoặc thêm theo bảng phí mới, không xóa dòng cũ. Audit `REPRICE` ghi giá cũ và mới kèm tariff.
+
 ## 5. Hóa đơn & Công nợ phải thu [BỔ SUNG]
 - Order đủ điều kiện xuất hóa đơn khi `RECONCILED` (đã xác nhận ePOD và khách đồng ý bảng kê). **[BỔ SUNG]** Cho phép xuất hóa đơn từng phần theo các container đã đủ chứng từ, vì Order nhiều cont có thể kéo dài nhiều ngày.
 - Hóa đơn gom nhiều Order của cùng khách theo kỳ. Dòng cước vận chuyển và phụ phí chịu VAT theo `vatRatePercent` snapshot; phí chi hộ theo cách xử lý kế toán tenant chọn (xuất hóa đơn riêng hoặc chuyển chứng từ gốc của bên thứ ba) — cần kế toán trưởng xác nhận cách làm trước khi code.

@@ -234,6 +234,17 @@ export async function cleanupConsolidateData(): Promise<void> {
     await pool.query(
       "UPDATE consolidated_trips SET status = 'CANCELLED' WHERE id IN (SELECT trip_id FROM trip_containers WHERE order_container_id IN (SELECT id FROM order_containers WHERE order_id IN (SELECT id FROM orders WHERE order_no LIKE 'E2E08-%')))",
     );
+    // Xe, rơ moóc và tài xế do e2e tạo bị xóa mềm để bảng gán xe của các e2e khác không dài thêm sau mỗi lần chạy
+    // (e2e điều vận đi phím Tab qua từng đầu kéo). Biển số seed có dấu chấm nên không khớp mẫu này.
+    await pool.query(
+      "UPDATE tractors SET deleted_at = NOW(3) WHERE deleted_at IS NULL AND plate_number REGEXP '^51C-[0-9A-Z]{5}$'",
+    );
+    await pool.query(
+      "UPDATE trailers SET deleted_at = NOW(3) WHERE deleted_at IS NULL AND plate_number REGEXP '^51R-[CS][0-9A-Z]{5}$'",
+    );
+    await pool.query(
+      "UPDATE drivers SET deleted_at = NOW(3) WHERE deleted_at IS NULL AND full_name LIKE 'Tài xế E2E %'",
+    );
   } finally {
     await pool.end();
   }

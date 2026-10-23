@@ -9,8 +9,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 3 | COMBINED và Street Turn | ✅ | 02c2d5a |
 | 4 | Tách chuyến và hủy Order có chuyến | ✅ | 3e2e021 |
 | 5 | Tính lại giá | ✅ | 6d3e3a0 |
-| 6 | Server Action và thao tác trên màn Điều vận | ✅ | |
-| 7 | Hoàn tất | ⬜ | |
+| 6 | Server Action và thao tác trên màn Điều vận | ✅ | 0b4a302 |
+| 7 | Hoàn tất | ✅ | |
 
 ## Nhật ký
 <!-- Sau mỗi bước: ngày, đã làm gì, kết quả Kiểm tra, việc người dùng cần làm thủ công. -->
@@ -55,3 +55,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Giao diện: nút "Chọn để ghép" dưới thẻ Chờ điều (chọn tối đa 2, bàn phím Space hoặc Enter), thanh "Ghép chuyến" chỉ hiện khi có thẻ chọn, hộp chọn TWIN_20 hoặc COMBINED (kèm tùy chọn Đảo vỏ khi một cont Nhập một cont Xuất), lỗi quy tắc hiện `Alert` crit ngay trong hộp và nói rule nào; ghép xong tự mở bảng gán xe cho cả chuyến; nút "Tách chuyến" trên thẻ của chuyến ghép (hộp xác nhận); khối "Street Turn chờ chấp thuận" nhập số chấp thuận và phí, `EmptyState` khi trống. Thiết kế Screen03 chưa có mockup phần này nên dựng từ `Button`, `Alert`, `Field`, `ContainerCard`, `EmptyState` và token hiện có (ghi `decisions.md`).
 - Kiểm tra: unit web 177+ xanh (thêm `consolidate-view.test.ts`, test chip và lỗi Rule); `e2e/consolidate.spec.ts` 5/5 xanh gồm ghép 2 cont 20 cùng khách lên xe 2×20 và gán thành công, rơ moóc 20FT bị khóa kèm lý do Rule 1, tách chuyến thấy cờ "Cần tính lại giá", ghép làm hoàn toàn bằng bàn phím, Street Turn từ ghép tới nhập số chấp thuận, 1366×768 không tràn ngang; ảnh chụp 1366 đã xem. `pnpm typecheck` và `pnpm lint` sạch.
 - Lưu ý: optimistic UI của bảng gán xe vẫn chỉ dời thẻ đang chọn; thẻ còn lại của chuyến ghép cập nhật qua SSE sau vài trăm mili giây.
+
+### Bước 7 — 23/10/2026
+- Spec đã cập nhật: 02 (hai cột mới), 03 (mục "Ghi chú cài đặt task 08": dịch vụ, mã lỗi, Rule 2 cộng dồn, Rule 4, Street Turn, tách chuyến, sự kiện), 06 mục 4 (cách cài đặt tính lại giá, pub/sub và job quét thay cho đẩy job trực tiếp). `decisions.md` ghi 13 quyết định.
+- Kiểm tra cuối: `pnpm typecheck`, `pnpm lint`, `pnpm build` sạch. `pnpm test`: shared 14, web 187, worker 12, core 585, tất cả xanh (53 file core); mỗi Rule 1 đến 8 có ít nhất 1 test chặn và 1 test cho phép. `pnpm e2e` chạy 3 lượt liên tiếp sau cùng: 96/99 xanh, chỉ 3 test `orders.spec.ts` đỏ từ trước task này (H1 "Quản lý Đơn hàng", tìm và lọc theo chiều, xác nhận nhiều Order nháp; ngoài phạm vi). `consolidate.spec.ts` 5/5 xanh mọi lượt. Migration `0007` chạy được trên DB trống (Testcontainers mọi test) và trên DB dev đã có dữ liệu (`db:migrate` trong global-setup e2e). Mọi Server Action mới dùng `defineAction` (có `requireRole` và zod), `actions-guard.test` xanh; test tenant isolation cho ghép chuyến, Street Turn, tách chuyến và tính lại giá.
+- Sửa trong lúc ổn định e2e: khối "Street Turn chờ chấp thuận" đặt dưới lịch xe (chiều cao khối này đổi theo dữ liệu của người khác nên từng làm lệch tọa độ kéo thả của e2e điều vận); e2e ghép chuyến dọn xe, rơ moóc, tài xế do e2e tạo bằng xóa mềm trước và sau khi chạy để bảng gán xe không dài thêm.
+- Việc người dùng cần làm: (1) duyệt 2 cột mới ở migration `0007` và cách chuyển job tính lại giá qua Redis (không cài `bullmq` cho core hoặc web); (2) chạy worker (`pnpm dev` hoặc `pnpm --filter worker dev`) để cờ "Cần tính lại giá" được xử lý; `.env` cần `REDIS_URL`; (3) quyết định sửa 3 test `orders.spec.ts` đỏ từ trước; (4) thiết kế Screen03 chưa có mockup chọn nhiều thẻ, hộp ghép và danh sách Street Turn, cần bổ sung nếu muốn khớp thiết kế.

@@ -828,12 +828,6 @@ export function DispatchBoardView({
             />
           ) : null}
 
-          <StreetTurnPanel
-            canEdit={access.assign}
-            reloadKey={streetTurnKey}
-            onChanged={(ids) => void refreshCards(ids)}
-          />
-
           {view.lanes ? (
             <ResourceLanes
               lanes={view.lanes}
@@ -845,6 +839,13 @@ export function DispatchBoardView({
               droppable={access.assign}
             />
           ) : null}
+
+          {/* Dưới lịch xe: chiều cao khối này đổi theo dữ liệu của người khác, không được xô lệch vị trí làn khi kéo thả. */}
+          <StreetTurnPanel
+            canEdit={access.assign}
+            reloadKey={streetTurnKey}
+            onChanged={(ids) => void refreshCards(ids)}
+          />
 
           <DragOverlay>
             {draggingCard ? (
