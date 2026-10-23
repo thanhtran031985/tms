@@ -973,7 +973,7 @@ export function createOrderService(options: OrderServiceOptions) {
     order: OrderRow,
     container: OrderContainerRow,
     { reason, fee }: { reason: string; fee: string | null },
-  ) {
+  ): Promise<DispatchEvent[]> {
     if (!canCancelContainerFrom(container.status)) throw new AppError('INVALID_STATUS_TRANSITION');
     const repo = createOrderRepo(tx);
     const stops = await repo.stops.list(eq(orderStops.orderContainerId, container.id));
@@ -981,6 +981,12 @@ export function createOrderService(options: OrderServiceOptions) {
     if (started && !(fee && toMoney(fee).greaterThan(0))) {
       throw new AppError('CANCEL_FEE_REQUIRED', undefined, { lines: String(container.lineNo) });
     }
+
+    // Container đang nằm trên chuyến (task 08): gỡ khỏi chuyến trước, rồi đọc lại bản mới nhất (trạng thái, version, cờ giá).
+    const events = options.detachFromTrips
+      ? await options.detachFromTrips(tx, ctx, { orderContainerIds: [container.id], reason })
+      : [];
+    const current = events.length > 0 ? ((await repo.containers.get(container.id)) ?? container) : container;
 
     await repo.stops.updateWhere(
       and(
@@ -992,7 +998,7 @@ export function createOrderService(options: OrderServiceOptions) {
     await repo.containers.update(container.id, {
       status: 'CANCELLED',
       cancelReason: reason,
-      version: container.version + 1,
+      version: current.version + 1,
     });
     if (fee) {
       await repo.fees.insert({
@@ -1021,6 +1027,7 @@ export function createOrderService(options: OrderServiceOptions) {
         cancellationFee: fee ? toDbString(fee) : null,
       },
     });
+    return events;
   }
 
   /** Sau khi hủy container: mọi container đã hủy thì Order CANCELLED, ngược lại giữ nguyên trạng thái. */
@@ -1051,18 +1058,33 @@ export function createOrderService(options: OrderServiceOptions) {
     return { order: updated, orderCancelled: allCancelled };
   }
 
+  /** Phát sự kiện điều vận SAU commit; lỗi phát không làm hỏng việc hủy đã commit. */
+  async function publishDispatchEvents(events: DispatchEvent[]) {
+    if (events.length === 0 || !options.publishDispatch) return;
+    try {
+      await options.publishDispatch(events);
+    } catch {
+      // Kanban đồng bộ lại khi tải trang.
+    }
+  }
+
   async function cancelContainer(ctx: RequestContext, input: CancelContainerInput) {
     authorize(ctx, 'order.write');
     const reason = input.reason.trim();
     if (reason.length < 3) throw invalid('reason', 'Nhập lý do hủy.');
 
-    return options.tenantDb(ctx).transaction(async (tx) => {
+    const done = await options.tenantDb(ctx).transaction(async (tx) => {
       const order = await lockOrder(tx, input.orderId, input.version);
       assertOpen(order);
       const container = await containerOfOrder(tx, order, input.containerId);
-      await cancelContainerRow(tx, ctx, order, container, { reason, fee: input.cancellationFee });
-      return settleOrderAfterCancel(tx, ctx, order, reason);
+      const events = await cancelContainerRow(tx, ctx, order, container, {
+        reason,
+        fee: input.cancellationFee,
+      });
+      return { settled: await settleOrderAfterCancel(tx, ctx, order, reason), events };
     });
+    await publishDispatchEvents(done.events);
+    return done.settled;
   }
 
   /**
@@ -1074,7 +1096,7 @@ export function createOrderService(options: OrderServiceOptions) {
     const reason = input.reason.trim();
     if (reason.length < 3) throw invalid('reason', 'Nhập lý do hủy.');
 
-    return options.tenantDb(ctx).transaction(async (tx) => {
+    const done = await options.tenantDb(ctx).transaction(async (tx) => {
       const order = await lockOrder(tx, input.id, input.version);
       assertOpen(order);
       const repo = createOrderRepo(tx);
@@ -1090,15 +1112,20 @@ export function createOrderService(options: OrderServiceOptions) {
 
       const cancellable = containers.filter((c) => canCancelContainerFrom(c.status));
       if (cancellable.length === 0) throw new AppError('INVALID_STATUS_TRANSITION');
+      const events: DispatchEvent[] = [];
       for (const container of cancellable) {
-        await cancelContainerRow(tx, ctx, order, container, {
-          reason,
-          fee: feeOf.get(container.id) ?? null,
-        });
+        events.push(
+          ...(await cancelContainerRow(tx, ctx, order, container, {
+            reason,
+            fee: feeOf.get(container.id) ?? null,
+          })),
+        );
       }
       const settled = await settleOrderAfterCancel(tx, ctx, order, reason);
-      return { ...settled, cancelledCount: cancellable.length };
+      return { settled: { ...settled, cancelledCount: cancellable.length }, events };
     });
+    await publishDispatchEvents(done.events);
+    return done.settled;
   }
 
   return {

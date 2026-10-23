@@ -6,8 +6,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 |---|---|---|---|
 | 1 | Test ma trận Rule 1 đến 8 và tách chuyến (đỏ) | ✅ | 4bfa40f |
 | 2 | Ghép TWIN_20 và chọn tripMode doanh thu | ✅ | c2da49e |
-| 3 | COMBINED và Street Turn | ✅ | |
-| 4 | Tách chuyến và hủy Order có chuyến | ⬜ | |
+| 3 | COMBINED và Street Turn | ✅ | 02c2d5a |
+| 4 | Tách chuyến và hủy Order có chuyến | ✅ | |
 | 5 | Tính lại giá | ⬜ | |
 | 6 | Server Action và thao tác trên màn Điều vận | ⬜ | |
 | 7 | Hoàn tất | ⬜ | |
@@ -36,3 +36,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - `street-turn.service.ts`: `linkStreetTurn` (khóa hai container theo id tăng dần, liên kết hai chiều, chép số cont, chuyển `detFreeUntil` sang cont Xuất, Stop `RETURN_EMPTY` chưa làm của cont Nhập thành `SKIPPED`, audit), `setStreetTurnApproval` (ghi số chấp thuận cho cả cặp), `listStreetTurns` (có `pendingOnly`), phí `STREET_TURN_FEE` theo `settings.dispatch.streetTurnFee` (khóa idempotency theo cont Xuất, nhập lại chỉ cập nhật dòng cũ), tổng Order đồng bộ qua `orders/order-totals.ts` (`syncOrderTotals`, dùng lại ở bước 4, 5).
 - `trips.service.ts`: `dispatchTrip` chặn `STREET_TURN_NOT_APPROVED` khi cont đảo vỏ chưa có số chấp thuận.
 - Kiểm tra: `consolidate.rules.int.test.ts` 44/44 xanh và `rules/consolidation.test.ts` 20/20 xanh, nghĩa là cả 8 Rule đều có test chặn và test cho phép; sau Street Turn, cont Xuất mang số cont của cont Nhập và Stop `RETURN_EMPTY` của cont Nhập là `SKIPPED`. `pnpm typecheck` và eslint core sạch.
+
+### Bước 4 — 23/10/2026
+- `split.service.ts`: `removeContainerFromTrip` (khóa chuyến rồi container, chỉ chuyến PLANNED hoặc DISPATCHED, `TRIP_LAST_CONTAINER` khi tách cont cuối) và `detachContainersFromTrips` (module Order gọi trong transaction hủy). Gỡ container: hủy assignment của Stop thuộc cont đó (CANCELLED, không xóa), bỏ dòng `trip_containers`, cont về PENDING, chuyến còn 1 cont thì về SINGLE, chuyến hết cont thì CANCELLED; cont đang tính giá ghép (`appliedTripMode` khác SINGLE) chuyển về SINGLE và đặt `repriceRequired`; phân bổ Kế toán sửa tay được đặt lại về số hệ thống, `allocationMethod` khỏi MANUAL, `allocationReviewRequired = true`, audit `RESET_ALLOCATION` và `REMOVE_CONTAINER`.
+- `orders/service.ts`: `cancelContainerRow` gọi `detachFromTrips` trước khi hủy (đọc lại container mới nhất), `cancelContainer` và `cancelOrder` phát `dispatch.updated` sau commit qua `publishDispatch`. Không truyền hai tùy chọn thì hủy như task 04. Container nằm trên chuyến đang chạy (IN_TRANSIT) thì chặn hủy với `INVALID_STATUS_TRANSITION`.
+- Kiểm tra: `split.service.int.test.ts` 12/12 và `orders/cancel.int.test.ts` 19/19 xanh; eslint và `tsc` core sạch.
