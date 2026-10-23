@@ -30,9 +30,7 @@ export function StatusChip({
     <span
       className={cn(
         'inline-flex items-center gap-6 whitespace-nowrap font-bold',
-        isSm
-          ? 'rounded-[5px] px-6 py-1 text-caption'
-          : 'rounded-[6px] px-8 py-2 text-chip',
+        isSm ? 'rounded-chip-sm px-6 py-1 text-caption' : 'rounded-chip px-8 py-2 text-chip',
         TONE_CLASSES[tone],
         className,
       )}

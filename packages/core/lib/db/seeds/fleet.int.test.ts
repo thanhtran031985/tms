@@ -21,8 +21,7 @@ describe('seed đội xe, rơ moóc, tài xế', () => {
     await infra?.stop();
   });
 
-  const repoOf = (tenantId: string) =>
-    createFleetRepo(getTenantDb({ tenantId }, { db: infra.db }));
+  const repoOf = (tenantId: string) => createFleetRepo(getTenantDb({ tenantId }, { db: infra.db }));
 
   it('chạy hai lần không sinh bản ghi trùng', async () => {
     const a = repoOf(SEED_TENANTS.phucAn.id);

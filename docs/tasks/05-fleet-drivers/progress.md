@@ -77,4 +77,17 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
   - `docs/tasks/05-fleet-drivers/progress.md`: cập nhật hoàn thành toàn bộ 7 bước.
 - Chạy `tasks:dashboard` kiểm tra trạng thái bảng task.
 
+### Rà soát và sửa lại theo task.md (22/10/2026)
+Đối chiếu code bước 1 đến 7 với task.md, phát hiện và sửa các điểm sau (viết test đỏ trước, rồi sửa):
+- **Nền:** gộp nhánh `feat/04-orders-containers` vào 05 (nhánh 05 rẽ từ task 02 nên trùng số migration), sinh lại `0005_fleet.sql`. Xem decisions.md.
+- **Lỗi nghiệp vụ:** (1) sửa một phần reset giá trị mặc định (trạng thái, km, sở hữu, Twin 20, genset, loại nhân viên); (2) `updateTrailer` bỏ qua Rule 1 (20FT không chở Twin 20); (3) `findMaintenanceOverlap` dùng AND thay vì OR khi truyền cả đầu kéo và rơ moóc, không bắt buộc có xe; (4) kế hoạch, lệnh bảo dưỡng nhận id xe của tenant khác; (5) hủy lệnh `IN_PROGRESS` không trả xe về `AVAILABLE`, trạng thái lệnh chuyển tự do, không có transaction; (6) cho đặt tay `IN_USE`, `DROPPED`, `ON_DUTY`.
+- **Job worker:** khóa idempotent đặt trước khi rà nên lỗi sau đó làm mất cảnh báo khi retry; chưa có lịch theo tenant nên job không tự chạy. Đã đặt khóa sau khi rà, nhả khóa nếu phát lỗi, đăng ký lịch 06:00 theo múi giờ từng tenant.
+- **Test:** `documents.service.int.test.ts` và `maintenance.service.int.test.ts` ghi vào DB dev thay vì Testcontainers; đã sửa.
+- **Giao diện:** thêm `fleet/loading.tsx` (skeleton) và `fleet/error.tsx`; form sửa không ghi đè trạng thái hệ thống; `StatusChip` dùng token bo góc thay px cố định; sửa số mục menu trong `shell.spec.ts` sau khi gộp (11 mục, 5 liên kết).
+- Kiểm tra: xem mục "Kiểm tra cuối" bên dưới.
 
+### Kiểm tra cuối (22/10/2026)
+- `pnpm typecheck` không lỗi; `pnpm lint` 0 lỗi (2 cảnh báo `<img>` ở thư mục `.fleet/` không thuộc task); `pnpm build` thành công.
+- `pnpm test`: web 93, worker 7, core 350 test xanh (fleet: 34 test core, 5 test worker).
+- `pnpm e2e` 80/80 xanh trên MariaDB trống (chạy `db:migrate` và `db:seed` từ đầu), gồm `fleet.spec.ts` và `shell.spec.ts`.
+- Việc cần làm thủ công: DB dev cổng 3307 đang giữ migration `0003_fleet` của bản cũ, nên `pnpm db:migrate` báo bảng `drivers` đã tồn tại. Xóa volume dev rồi migrate lại: `docker compose down -v && docker compose up -d && pnpm db:migrate && pnpm db:seed` (mất dữ liệu dev).

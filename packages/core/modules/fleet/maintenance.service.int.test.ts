@@ -1,10 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AppError } from '@shared/errors';
 import { startTestInfra, type TestInfra } from '../../test/containers';
 import { seedIdentity } from '../../lib/db/seeds/identity';
 import { SEED_TENANTS } from '../../lib/db/seeds/identity.test-data';
 import { getTenantDb } from '../../lib/db/tenant-db';
 import type { RequestContext } from '../../lib/context';
-import { createTractor, getTractor } from './fleet.service';
+import { createTractor, createTrailer, getTractor, getTrailer } from './fleet.service';
 import {
   createMaintenanceOrder,
   createMaintenancePlan,
@@ -34,7 +35,9 @@ describe('maintenance.service (kế hoạch và lệnh bảo dưỡng)', () => {
     timezone,
     requestId: 'req-maint-test',
   });
-  const tdbA = () => getTenantDb(ctxA());
+  const tdbA = () => getTenantDb(ctxA(), { db: infra.db });
+  const ctxB = (): RequestContext => ({ ...ctxA(), tenantId: SEED_TENANTS.saoViet.id });
+  const tdbB = () => getTenantDb(ctxB(), { db: infra.db });
 
   it('lệnh bảo dưỡng PLANNED 8:00 đến 17:00 chồng với 16:00-18:00, không chồng với 17:00-19:00', async () => {
     const tractor = await createTractor(ctxA(), tdbA(), {
@@ -164,5 +167,111 @@ describe('maintenance.service (kế hoạch và lệnh bảo dưỡng)', () => {
     expect(tractorDues.map((d) => d.taskCode)).toContain('THAY_NHOT_50K');
     expect(tractorDues.map((d) => d.taskCode)).toContain('KIEM_TRA_DINH_KY_QUY');
     expect(tractorDues.map((d) => d.taskCode)).not.toContain('THAY_LOC_GIO');
+  });
+
+  it('tìm chồng lấn theo đầu kéo HOẶC rơ moóc khi truyền cả hai', async () => {
+    const tractor = await createTractor(ctxA(), tdbA(), {
+      plateNumber: `51C-MNT.${runId}5`,
+      fuelNormLitersPer100km: '35.00',
+    });
+    const trailer = await createTrailer(ctxA(), tdbA(), {
+      plateNumber: `51R-MNT.${runId}5`,
+      trailerType: '40FT',
+      maxPayloadTons: '28.00',
+    });
+    const start = new Date('2026-10-23T08:00:00.000Z');
+    const end = new Date('2026-10-23T17:00:00.000Z');
+    const onTractor = await createMaintenanceOrder(ctxA(), tdbA(), {
+      tractorId: tractor.id,
+      type: 'SCHEDULED',
+      plannedStart: start,
+      plannedEnd: end,
+    });
+    const onTrailer = await createMaintenanceOrder(ctxA(), tdbA(), {
+      trailerId: trailer.id,
+      type: 'TIRE',
+      plannedStart: start,
+      plannedEnd: end,
+    });
+
+    const found = await findMaintenanceOverlap(ctxA(), tdbA(), {
+      tractorId: tractor.id,
+      trailerId: trailer.id,
+      start: new Date('2026-10-23T10:00:00.000Z'),
+      end: new Date('2026-10-23T12:00:00.000Z'),
+    });
+    expect(found.map((o) => o.id).sort()).toEqual([onTractor.id, onTrailer.id].sort());
+  });
+
+  it('tìm chồng lấn không truyền đầu kéo lẫn rơ moóc thì VALIDATION_ERROR', async () => {
+    await expect(
+      findMaintenanceOverlap(ctxA(), tdbA(), {
+        start: new Date('2026-10-23T10:00:00.000Z'),
+        end: new Date('2026-10-23T12:00:00.000Z'),
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('không tạo lệnh hay kế hoạch cho xe của tenant khác (NOT_FOUND)', async () => {
+    const tractorB = await createTractor(ctxB(), tdbB(), {
+      plateNumber: `51C-MNT.${runId}6`,
+      fuelNormLitersPer100km: '35.00',
+    });
+    await expect(
+      createMaintenanceOrder(ctxA(), tdbA(), { tractorId: tractorB.id, type: 'SCHEDULED' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(
+      createMaintenancePlan(ctxA(), tdbA(), {
+        tractorId: tractorB.id,
+        taskCode: 'THAY_NHOT',
+        intervalKm: 10000,
+      }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('hủy lệnh IN_PROGRESS trả xe về AVAILABLE, nhưng giữ MAINTENANCE nếu còn lệnh IN_PROGRESS khác', async () => {
+    const tractor = await createTractor(ctxA(), tdbA(), {
+      plateNumber: `51C-MNT.${runId}7`,
+      fuelNormLitersPer100km: '35.00',
+    });
+    const first = await createMaintenanceOrder(ctxA(), tdbA(), {
+      tractorId: tractor.id,
+      type: 'SCHEDULED',
+      status: 'IN_PROGRESS',
+    });
+    const second = await createMaintenanceOrder(ctxA(), tdbA(), {
+      tractorId: tractor.id,
+      type: 'TIRE',
+      status: 'IN_PROGRESS',
+    });
+
+    await updateMaintenanceOrderStatus(ctxA(), tdbA(), first.id, 'CANCELLED');
+    expect((await getTractor(ctxA(), tdbA(), tractor.id))?.status).toBe('MAINTENANCE');
+
+    await updateMaintenanceOrderStatus(ctxA(), tdbA(), second.id, 'CANCELLED');
+    expect((await getTractor(ctxA(), tdbA(), tractor.id))?.status).toBe('AVAILABLE');
+  });
+
+  it('lệnh đã DONE hoặc CANCELLED không đổi trạng thái được nữa (INVALID_STATUS_TRANSITION)', async () => {
+    const trailer = await createTrailer(ctxA(), tdbA(), {
+      plateNumber: `51R-MNT.${runId}8`,
+      trailerType: '40FT',
+      maxPayloadTons: '28.00',
+    });
+    const order = await createMaintenanceOrder(ctxA(), tdbA(), {
+      trailerId: trailer.id,
+      type: 'TIRE',
+      status: 'PLANNED',
+    });
+    await updateMaintenanceOrderStatus(ctxA(), tdbA(), order.id, 'IN_PROGRESS');
+    expect((await getTrailer(ctxA(), tdbA(), trailer.id))?.status).toBe('MAINTENANCE');
+    await updateMaintenanceOrderStatus(ctxA(), tdbA(), order.id, 'DONE');
+    expect((await getTrailer(ctxA(), tdbA(), trailer.id))?.status).toBe('AVAILABLE');
+
+    const err = await updateMaintenanceOrderStatus(ctxA(), tdbA(), order.id, 'PLANNED').catch(
+      (e: unknown) => e,
+    );
+    expect(err).toBeInstanceOf(AppError);
+    expect((err as AppError).code).toBe('INVALID_STATUS_TRANSITION');
   });
 });

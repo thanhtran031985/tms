@@ -58,20 +58,10 @@ export const LOCATION_TYPES = [
 export const TRACTOR_OWNERSHIP = ['OWNED', 'LEASED'] as const;
 export type TractorOwnership = (typeof TRACTOR_OWNERSHIP)[number];
 
-export const TRACTOR_STATUS = [
-  'AVAILABLE',
-  'IN_USE',
-  'MAINTENANCE',
-  'INACTIVE',
-] as const;
+export const TRACTOR_STATUS = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'INACTIVE'] as const;
 export type TractorStatus = (typeof TRACTOR_STATUS)[number];
 
-export const TRAILER_TYPES = [
-  '20FT',
-  '40FT',
-  '40FT_COMBO',
-  '45FT',
-] as const;
+export const TRAILER_TYPES = ['20FT', '40FT', '40FT_COMBO', '45FT'] as const;
 export type TrailerType = (typeof TRAILER_TYPES)[number];
 
 export const TRAILER_STATUS = [
@@ -86,27 +76,13 @@ export type TrailerStatus = (typeof TRAILER_STATUS)[number];
 export const DRIVER_EMPLOYMENT_TYPES = ['FULL_TIME', 'CONTRACT'] as const;
 export type DriverEmploymentType = (typeof DRIVER_EMPLOYMENT_TYPES)[number];
 
-export const DRIVER_STATUS = [
-  'AVAILABLE',
-  'ON_DUTY',
-  'OFF_DUTY',
-  'INACTIVE',
-] as const;
+export const DRIVER_STATUS = ['AVAILABLE', 'ON_DUTY', 'OFF_DUTY', 'INACTIVE'] as const;
 export type DriverStatus = (typeof DRIVER_STATUS)[number];
 
-export const MAINTENANCE_ORDER_TYPES = [
-  'SCHEDULED',
-  'BREAKDOWN',
-  'TIRE',
-] as const;
+export const MAINTENANCE_ORDER_TYPES = ['SCHEDULED', 'BREAKDOWN', 'TIRE'] as const;
 export type MaintenanceOrderType = (typeof MAINTENANCE_ORDER_TYPES)[number];
 
-export const MAINTENANCE_ORDER_STATUS = [
-  'PLANNED',
-  'IN_PROGRESS',
-  'DONE',
-  'CANCELLED',
-] as const;
+export const MAINTENANCE_ORDER_STATUS = ['PLANNED', 'IN_PROGRESS', 'DONE', 'CANCELLED'] as const;
 export type MaintenanceOrderStatus = (typeof MAINTENANCE_ORDER_STATUS)[number];
 // Nhóm phí của bảng phí (spec 02, fee_tariffs): chỉ 3 giá trị; FEE_CATEGORIES (4 giá trị) dùng cho khoản phí trên Order/chuyến.
 export const FEE_TARIFF_CATEGORIES = ['COST_NORM', 'REVENUE_SURCHARGE', 'PASS_THROUGH'] as const;
@@ -149,3 +125,8 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type ContainerStatus = (typeof CONTAINER_STATUSES)[number];
 export type StopType = (typeof STOP_TYPES)[number];
 export type TripMode = (typeof TRIP_MODES)[number];
+
+// Trạng thái được phép đặt tay trên form (task 05). IN_USE, ON_DUTY, DROPPED do điều vận tự đặt (task 06, 09).
+export const TRACTOR_MANUAL_STATUS = ['AVAILABLE', 'MAINTENANCE', 'INACTIVE'] as const;
+export const TRAILER_MANUAL_STATUS = ['AVAILABLE', 'MAINTENANCE', 'INACTIVE'] as const;
+export const DRIVER_MANUAL_STATUS = ['AVAILABLE', 'OFF_DUTY', 'INACTIVE'] as const;

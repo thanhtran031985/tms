@@ -6,6 +6,7 @@ import { createRedis } from '@core/lib/redis/client';
 import {
   type DocumentExpiryJobData,
   processDocumentExpiryJob,
+  scheduleDocumentExpiryJobs,
 } from './jobs/document-expiry';
 import { defaultJobOptions, QUEUE_NAMES } from './queues';
 
@@ -65,16 +66,48 @@ export async function startWorker(options: StartWorkerOptions): Promise<RunningW
     { connection },
   );
   docExpiryWorker.on('failed', (job, error) => {
-    logger.error({ queue: QUEUE_NAMES.documentExpiry, jobId: job?.id, err: error }, 'job cảnh báo giấy tờ lỗi');
+    logger.error(
+      { queue: QUEUE_NAMES.documentExpiry, jobId: job?.id, err: error },
+      'job cảnh báo giấy tờ lỗi',
+    );
   });
   await docExpiryWorker.waitUntilReady();
 
-  logger.info({ queues: [QUEUE_NAMES.heartbeat, QUEUE_NAMES.documentExpiry], heartbeatEveryMs }, 'worker ready');
+  // Lịch hằng ngày theo múi giờ từng tenant (task 05). Cần DB: không có DATABASE_URL (vd. test chỉ cần Redis) thì chỉ cảnh báo.
+  const syncDocExpirySchedules = async () => {
+    const { scheduled, removed } = await scheduleDocumentExpiryJobs({
+      db: getDatabase(),
+      queue: docExpiryQueue,
+    });
+    logger.info(
+      { queue: QUEUE_NAMES.documentExpiry, scheduled, removed },
+      'đã đồng bộ lịch cảnh báo giấy tờ',
+    );
+  };
+  let resyncTimer: NodeJS.Timeout | undefined;
+  if (options.db || process.env.DATABASE_URL) {
+    await syncDocExpirySchedules();
+    // Tenant mới hoặc đổi múi giờ được áp dụng sau tối đa 1 giờ, không cần khởi động lại worker.
+    resyncTimer = setInterval(() => {
+      syncDocExpirySchedules().catch((error: unknown) => {
+        logger.error({ err: error }, 'đồng bộ lịch cảnh báo giấy tờ lỗi');
+      });
+    }, 3_600_000);
+    resyncTimer.unref();
+  } else {
+    logger.warn('Thiếu DATABASE_URL: chưa đăng ký lịch cảnh báo giấy tờ fleet.document-expiry');
+  }
+
+  logger.info(
+    { queues: [QUEUE_NAMES.heartbeat, QUEUE_NAMES.documentExpiry], heartbeatEveryMs },
+    'worker ready',
+  );
 
   let stopping: Promise<void> | undefined;
   return {
     stop: () => {
       stopping ??= (async () => {
+        if (resyncTimer) clearInterval(resyncTimer);
         await worker.close();
         await docExpiryWorker.close();
         await queue.close();

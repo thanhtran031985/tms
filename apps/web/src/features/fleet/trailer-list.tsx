@@ -23,25 +23,18 @@ import { FilterTabs, type FilterTab } from '@/components/ui/filter-tabs';
 import { Pill } from '@/components/ui/pill';
 import { StatusChip, type StatusTone } from '@/components/ui/status-chip';
 import { DataTable, WorkTableCard, type Column } from '@/components/ui/work-table';
-import {
-  createTrailer,
-  listTrailers,
-  softDeleteTrailer,
-  updateTrailer,
-} from './actions';
+import { createTrailer, listTrailers, softDeleteTrailer, updateTrailer } from './actions';
 import { ExpiryCell } from './date-helpers';
-import type { FleetAccess, TrailerDto } from './types';
+import { isSystemStatus, SYSTEM_STATUS_LABELS, type FleetAccess, type TrailerDto } from './types';
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; tone: StatusTone; icon: typeof CheckCircle }
-> = {
-  AVAILABLE: { label: 'Sẵn sàng', tone: 'ok', icon: CheckCircle },
-  IN_USE: { label: 'Đang chạy', tone: 'info', icon: Clock },
-  DROPPED: { label: 'Đang hạ bãi', tone: 'neutral', icon: Container },
-  MAINTENANCE: { label: 'Bảo dưỡng', tone: 'crit', icon: Wrench },
-  INACTIVE: { label: 'Tạm ngưng', tone: 'off', icon: XCircle },
-};
+const STATUS_CONFIG: Record<string, { label: string; tone: StatusTone; icon: typeof CheckCircle }> =
+  {
+    AVAILABLE: { label: 'Sẵn sàng', tone: 'ok', icon: CheckCircle },
+    IN_USE: { label: 'Đang chạy', tone: 'info', icon: Clock },
+    DROPPED: { label: 'Đang hạ bãi', tone: 'neutral', icon: Container },
+    MAINTENANCE: { label: 'Bảo dưỡng', tone: 'crit', icon: Wrench },
+    INACTIVE: { label: 'Tạm ngưng', tone: 'off', icon: XCircle },
+  };
 
 function TrailerForm({
   formId,
@@ -71,6 +64,7 @@ function TrailerForm({
   const [inspectionExpiry, setInspectionExpiry] = useState(row?.inspectionExpiry ?? '');
   const [locationNote, setLocationNote] = useState(row?.currentLocationNote ?? '');
   const [status, setStatus] = useState(row?.status ?? 'AVAILABLE');
+  const systemStatus = isSystemStatus(row?.status);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string | null>(null);
@@ -93,7 +87,7 @@ function TrailerForm({
       maxPayloadTons: maxPayload.trim(),
       inspectionExpiry: inspectionExpiry || null,
       currentLocationNote: locationNote.trim() || null,
-      status: status as TrailerDto['status'],
+      ...(systemStatus ? {} : { status: status as 'AVAILABLE' | 'MAINTENANCE' | 'INACTIVE' }),
     };
 
     try {
@@ -235,12 +229,14 @@ function TrailerForm({
         <label className="text-small font-semibold text-ink">Trạng thái rơ moóc</label>
         <select
           value={status}
-          disabled={readOnly}
+          disabled={readOnly || systemStatus}
           className="h-control rounded-control border border-line bg-surface px-12 text-body-sm"
           onChange={(e) => setStatus(e.target.value as TrailerDto['status'])}
         >
+          {systemStatus ? (
+            <option value={status}>{SYSTEM_STATUS_LABELS[status]} (hệ thống tự cập nhật)</option>
+          ) : null}
           <option value="AVAILABLE">Sẵn sàng</option>
-          <option value="DROPPED">Đang hạ bãi</option>
           <option value="MAINTENANCE">Bảo dưỡng</option>
           <option value="INACTIVE">Tạm ngưng hoạt động</option>
         </select>
@@ -347,9 +343,7 @@ export function TrailerList({
       id: 'type',
       header: 'Loại moóc',
       cell: (row) => (
-        <span className="font-mono text-body-sm font-semibold text-ink">
-          {row.trailerType}
-        </span>
+        <span className="font-mono text-body-sm font-semibold text-ink">{row.trailerType}</span>
       ),
     },
     {
@@ -401,11 +395,7 @@ export function TrailerList({
       srOnlyHeader: true,
       cell: (row) => (
         <div className="flex justify-end gap-6">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setDrawer({ row })}
-          >
+          <Button size="sm" variant="ghost" onClick={() => setDrawer({ row })}>
             {canWrite ? 'Sửa' : 'Xem'}
           </Button>
           {canWrite ? (
@@ -425,12 +415,7 @@ export function TrailerList({
 
   const toolbar = (
     <div className="flex flex-wrap items-center justify-between gap-12">
-      <FilterTabs
-        label="Lọc theo loại rơ moóc"
-        tabs={tabs}
-        value={tab}
-        onChange={setTab}
-      />
+      <FilterTabs label="Lọc theo loại rơ moóc" tabs={tabs} value={tab} onChange={setTab} />
 
       <div className="flex items-center gap-8">
         <input
@@ -441,21 +426,12 @@ export function TrailerList({
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={reloading}
-          onClick={reload}
-        >
+        <Button variant="secondary" size="sm" disabled={reloading} onClick={reload}>
           <RefreshCw className={reloading ? 'size-14 animate-spin' : 'size-14'} />
         </Button>
 
         {canWrite ? (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setDrawer({ row: null })}
-          >
+          <Button variant="primary" size="sm" onClick={() => setDrawer({ row: null })}>
             <Plus className="size-14 mr-4" />
             Thêm rơ moóc
           </Button>
@@ -536,12 +512,7 @@ export function TrailerList({
                 Hủy
               </Button>
               {canWrite ? (
-                <Button
-                  variant="primary"
-                  type="submit"
-                  form={formId}
-                  disabled={saving}
-                >
+                <Button variant="primary" type="submit" form={formId} disabled={saving}>
                   {saving ? 'Đang lưu...' : 'Lưu'}
                 </Button>
               ) : null}

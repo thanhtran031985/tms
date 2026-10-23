@@ -10,10 +10,12 @@ import { MAINTENANCE_ORDER_STATUS } from '@shared/enums';
 import { ok } from '@shared/result';
 import {
   driverInputSchema,
+  driverPatchSchema,
   maintenanceOrderInputSchema,
   maintenancePlanInputSchema,
   tractorInputSchema,
-  trailerBaseSchema,
+  tractorPatchSchema,
+  trailerPatchSchema,
   trailerInputSchema,
 } from '@shared/schemas/fleet';
 import { z } from 'zod';
@@ -36,7 +38,7 @@ export const createTractor = defineAction(WRITE, tractorInputSchema, async (ctx,
 
 export const updateTractor = defineAction(
   WRITE,
-  idInputSchema.extend(tractorInputSchema.partial().shape),
+  idInputSchema.extend(tractorPatchSchema.shape),
   async (ctx, { id, ...input }) =>
     ok(await fleetSvc.updateTractor(ctx, getTenantDb(ctx), id, input)),
 );
@@ -57,7 +59,7 @@ export const createTrailer = defineAction(WRITE, trailerInputSchema, async (ctx,
 
 export const updateTrailer = defineAction(
   WRITE,
-  idInputSchema.extend(trailerBaseSchema.partial().shape),
+  idInputSchema.extend(trailerPatchSchema.shape),
   async (ctx, { id, ...input }) =>
     ok(await fleetSvc.updateTrailer(ctx, getTenantDb(ctx), id, input)),
 );
@@ -78,7 +80,7 @@ export const createDriver = defineAction(WRITE, driverInputSchema, async (ctx, i
 
 export const updateDriver = defineAction(
   WRITE,
-  idInputSchema.extend(driverInputSchema.partial().shape),
+  idInputSchema.extend(driverPatchSchema.shape),
   async (ctx, { id, ...input }) =>
     ok(await fleetSvc.updateDriver(ctx, getTenantDb(ctx), id, input)),
 );
@@ -98,8 +100,7 @@ const listExpiringDocsSchema = z.object({
 export const listExpiringDocuments = defineAction(
   READ,
   listExpiringDocsSchema,
-  async (ctx, input) =>
-    ok(await documentsSvc.listExpiringDocuments(ctx, getTenantDb(ctx), input)),
+  async (ctx, input) => ok(await documentsSvc.listExpiringDocuments(ctx, getTenantDb(ctx), input)),
 );
 
 // ================= KẾ HOẠCH & LỆNH BẢO DƯỠNG =================
@@ -162,4 +163,3 @@ const findOverlapSchema = z.object({
 export const findMaintenanceOverlap = defineAction(READ, findOverlapSchema, async (ctx, input) =>
   ok(await maintenanceSvc.findMaintenanceOverlap(ctx, getTenantDb(ctx), input)),
 );
-

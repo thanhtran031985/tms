@@ -65,8 +65,7 @@ describe('fleet repo: cách ly tenant', () => {
     await infra?.stop();
   });
 
-  const repoOf = (tenantId: string) =>
-    createFleetRepo(getTenantDb({ tenantId }, { db: infra.db }));
+  const repoOf = (tenantId: string) => createFleetRepo(getTenantDb({ tenantId }, { db: infra.db }));
   const repoA = () => repoOf(SEED_TENANTS.phucAn.id);
   const repoB = () => repoOf(SEED_TENANTS.saoViet.id);
 

@@ -23,24 +23,17 @@ import { FilterTabs, type FilterTab } from '@/components/ui/filter-tabs';
 import { Pill } from '@/components/ui/pill';
 import { StatusChip, type StatusTone } from '@/components/ui/status-chip';
 import { DataTable, WorkTableCard, type Column } from '@/components/ui/work-table';
-import {
-  createDriver,
-  listDrivers,
-  softDeleteDriver,
-  updateDriver,
-} from './actions';
+import { createDriver, listDrivers, softDeleteDriver, updateDriver } from './actions';
 import { ExpiryCell } from './date-helpers';
-import type { DriverDto, FleetAccess } from './types';
+import { isSystemStatus, SYSTEM_STATUS_LABELS, type DriverDto, type FleetAccess } from './types';
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; tone: StatusTone; icon: typeof CheckCircle }
-> = {
-  AVAILABLE: { label: 'Sẵn sàng', tone: 'ok', icon: CheckCircle },
-  ON_DUTY: { label: 'Đang chạy', tone: 'info', icon: Clock },
-  OFF_DUTY: { label: 'Nghỉ phép', tone: 'off', icon: UserCheck },
-  INACTIVE: { label: 'Tạm ngưng', tone: 'off', icon: UserX },
-};
+const STATUS_CONFIG: Record<string, { label: string; tone: StatusTone; icon: typeof CheckCircle }> =
+  {
+    AVAILABLE: { label: 'Sẵn sàng', tone: 'ok', icon: CheckCircle },
+    ON_DUTY: { label: 'Đang chạy', tone: 'info', icon: Clock },
+    OFF_DUTY: { label: 'Nghỉ phép', tone: 'off', icon: UserCheck },
+    INACTIVE: { label: 'Tạm ngưng', tone: 'off', icon: UserX },
+  };
 
 function DriverForm({
   formId,
@@ -67,6 +60,7 @@ function DriverForm({
     row?.employmentType ?? 'FULL_TIME',
   );
   const [status, setStatus] = useState<DriverDto['status']>(row?.status ?? 'AVAILABLE');
+  const systemStatus = isSystemStatus(row?.status);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string | null>(null);
@@ -87,7 +81,7 @@ function DriverForm({
       dgCertificateNo: dgCertNo.trim() || null,
       dgCertificateExpiry: dgCertExpiry || null,
       employmentType,
-      status,
+      ...(systemStatus ? {} : { status: status as 'AVAILABLE' | 'OFF_DUTY' | 'INACTIVE' }),
     };
 
     try {
@@ -209,10 +203,13 @@ function DriverForm({
           <label className="text-small font-semibold text-ink">Trạng thái công tác</label>
           <select
             value={status}
-            disabled={readOnly}
+            disabled={readOnly || systemStatus}
             className="h-control rounded-control border border-line bg-surface px-12 text-body-sm"
             onChange={(e) => setStatus(e.target.value as DriverDto['status'])}
           >
+            {systemStatus ? (
+              <option value={status}>{SYSTEM_STATUS_LABELS[status]} (hệ thống tự cập nhật)</option>
+            ) : null}
             <option value="AVAILABLE">Sẵn sàng</option>
             <option value="OFF_DUTY">Nghỉ phép</option>
             <option value="INACTIVE">Tạm ngưng</option>
@@ -316,24 +313,18 @@ export function DriverList({
     {
       id: 'fullName',
       header: 'Họ và tên',
-      cell: (row) => (
-        <span className="text-body font-semibold text-ink">{row.fullName}</span>
-      ),
+      cell: (row) => <span className="text-body font-semibold text-ink">{row.fullName}</span>,
     },
     {
       id: 'phone',
       header: 'Số điện thoại',
-      cell: (row) => (
-        <span className="font-mono text-body-sm text-ink">{row.phone}</span>
-      ),
+      cell: (row) => <span className="font-mono text-body-sm text-ink">{row.phone}</span>,
     },
     {
       id: 'nationalId',
       header: 'Số CCCD',
       cell: (row) => (
-        <span className="font-mono text-body-sm text-ink-soft">
-          {row.nationalIdNo || '—'}
-        </span>
+        <span className="font-mono text-body-sm text-ink-soft">{row.nationalIdNo || '—'}</span>
       ),
     },
     {
@@ -343,9 +334,7 @@ export function DriverList({
         <div className="flex items-center gap-6">
           <span className="font-mono text-body-sm text-ink">{row.licenseNo || '—'}</span>
           {row.licenseClass ? (
-            <Pill className="text-caption font-bold bg-surface-2 text-ink">
-              {row.licenseClass}
-            </Pill>
+            <Pill className="text-caption font-bold bg-surface-2 text-ink">{row.licenseClass}</Pill>
           ) : null}
         </div>
       ),
@@ -386,11 +375,7 @@ export function DriverList({
       srOnlyHeader: true,
       cell: (row) => (
         <div className="flex justify-end gap-6">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setDrawer({ row })}
-          >
+          <Button size="sm" variant="ghost" onClick={() => setDrawer({ row })}>
             {canWrite ? 'Sửa' : 'Xem'}
           </Button>
           {canWrite ? (
@@ -410,12 +395,7 @@ export function DriverList({
 
   const toolbar = (
     <div className="flex flex-wrap items-center justify-between gap-12">
-      <FilterTabs
-        label="Lọc theo trạng thái tài xế"
-        tabs={tabs}
-        value={tab}
-        onChange={setTab}
-      />
+      <FilterTabs label="Lọc theo trạng thái tài xế" tabs={tabs} value={tab} onChange={setTab} />
 
       <div className="flex items-center gap-8">
         <input
@@ -426,21 +406,12 @@ export function DriverList({
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={reloading}
-          onClick={reload}
-        >
+        <Button variant="secondary" size="sm" disabled={reloading} onClick={reload}>
           <RefreshCw className={reloading ? 'size-14 animate-spin' : 'size-14'} />
         </Button>
 
         {canWrite ? (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setDrawer({ row: null })}
-          >
+          <Button variant="primary" size="sm" onClick={() => setDrawer({ row: null })}>
             <Plus className="size-14 mr-4" />
             Thêm tài xế
           </Button>
@@ -521,12 +492,7 @@ export function DriverList({
                 Hủy
               </Button>
               {canWrite ? (
-                <Button
-                  variant="primary"
-                  type="submit"
-                  form={formId}
-                  disabled={saving}
-                >
+                <Button variant="primary" type="submit" form={formId} disabled={saving}>
                   {saving ? 'Đang lưu...' : 'Lưu'}
                 </Button>
               ) : null}

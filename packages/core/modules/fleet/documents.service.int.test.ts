@@ -27,7 +27,7 @@ describe('documents.service (rà soát hạn giấy tờ đội xe & tài xế)'
     timezone,
     requestId: 'req-doc-test',
   });
-  const tdbA = () => getTenantDb(ctxA());
+  const tdbA = () => getTenantDb(ctxA(), { db: infra.db });
 
   const runId = Math.random().toString(36).slice(2, 6).toUpperCase();
 
@@ -40,7 +40,7 @@ describe('documents.service (rà soát hạn giấy tờ đội xe & tài xế)'
       plateNumber: `51C-${runId}.01`,
       fuelNormLitersPer100km: '34.00',
       registrationExpiry: '2026-10-19', // -1 ngày: đã hết hạn
-      insuranceExpiry: '2026-11-04',    // +15 ngày: sắp hết hạn (ngày thứ 15)
+      insuranceExpiry: '2026-11-04', // +15 ngày: sắp hết hạn (ngày thứ 15)
       transportBadgeExpiry: '2027-04-01', // xa: không tính
     });
 
@@ -49,7 +49,7 @@ describe('documents.service (rà soát hạn giấy tờ đội xe & tài xế)'
       plateNumber: `51R-${runId}.01`,
       trailerType: '40FT',
       maxPayloadTons: '30.00',
-      inspectionExpiry: '2026-10-20',   // 0 ngày: hôm nay
+      inspectionExpiry: '2026-10-20', // 0 ngày: hôm nay
     });
 
     // 3. Tài xế có: GPLX hết hạn ngày mai (2026-10-21), chứng chỉ DG hết hạn ngày thứ 16 (2026-11-05)
@@ -57,7 +57,7 @@ describe('documents.service (rà soát hạn giấy tờ đội xe & tài xế)'
       fullName: 'Tài Xế Hạn Giấy Tờ',
       phone: '0901112233',
       licenseNo: 'GPLX-EXP-01',
-      licenseExpiry: '2026-10-21',       // +1 ngày: ngày mai
+      licenseExpiry: '2026-10-21', // +1 ngày: ngày mai
       dgCertificateNo: 'DG-EXP-01',
       dgCertificateExpiry: '2026-11-05', // +16 ngày: ngoài khoảng 15 ngày
     });

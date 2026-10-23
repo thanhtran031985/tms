@@ -1,7 +1,9 @@
 import { AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import { StatusChip, type StatusTone } from '@/components/ui/status-chip';
 
-export function parseDaysLeft(dateStr: string | null | undefined): { days: number; text: string; tone: StatusTone } | null {
+export function parseDaysLeft(
+  dateStr: string | null | undefined,
+): { days: number; text: string; tone: StatusTone } | null {
   if (!dateStr) return null;
   const targetUtc = Date.UTC(
     Number(dateStr.slice(0, 4)),
@@ -33,11 +35,7 @@ export function ExpiryCell({ date }: { date: string | null | undefined }) {
   if (!info) return <span>{date}</span>;
 
   const icon =
-    info.tone === 'crit'
-      ? AlertCircle
-      : info.tone === 'warn'
-        ? AlertTriangle
-        : CheckCircle;
+    info.tone === 'crit' ? AlertCircle : info.tone === 'warn' ? AlertTriangle : CheckCircle;
 
   return (
     <div className="flex flex-col gap-2">

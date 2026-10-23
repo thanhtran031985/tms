@@ -3,10 +3,13 @@ import { AppError } from '@shared/errors';
 import {
   type DriverInput,
   driverInputSchema,
+  driverPatchSchema,
   maskDriverPII,
   type TractorInput,
   tractorInputSchema,
-  trailerBaseSchema,
+  tractorPatchSchema,
+  trailerPatchSchema,
+  TWIN20_ON_20FT_MESSAGE,
   type TrailerInput,
   trailerInputSchema,
 } from '@shared/schemas/fleet';
@@ -60,11 +63,11 @@ export async function updateTractor(
 ): Promise<TractorRow> {
   const repo = createFleetRepo(tdb);
   const existing = await repo.tractors.get(id);
-  if (!existing) {
+  if (!existing || existing.deletedAt) {
     throw new AppError('NOT_FOUND', 'Không tìm thấy đầu kéo.');
   }
 
-  const patch = tractorInputSchema.partial().parse(rawInput);
+  const patch = tractorPatchSchema.parse(rawInput);
 
   if (patch.plateNumber && patch.plateNumber !== existing.plateNumber) {
     const duplicate = await repo.tractors.findByPlate(patch.plateNumber);
@@ -88,7 +91,7 @@ export async function softDeleteTractor(
 ): Promise<void> {
   const repo = createFleetRepo(tdb);
   const existing = await repo.tractors.get(id);
-  if (!existing) {
+  if (!existing || existing.deletedAt) {
     throw new AppError('NOT_FOUND', 'Không tìm thấy đầu kéo.');
   }
   await repo.tractors.setDeleted(id, new Date());
@@ -140,11 +143,18 @@ export async function updateTrailer(
 ): Promise<TrailerRow> {
   const repo = createFleetRepo(tdb);
   const existing = await repo.trailers.get(id);
-  if (!existing) {
+  if (!existing || existing.deletedAt) {
     throw new AppError('NOT_FOUND', 'Không tìm thấy rơ moóc.');
   }
 
-  const patch = trailerBaseSchema.partial().parse(rawInput);
+  const patch = trailerPatchSchema.parse(rawInput);
+
+  // Rule 1 (spec 03): kiểm tra trên giá trị sau khi gộp, vì chỉ đổi loại hoặc chỉ bật Twin 20 đều có thể vi phạm.
+  const nextType = patch.trailerType ?? existing.trailerType;
+  const nextTwin20 = patch.canCarryTwin20 ?? existing.canCarryTwin20;
+  if (nextType === '20FT' && nextTwin20) {
+    throw new AppError('VALIDATION_ERROR', TWIN20_ON_20FT_MESSAGE, { field: 'canCarryTwin20' });
+  }
 
   if (patch.plateNumber && patch.plateNumber !== existing.plateNumber) {
     const duplicate = await repo.trailers.findByPlate(patch.plateNumber);
@@ -168,7 +178,7 @@ export async function softDeleteTrailer(
 ): Promise<void> {
   const repo = createFleetRepo(tdb);
   const existing = await repo.trailers.get(id);
-  if (!existing) {
+  if (!existing || existing.deletedAt) {
     throw new AppError('NOT_FOUND', 'Không tìm thấy rơ moóc.');
   }
   await repo.trailers.setDeleted(id, new Date());
@@ -216,11 +226,11 @@ export async function updateDriver(
 ): Promise<DriverRow> {
   const repo = createFleetRepo(tdb);
   const existing = await repo.drivers.get(id);
-  if (!existing) {
+  if (!existing || existing.deletedAt) {
     throw new AppError('NOT_FOUND', 'Không tìm thấy tài xế.');
   }
 
-  const patch = driverInputSchema.partial().parse(rawInput);
+  const patch = driverPatchSchema.parse(rawInput);
 
   await repo.drivers.update(id, patch);
   const updated = await repo.drivers.get(id);
@@ -234,7 +244,7 @@ export async function softDeleteDriver(
 ): Promise<void> {
   const repo = createFleetRepo(tdb);
   const existing = await repo.drivers.get(id);
-  if (!existing) {
+  if (!existing || existing.deletedAt) {
     throw new AppError('NOT_FOUND', 'Không tìm thấy tài xế.');
   }
   await repo.drivers.setDeleted(id, new Date());

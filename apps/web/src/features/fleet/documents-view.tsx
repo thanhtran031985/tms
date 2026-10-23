@@ -25,11 +25,7 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
   DRIVER: 'Tài xế',
 };
 
-export function DocumentsView({
-  initialRows,
-}: {
-  initialRows: ExpiringDocDto[];
-}) {
+export function DocumentsView({ initialRows }: { initialRows: ExpiringDocDto[] }) {
   const [rows, setRows] = useState(initialRows);
   const [reloading, setReloading] = useState(false);
   const [reloadError, setReloadError] = useState(false);
@@ -135,9 +131,7 @@ export function DocumentsView({
         <div className="flex flex-col gap-2">
           <span className="text-body-sm font-medium text-ink">{row.documentLabel}</span>
           {row.documentNo ? (
-            <span className="font-mono text-caption text-ink-subtle">
-              Số: {row.documentNo}
-            </span>
+            <span className="font-mono text-caption text-ink-subtle">Số: {row.documentNo}</span>
           ) : null}
         </div>
       ),
@@ -146,9 +140,7 @@ export function DocumentsView({
       id: 'expiryDate',
       header: 'Ngày hết hạn',
       cell: (row) => (
-        <span className="font-mono text-body-sm font-semibold text-ink">
-          {row.expiryDate}
-        </span>
+        <span className="font-mono text-body-sm font-semibold text-ink">{row.expiryDate}</span>
       ),
     },
     {
@@ -163,16 +155,10 @@ export function DocumentsView({
           );
         }
         if (row.daysRemaining === 0) {
-          return (
-            <span className="font-semibold text-crit text-body-sm">
-              Hết hạn hôm nay
-            </span>
-          );
+          return <span className="font-semibold text-crit text-body-sm">Hết hạn hôm nay</span>;
         }
         return (
-          <span className="font-semibold text-warn text-body-sm">
-            Còn {row.daysRemaining} ngày
-          </span>
+          <span className="font-semibold text-warn text-body-sm">Còn {row.daysRemaining} ngày</span>
         );
       },
     },
@@ -180,12 +166,7 @@ export function DocumentsView({
 
   const toolbar = (
     <div className="flex flex-wrap items-center justify-between gap-12">
-      <FilterTabs
-        label="Lọc theo hạn giấy tờ"
-        tabs={tabs}
-        value={tab}
-        onChange={setTab}
-      />
+      <FilterTabs label="Lọc theo hạn giấy tờ" tabs={tabs} value={tab} onChange={setTab} />
 
       <div className="flex items-center gap-8">
         <input
@@ -196,12 +177,7 @@ export function DocumentsView({
           onChange={(e) => setQuery(e.target.value)}
         />
 
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={reloading}
-          onClick={reload}
-        >
+        <Button variant="secondary" size="sm" disabled={reloading} onClick={reload}>
           <RefreshCw className={reloading ? 'size-14 animate-spin' : 'size-14'} />
         </Button>
       </div>
@@ -218,8 +194,9 @@ export function DocumentsView({
         </Alert>
       ) : expiringSoonCount > 0 ? (
         <Alert tone="warn" icon={<AlertTriangle className="size-16" />}>
-          Có <strong>{expiringSoonCount}</strong> giấy tờ <strong>sắp hết hạn trong 15 ngày tới</strong>.
-          Vui lòng chuẩn bị thủ tục gia hạn kịp thời.
+          Có <strong>{expiringSoonCount}</strong> giấy tờ{' '}
+          <strong>sắp hết hạn trong 15 ngày tới</strong>. Vui lòng chuẩn bị thủ tục gia hạn kịp
+          thời.
         </Alert>
       ) : (
         <Alert tone="ok" icon={<CheckCircle className="size-16" />}>

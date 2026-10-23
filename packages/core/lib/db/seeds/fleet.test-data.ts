@@ -4,7 +4,11 @@ import { SEED_TENANTS } from './identity.test-data';
 
 const id = (n: number) => `0190b000-0000-7000-8000-${n.toString(16).padStart(12, '0')}`;
 
-const addDaysToTenantDate = (baseInstant: Date, days: number, timeZone = DEFAULT_TIME_ZONE): string => {
+const addDaysToTenantDate = (
+  baseInstant: Date,
+  days: number,
+  timeZone = DEFAULT_TIME_ZONE,
+): string => {
   const d = new Date(baseInstant.getTime() + days * 24 * 60 * 60 * 1000);
   return toTenantDate(d, timeZone);
 };
@@ -40,7 +44,7 @@ export function getSeedFleetData(baseInstant = new Date(), timeZone = DEFAULT_TI
         fuelNormLitersPer100km: '36.50',
         currentOdometer: 210000,
         registrationExpiry: rel(-5), // Đã hết hạn đăng kiểm
-        insuranceExpiry: rel(10),   // Sắp hết hạn bảo hiểm
+        insuranceExpiry: rel(10), // Sắp hết hạn bảo hiểm
         transportBadgeExpiry: rel(120),
         permittedGrossWeightTons: '42.00',
         status: 'AVAILABLE' as const,
@@ -53,7 +57,7 @@ export function getSeedFleetData(baseInstant = new Date(), timeZone = DEFAULT_TI
         ownership: 'LEASED' as const,
         fuelNormLitersPer100km: '33.00',
         currentOdometer: 85000,
-        registrationExpiry: rel(7),  // Sắp hết hạn đăng kiểm (7 ngày)
+        registrationExpiry: rel(7), // Sắp hết hạn đăng kiểm (7 ngày)
         insuranceExpiry: rel(30),
         transportBadgeExpiry: rel(30),
         permittedGrossWeightTons: '38.00',
@@ -120,8 +124,8 @@ export function getSeedFleetData(baseInstant = new Date(), timeZone = DEFAULT_TI
         tenantId: phucAn,
         plateNumber: '51R-556.78',
         trailerType: '40FT_COMBO' as const,
-        canCarryTwin20: true,     // Chở Twin 20
-        hasGensetPower: true,     // Có máy lạnh genset
+        canCarryTwin20: true, // Chở Twin 20
+        hasGensetPower: true, // Có máy lạnh genset
         tareWeightTons: '5.20',
         maxPayloadTons: '34.00',
         inspectionExpiry: rel(-2), // Đã hết hạn kiểm định (2 ngày trước)

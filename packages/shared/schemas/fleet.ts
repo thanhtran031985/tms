@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import {
   DRIVER_EMPLOYMENT_TYPES,
-  DRIVER_STATUS,
+  DRIVER_MANUAL_STATUS,
   MAINTENANCE_ORDER_STATUS,
   MAINTENANCE_ORDER_TYPES,
   TRACTOR_OWNERSHIP,
-  TRACTOR_STATUS,
-  TRAILER_STATUS,
+  TRACTOR_MANUAL_STATUS,
+  TRAILER_MANUAL_STATUS,
   TRAILER_TYPES,
 } from '../enums';
 
@@ -54,91 +54,114 @@ const optionalDateString = z
   });
 
 const decimalString = (precision: number, scale: number, label: string) =>
-  z.union([z.string(), z.number()], { error: `Nhập ${label.toLowerCase()}.` }).transform((value, ctx) => {
-    const text = String(value).trim().replace(/\s/g, '');
-    if (!text || Number.isNaN(Number(text))) {
-      ctx.addIssue({ code: 'custom', message: `${label} phải là số hợp lệ.` });
-      return z.NEVER;
-    }
-    const num = Number(text);
-    if (num < 0) {
-      ctx.addIssue({ code: 'custom', message: `${label} không được âm.` });
-      return z.NEVER;
-    }
-    const [whole = '0', fraction = ''] = text.split('.');
-    if (whole.length > precision - scale) {
-      ctx.addIssue({ code: 'custom', message: `${label} vượt quá giới hạn cho phép.` });
-      return z.NEVER;
-    }
-    return `${whole}.${fraction.padEnd(scale, '0').slice(0, scale)}`;
-  });
+  z
+    .union([z.string(), z.number()], { error: `Nhập ${label.toLowerCase()}.` })
+    .transform((value, ctx) => {
+      const text = String(value).trim().replace(/\s/g, '');
+      if (!text || Number.isNaN(Number(text))) {
+        ctx.addIssue({ code: 'custom', message: `${label} phải là số hợp lệ.` });
+        return z.NEVER;
+      }
+      const num = Number(text);
+      if (num < 0) {
+        ctx.addIssue({ code: 'custom', message: `${label} không được âm.` });
+        return z.NEVER;
+      }
+      const [whole = '0', fraction = ''] = text.split('.');
+      if (whole.length > precision - scale) {
+        ctx.addIssue({ code: 'custom', message: `${label} vượt quá giới hạn cho phép.` });
+        return z.NEVER;
+      }
+      return `${whole}.${fraction.padEnd(scale, '0').slice(0, scale)}`;
+    });
 
 const optionalDecimalString = (precision: number, scale: number, label: string) =>
-  z.union([z.string(), z.number()]).nullish().transform((value, ctx) => {
-    if (value === null || value === undefined) return null;
-    const text = String(value).trim().replace(/\s/g, '');
-    if (!text) return null;
-    if (Number.isNaN(Number(text))) {
-      ctx.addIssue({ code: 'custom', message: `${label} phải là số hợp lệ.` });
-      return z.NEVER;
-    }
-    const num = Number(text);
-    if (num < 0) {
-      ctx.addIssue({ code: 'custom', message: `${label} không được âm.` });
-      return z.NEVER;
-    }
-    const [whole = '0', fraction = ''] = text.split('.');
-    if (whole.length > precision - scale) {
-      ctx.addIssue({ code: 'custom', message: `${label} vượt quá giới hạn cho phép.` });
-      return z.NEVER;
-    }
-    return `${whole}.${fraction.padEnd(scale, '0').slice(0, scale)}`;
-  });
+  z
+    .union([z.string(), z.number()])
+    .nullish()
+    .transform((value, ctx) => {
+      if (value === null || value === undefined) return null;
+      const text = String(value).trim().replace(/\s/g, '');
+      if (!text) return null;
+      if (Number.isNaN(Number(text))) {
+        ctx.addIssue({ code: 'custom', message: `${label} phải là số hợp lệ.` });
+        return z.NEVER;
+      }
+      const num = Number(text);
+      if (num < 0) {
+        ctx.addIssue({ code: 'custom', message: `${label} không được âm.` });
+        return z.NEVER;
+      }
+      const [whole = '0', fraction = ''] = text.split('.');
+      if (whole.length > precision - scale) {
+        ctx.addIssue({ code: 'custom', message: `${label} vượt quá giới hạn cho phép.` });
+        return z.NEVER;
+      }
+      return `${whole}.${fraction.padEnd(scale, '0').slice(0, scale)}`;
+    });
 
 // Schema Đầu kéo
-export const tractorInputSchema = z.object({
+const tractorBaseSchema = z.object({
   plateNumber: plateNumberOf('Biển số đầu kéo'),
   model: optionalText(100, 'Model xe'),
-  ownership: z.enum(TRACTOR_OWNERSHIP).default('OWNED'),
   fuelNormLitersPer100km: decimalString(5, 2, 'Định mức dầu cơ sở'),
-  currentOdometer: z.number().int('Km phải là số nguyên').min(0, 'Km không được âm').default(0),
   nextMaintenanceOdometer: z.number().int('Km bảo dưỡng phải là số nguyên').min(0).nullish(),
   registrationExpiry: optionalDateString,
   insuranceExpiry: optionalDateString,
   transportBadgeExpiry: optionalDateString,
   permittedGrossWeightTons: optionalDecimalString(6, 2, 'Khối lượng kéo theo cho phép'),
   gpsDeviceId: optionalId,
-  status: z.enum(TRACTOR_STATUS).default('AVAILABLE'),
 });
+// Trường có giá trị mặc định chỉ áp dụng khi tạo; sửa một phần không được tự đặt lại về mặc định.
+const tractorDefaultedFields = {
+  ownership: z.enum(TRACTOR_OWNERSHIP),
+  currentOdometer: z.number().int('Km phải là số nguyên').min(0, 'Km không được âm'),
+  status: z.enum(TRACTOR_MANUAL_STATUS),
+};
+export const tractorInputSchema = tractorBaseSchema.extend({
+  ownership: tractorDefaultedFields.ownership.default('OWNED'),
+  currentOdometer: tractorDefaultedFields.currentOdometer.default(0),
+  status: tractorDefaultedFields.status.default('AVAILABLE'),
+});
+export const tractorPatchSchema = tractorBaseSchema.extend(tractorDefaultedFields).partial();
 export type TractorInput = z.input<typeof tractorInputSchema>;
 export type TractorOutput = z.output<typeof tractorInputSchema>;
 
 // Schema Rơ moóc (Rule 1: 20FT không được chở Twin 20)
-export const trailerBaseSchema = z.object({
+const trailerBaseSchema = z.object({
   plateNumber: plateNumberOf('Biển số rơ moóc'),
   trailerType: z.enum(TRAILER_TYPES),
-  canCarryTwin20: z.boolean().default(false),
-  hasGensetPower: z.boolean().default(false),
   tareWeightTons: optionalDecimalString(5, 2, 'Tự trọng'),
   maxPayloadTons: decimalString(5, 2, 'Tải trọng cho phép'),
   inspectionExpiry: optionalDateString,
   currentLocationId: optionalId,
   currentLocationNote: optionalText(255, 'Ghi chú vị trí'),
-  status: z.enum(TRAILER_STATUS).default('AVAILABLE'),
 });
+const trailerDefaultedFields = {
+  canCarryTwin20: z.boolean(),
+  hasGensetPower: z.boolean(),
+  status: z.enum(TRAILER_MANUAL_STATUS),
+};
+export const trailerPatchSchema = trailerBaseSchema.extend(trailerDefaultedFields).partial();
 
-export const trailerInputSchema = trailerBaseSchema.refine(
-  (data) => !(data.trailerType === '20FT' && data.canCarryTwin20),
-  {
-    message: 'Rơ moóc 20FT không thể chở 2 cont 20 (canCarryTwin20 phải là false).',
+export const TWIN20_ON_20FT_MESSAGE =
+  'Rơ moóc 20FT không thể chở 2 cont 20 (canCarryTwin20 phải là false).';
+
+export const trailerInputSchema = trailerBaseSchema
+  .extend({
+    canCarryTwin20: trailerDefaultedFields.canCarryTwin20.default(false),
+    hasGensetPower: trailerDefaultedFields.hasGensetPower.default(false),
+    status: trailerDefaultedFields.status.default('AVAILABLE'),
+  })
+  .refine((data) => !(data.trailerType === '20FT' && data.canCarryTwin20), {
+    message: TWIN20_ON_20FT_MESSAGE,
     path: ['canCarryTwin20'],
-  },
-);
+  });
 export type TrailerInput = z.input<typeof trailerInputSchema>;
 export type TrailerOutput = z.output<typeof trailerInputSchema>;
 
 // Schema Tài xế
-export const driverInputSchema = z.object({
+const driverBaseSchema = z.object({
   fullName: requiredText(255, 'Họ và tên tài xế'),
   phone: z
     .string()
@@ -150,9 +173,16 @@ export const driverInputSchema = z.object({
   licenseExpiry: optionalDateString,
   dgCertificateNo: optionalText(30, 'Số chứng chỉ hàng nguy hiểm'),
   dgCertificateExpiry: optionalDateString,
-  employmentType: z.enum(DRIVER_EMPLOYMENT_TYPES).default('FULL_TIME'),
-  status: z.enum(DRIVER_STATUS).default('AVAILABLE'),
 });
+const driverDefaultedFields = {
+  employmentType: z.enum(DRIVER_EMPLOYMENT_TYPES),
+  status: z.enum(DRIVER_MANUAL_STATUS),
+};
+export const driverInputSchema = driverBaseSchema.extend({
+  employmentType: driverDefaultedFields.employmentType.default('FULL_TIME'),
+  status: driverDefaultedFields.status.default('AVAILABLE'),
+});
+export const driverPatchSchema = driverBaseSchema.extend(driverDefaultedFields).partial();
 export type DriverInput = z.input<typeof driverInputSchema>;
 export type DriverOutput = z.output<typeof driverInputSchema>;
 
@@ -177,10 +207,9 @@ export function maskLicense(no: string): string {
   return `${cleaned.slice(0, 3)}xxxxxx${cleaned.slice(-3)}`;
 }
 
-export function maskDriverPII<T extends { phone: string; nationalIdNo?: string | null; licenseNo?: string | null }>(
-  driver: T,
-  role?: string,
-): T {
+export function maskDriverPII<
+  T extends { phone: string; nationalIdNo?: string | null; licenseNo?: string | null },
+>(driver: T, role?: string): T {
   const privilegedRoles = ['OWNER', 'ADMIN', 'FLEET_MANAGER'];
   if (role && privilegedRoles.includes(role)) {
     return driver;
@@ -199,7 +228,11 @@ export const maintenancePlanBaseSchema = z.object({
   trailerId: optionalId,
   taskCode: requiredText(50, 'Mã hạng mục bảo dưỡng'),
   intervalKm: z.number().int('Km phải là số nguyên').min(1, 'Km tối thiểu là 1').nullish(),
-  intervalDays: z.number().int('Số ngày phải là số nguyên').min(1, 'Số ngày tối thiểu là 1').nullish(),
+  intervalDays: z
+    .number()
+    .int('Số ngày phải là số nguyên')
+    .min(1, 'Số ngày tối thiểu là 1')
+    .nullish(),
   lastDoneOdometer: z.number().int('Km phải là số nguyên').min(0).nullish(),
   lastDoneAt: optionalDateString,
 });
@@ -222,8 +255,14 @@ export const maintenanceOrderBaseSchema = z.object({
   vendorId: optionalId,
   type: z.enum(MAINTENANCE_ORDER_TYPES),
   odometerAt: z.number().int('Km phải là số nguyên').min(0).nullish(),
-  plannedStart: z.union([z.string(), z.date()]).nullish().transform((v) => (v ? new Date(v) : null)),
-  plannedEnd: z.union([z.string(), z.date()]).nullish().transform((v) => (v ? new Date(v) : null)),
+  plannedStart: z
+    .union([z.string(), z.date()])
+    .nullish()
+    .transform((v) => (v ? new Date(v) : null)),
+  plannedEnd: z
+    .union([z.string(), z.date()])
+    .nullish()
+    .transform((v) => (v ? new Date(v) : null)),
   cost: optionalDecimalString(15, 2, 'Chi phí'),
   currency: z.string().trim().default('VND'),
   status: z.enum(MAINTENANCE_ORDER_STATUS).default('PLANNED'),
@@ -249,4 +288,3 @@ export const maintenanceOrderInputSchema = maintenanceOrderBaseSchema
 
 export type MaintenanceOrderInput = z.input<typeof maintenanceOrderInputSchema>;
 export type MaintenanceOrderOutput = z.output<typeof maintenanceOrderInputSchema>;
-

@@ -7,7 +7,8 @@ export default function FleetLayout({ children }: { children: ReactNode }) {
       <div>
         <h1 className="text-screen-title text-ink">Đội xe & Tài xế</h1>
         <p className="mt-4 text-ink-soft">
-          Quản lý đầu kéo, rơ moóc, danh sách tài xế, lịch bảo dưỡng và theo dõi hạn giấy tờ vận tải.
+          Quản lý đầu kéo, rơ moóc, danh sách tài xế, lịch bảo dưỡng và theo dõi hạn giấy tờ vận
+          tải.
         </p>
       </div>
       <FleetTabs />

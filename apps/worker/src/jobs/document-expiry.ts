@@ -1,4 +1,5 @@
 // Worker job rà soát và cảnh báo hạn giấy tờ đội xe (spec 02, ADR-007, task 05).
+import type { Queue } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
 import { eq } from 'drizzle-orm';
@@ -7,6 +8,7 @@ import { tenants } from '@core/lib/db/schema';
 import { getTenantDb } from '@core/lib/db/tenant-db';
 import { DEFAULT_TIME_ZONE, toTenantDate } from '@core/lib/time';
 import { listExpiringDocuments } from '@core/modules/fleet/documents.service';
+import { defaultJobOptions } from '../queues';
 
 export type DocumentExpiryJobData = {
   tenantId: string;
@@ -54,9 +56,16 @@ export async function processDocumentExpiryJob(
   const dateStr = toTenantDate(now, timeZone);
   const key = `DOC_EXPIRY:${tenantId}:${dateStr}`;
 
-  // 2. Khóa Idempotency trên Redis: chỉ chạy 1 lần / tenant / ngày
-  const setOk = await redis.set(key, '1', 'EX', 86400 * 2, 'NX');
-  if (!setOk) {
+  if (!tenant || tenant.status !== 'ACTIVE') {
+    logger.info(
+      { tenantId, status: tenant?.status ?? 'NOT_FOUND' },
+      'Tenant không hoạt động, bỏ qua cảnh báo giấy tờ',
+    );
+    return { status: 'SKIPPED', key };
+  }
+
+  // 2. Đã phát hôm nay thì bỏ qua sớm, đỡ phải rà lại.
+  if (await redis.exists(key)) {
     logger.info({ tenantId, dateStr, key }, 'Job cảnh báo giấy tờ đã chạy hôm nay, bỏ qua');
     return { status: 'SKIPPED', key };
   }
@@ -111,12 +120,57 @@ export async function processDocumentExpiryJob(
     })),
   };
 
-  // Publish lên Redis channel
-  await redis.publish('fleet.documents_expiring', JSON.stringify(eventPayload));
-
-  if (onEvent) {
-    await onEvent(eventPayload);
+  // 5. Khóa idempotent chỉ đặt SAU khi rà xong và trước khi phát: lỗi DB ở bước 3 không để lại khóa.
+  // Phát lỗi thì nhả khóa để lần retry của BullMQ phát lại được, không bị bỏ qua.
+  const claimed = await redis.set(key, '1', 'EX', 86400 * 2, 'NX');
+  if (!claimed) {
+    logger.info({ tenantId, dateStr, key }, 'Job cảnh báo giấy tờ đã chạy hôm nay, bỏ qua');
+    return { status: 'SKIPPED', key };
+  }
+  try {
+    await redis.publish('fleet.documents_expiring', JSON.stringify(eventPayload));
+    if (onEvent) {
+      await onEvent(eventPayload);
+    }
+  } catch (error) {
+    await redis.del(key);
+    throw error;
   }
 
   return { status: 'PROCESSED', count: docs.length, key };
+}
+
+// Giờ chạy mặc định theo giờ địa phương của tenant (06:00), trước giờ điều vận làm việc.
+const SCHEDULER_PREFIX = 'doc-expiry:';
+
+// Đăng ký lịch hằng ngày cho từng tenant ACTIVE theo múi giờ của tenant, gỡ lịch của tenant không còn hoạt động.
+// Idempotent: upsertJobScheduler cập nhật lịch cùng id nên chạy lại không nhân đôi.
+export async function scheduleDocumentExpiryJobs(options: {
+  db: Db;
+  queue: Queue<DocumentExpiryJobData>;
+  hour?: number;
+}): Promise<{ scheduled: number; removed: number }> {
+  const { db, queue, hour = 6 } = options;
+  const active = await db
+    .select({ id: tenants.id, timezone: tenants.timezone })
+    .from(tenants)
+    .where(eq(tenants.status, 'ACTIVE'));
+
+  for (const tenant of active) {
+    await queue.upsertJobScheduler(
+      `${SCHEDULER_PREFIX}${tenant.id}`,
+      { pattern: `0 ${hour} * * *`, tz: tenant.timezone || DEFAULT_TIME_ZONE },
+      { name: 'scan', data: { tenantId: tenant.id }, opts: defaultJobOptions },
+    );
+  }
+
+  const activeKeys = new Set(active.map((t) => `${SCHEDULER_PREFIX}${t.id}`));
+  let removed = 0;
+  for (const scheduler of await queue.getJobSchedulers()) {
+    if (scheduler.key.startsWith(SCHEDULER_PREFIX) && !activeKeys.has(scheduler.key)) {
+      await queue.removeJobScheduler(scheduler.key);
+      removed += 1;
+    }
+  }
+  return { scheduled: active.length, removed };
 }
