@@ -42,7 +42,7 @@ import { checkPortReadiness } from './rules/port-readiness';
 import { checkResourceState } from './rules/resource-state';
 
 // Order còn nhận điều xe: đã xác nhận hoặc đang chạy (các container khác của Order vẫn chờ điều).
-const TRIPPABLE_ORDER_STATUSES = ['CONFIRMED', 'IN_PROGRESS', 'PARTIALLY_DELIVERED'] as const;
+export const TRIPPABLE_ORDER_STATUSES = ['CONFIRMED', 'IN_PROGRESS', 'PARTIALLY_DELIVERED'] as const;
 
 // Mã chuyến TRIP-yymm-NNN, bộ đếm theo tenant và tháng (spec 02: seq_key 'TRIP:2026-10').
 export function formatTripCode(tenantDate: string, serial: number): string {
@@ -186,6 +186,7 @@ export function createTripService(deps: DispatchDeps) {
           if (ids) {
             const evaluated = await evaluateAssignment(ctx, tx, {
               tripId: before.id,
+              tripMode: before.tripMode,
               window: { start: input.plannedStart, end: input.plannedEnd },
               ids,
               locked: await lockResources(tx, ids),

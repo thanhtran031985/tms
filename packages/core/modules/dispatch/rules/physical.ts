@@ -1,41 +1,12 @@
 // Ràng buộc vật lý áp cho chuyến một container (spec 03 mục 2, Rule 2, 5, 6, 8). Hàm thuần: nhận dữ liệu đã tải, trả lỗi và cảnh báo.
-// Ghép TWIN_20 và COMBINED (cộng khối lượng nhiều cont) thuộc task 08; hàm này đánh giá từng container một.
-import Decimal from 'decimal.js';
+// Hàm này đánh giá từng container một; khối lượng cộng dồn của chuyến ghép nằm ở weight.ts (task 08).
 import { diffCalendarDays, toTenantDate } from '../../../lib/time';
 import type { OrderContainerRow, OrderRow, OrderStopRow } from '../../orders/repo';
 import type { DriverRow, TractorRow, TrailerRow } from '../../fleet/repo';
 import { noIssues, type RuleResult } from './types';
+import { checkTripWeight } from './weight';
 
-/**
- * Vỏ container chuẩn (tấn) khi chưa có VGM: cont 20 feet 2,3; cont 40 và 45 feet 3,8; cont lạnh (RF) cộng thêm máy lạnh.
- * Số xấp xỉ theo ISO, đủ để cảnh báo quá tải; có VGM thì dùng VGM, không dùng bảng này.
- */
-const TARE_BY_SIZE: Record<string, string> = { '20': '2.3', '40': '3.8', '45': '3.8' };
-const REEFER_EXTRA_TARE = '1.2';
-
-export function standardTareTons(containerType: string): Decimal {
-  const base = new Decimal(TARE_BY_SIZE[containerType.slice(0, 2)] ?? '3.8');
-  return containerType.endsWith('RF') ? base.plus(REEFER_EXTRA_TARE) : base;
-}
-
-export type ContainerWeight =
-  { known: true; tons: Decimal; source: 'VGM' | 'CARGO_PLUS_TARE' } | { known: false };
-
-/** VGM là khối lượng đã gồm vỏ nên ưu tiên; không có thì khối lượng hàng cộng vỏ chuẩn. */
-export function containerWeight(
-  container: Pick<OrderContainerRow, 'vgmTons' | 'cargoWeightTons' | 'containerType'>,
-): ContainerWeight {
-  if (container.vgmTons != null)
-    return { known: true, tons: new Decimal(container.vgmTons), source: 'VGM' };
-  if (container.cargoWeightTons != null) {
-    return {
-      known: true,
-      tons: new Decimal(container.cargoWeightTons).plus(standardTareTons(container.containerType)),
-      source: 'CARGO_PLUS_TARE',
-    };
-  }
-  return { known: false };
-}
+export { containerWeight, standardTareTons, type ContainerWeight } from './weight';
 
 export function checkPhysical(input: {
   container: OrderContainerRow;
@@ -45,8 +16,11 @@ export function checkPhysical(input: {
   plannedEnd: Date;
   timeZone: string;
   confirmMissingWeight: boolean;
+  /** Đã kiểm khối lượng cộng dồn của cả chuyến (checkTripWeight) nên bỏ phần Rule 2 ở đây. */
+  skipWeight?: boolean;
 }): RuleResult {
-  const { container, driver, tractor, trailer, plannedEnd, timeZone, confirmMissingWeight } = input;
+  const { container, driver, tractor, trailer, plannedEnd, timeZone, confirmMissingWeight, skipWeight } =
+    input;
   const result = noIssues();
   const label = container.containerNo ?? `dòng ${container.lineNo}`;
 
@@ -77,72 +51,12 @@ export function checkPhysical(input: {
     }
   }
 
-  // Rule 2: tải trọng. Cần rơ moóc; có đầu kéo thì kiểm thêm khối lượng cho phép của đầu kéo (tra cứu từng rơ moóc không có đầu kéo).
-  if (trailer) {
-    const weight = containerWeight(container);
-    if (!weight.known) {
-      if (confirmMissingWeight) {
-        result.warnings.push({
-          code: 'WEIGHT_MISSING',
-          severity: 'warn',
-          resource: 'CONTAINER',
-          message: `Container ${label} chưa có khối lượng; chưa kiểm tra được tải trọng.`,
-        });
-      } else {
-        result.errors.push({
-          code: 'WEIGHT_CONFIRMATION_REQUIRED',
-          resource: 'CONTAINER',
-          reason: 'WEIGHT_MISSING',
-          message: `Container ${label} chưa có khối lượng nên chưa kiểm tra được tải trọng. Xác nhận đã biết để tiếp tục.`,
-          details: { resource: 'CONTAINER', reason: 'WEIGHT_MISSING' },
-        });
-      }
-    } else {
-      const tons = weight.tons;
-      const maxPayload = new Decimal(trailer.maxPayloadTons);
-      const exceed = (message: string, extra: Record<string, string | number>) =>
-        result.errors.push({
-          code: 'PAYLOAD_EXCEEDED',
-          resource: 'TRAILER',
-          reason: 'PAYLOAD_EXCEEDED',
-          message,
-          details: {
-            resource: 'TRAILER',
-            reason: 'PAYLOAD_EXCEEDED',
-            weightTons: tons.toString(),
-            ...extra,
-          },
-        });
-
-      if (tons.greaterThan(maxPayload)) {
-        exceed(
-          `Container ${label} nặng ${tons.toString()} tấn, vượt tải trọng ${maxPayload.toString()} tấn của rơ moóc ${trailer.plateNumber}.`,
-          { maxPayloadTons: maxPayload.toString() },
-        );
-      } else if (
-        tractor &&
-        trailer.tareWeightTons != null &&
-        tractor.permittedGrossWeightTons != null
-      ) {
-        const gross = tons.plus(trailer.tareWeightTons);
-        const permitted = new Decimal(tractor.permittedGrossWeightTons);
-        if (gross.greaterThan(permitted)) {
-          exceed(
-            `Container ${label} cộng tự trọng rơ moóc là ${gross.toString()} tấn, vượt khối lượng cho phép ${permitted.toString()} tấn của đầu kéo ${tractor.plateNumber}.`,
-            { grossTons: gross.toString(), permittedGrossTons: permitted.toString() },
-          );
-        }
-      }
-      // Bảng tractors chưa có cột tự trọng đầu kéo nên phép tính bỏ phần này; nói rõ để Điều vận biết.
-      if (tractor) {
-        result.warnings.push({
-          code: 'TRACTOR_TARE_NOT_COUNTED',
-          severity: 'info',
-          resource: 'TRACTOR',
-          message: 'Phép kiểm tra khối lượng chưa tính tự trọng đầu kéo (chưa có dữ liệu).',
-        });
-      }
-    }
+  // Rule 2: tải trọng của riêng container này (tra cứu từng rơ moóc). Chuyến nhiều cont dùng checkTripWeight cộng dồn
+  // và truyền skipWeight để không tính hai lần.
+  if (!skipWeight) {
+    const weight = checkTripWeight({ containers: [container], tractor, trailer, confirmMissingWeight });
+    result.errors.push(...weight.errors);
+    result.warnings.push(...weight.warnings);
   }
   return result;
 }

@@ -1,6 +1,7 @@
 // Đánh giá một bộ tài nguyên cho một khung giờ chuyến: khóa theo thứ tự cố định rồi gom lỗi và cảnh báo của mọi quy tắc.
 // Dùng chung cho assignResources, updateTripTimes (đổi giờ chuyến đã gán phải kiểm tra lại như gán mới) và listResourceAvailability.
 import { eq } from 'drizzle-orm';
+import type { TripMode } from '@shared/enums';
 import type { RequestContext } from '../../lib/context';
 import { drivers, tractors, trailers } from '../../lib/db/schema';
 import type { TenantDb } from '../../lib/db/tenant-db';
@@ -14,8 +15,11 @@ import {
 } from './rules/driving-hours';
 import { checkMaintenance } from './rules/maintenance';
 import { findAssignmentOverlaps, overlapError } from './rules/overlap';
+import { checkDangerousGoodsMix } from './rules/dangerous-goods';
 import { checkCutOff, checkPhysical } from './rules/physical';
 import { checkResourceState } from './rules/resource-state';
+import { checkTwin20 } from './rules/twin20';
+import { checkTripWeight } from './rules/weight';
 import {
   mergeResults,
   noIssues,
@@ -153,6 +157,8 @@ export async function evaluateAssignment(
   tx: TenantDb,
   input: {
     tripId: string;
+    /** Chế độ chạy của chuyến (kể cả chế độ sắp áp khi ghép thêm container), để áp Rule 1 và Rule 6. */
+    tripMode: TripMode;
     window: TimeWindow;
     ids: ResourceIds;
     locked: LockedResources;
@@ -161,7 +167,7 @@ export async function evaluateAssignment(
     options: AssignmentOptions;
   },
 ): Promise<AssignmentEvaluation> {
-  const { tripId, window, ids, locked, context, now, options } = input;
+  const { tripId, tripMode, window, ids, locked, context, now, options } = input;
   const common = { window, now, excludeTripId: tripId };
 
   const resources = mergeResults(
@@ -207,6 +213,8 @@ export async function evaluateAssignment(
         plannedEnd: window.end,
         timeZone: ctx.timezone,
         confirmMissingWeight: options.confirmMissingWeight,
+        // Khối lượng tính cộng dồn cho cả chuyến ở dưới.
+        skipWeight: true,
       });
       const order = context.orders.get(container.orderId);
       const cutOff = order
@@ -220,6 +228,19 @@ export async function evaluateAssignment(
       containerRules.errors.push(...physical.errors, ...cutOff.errors);
       containerRules.warnings.push(...physical.warnings, ...cutOff.warnings);
     }
+    // Ràng buộc của cả chuyến: Rule 1 (rơ moóc TWIN_20), Rule 2 (cộng dồn khối lượng), Rule 6 (hàng nguy hiểm khác khách).
+    const tripRules = mergeResults(
+      checkTwin20({ tripMode, containers: context.containers, trailer: locked.trailer }),
+      checkTripWeight({
+        containers: context.containers,
+        tractor: locked.tractor,
+        trailer: locked.trailer,
+        confirmMissingWeight: options.confirmMissingWeight,
+      }),
+      checkDangerousGoodsMix({ tripMode, containers: context.containers, orders: context.orders }),
+    );
+    containerRules.errors.push(...tripRules.errors);
+    containerRules.warnings.push(...tripRules.warnings);
   }
 
   const merged = mergeResults(resources, containerRules);

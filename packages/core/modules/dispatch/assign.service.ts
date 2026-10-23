@@ -2,18 +2,21 @@
 // Khóa bi quan theo thứ tự cố định drivers -> tractors -> trailers; mọi đọc thường (consistent read) chỉ diễn ra SAU khi đã khóa
 // để thấy dữ liệu đã commit của người đi trước. Lỗi trả bằng AppError, Server Action chuyển thành Result.
 import { and, eq, inArray, isNull, ne, notInArray, or } from 'drizzle-orm';
+import type { TripMode } from '@shared/enums';
 import { AppError } from '@shared/errors';
 import {
   parseDispatchSettings,
   type AssignResourcesInput,
   type CancelAssignmentInput,
+  type TenantDispatchSettings,
 } from '@shared/schemas/dispatch';
 import { writeAudit } from '../../lib/audit';
 import type { RequestContext } from '../../lib/context';
 import { isLockContentionError } from '../../lib/db/errors';
 import { dispatchAssignments, drivers, tractors, trailers } from '../../lib/db/schema';
+import type { TenantDb } from '../../lib/db/tenant-db';
 import { can } from '../identity/permissions';
-import { loadTripContext } from './context';
+import { loadTripContext, type TripContext } from './context';
 import {
   authorize,
   emit,
@@ -25,9 +28,156 @@ import {
   updateTripWithVersion,
   type DispatchDeps,
 } from './deps';
-import { evaluateAssignment, lockResources } from './evaluate';
+import {
+  evaluateAssignment,
+  lockResources,
+  type LockedResources,
+  type ResourceIds,
+} from './evaluate';
 import type { TripResult } from './index';
 import { createDispatchRepo, type AssignmentRow, type TripRow } from './repo';
+
+export type ApplyAssignmentInput = {
+  /** Chuyến đã khóa, trạng thái PLANNED. */
+  trip: TripRow;
+  /** Chế độ chạy áp quy tắc; khác trip.tripMode khi đang ghép thêm container (chuyến SINGLE sắp thành TWIN_20). */
+  tripMode: TripMode;
+  ids: ResourceIds;
+  /** Kết quả lockResources: phải khóa TRƯỚC khi gọi. */
+  locked: LockedResources;
+  context: TripContext;
+  settings: TenantDispatchSettings;
+  confirmMissingWeight: boolean;
+  overrideDrivingHours: { reason: string } | null;
+  /** Cập nhật thêm cho chuyến trong cùng lần tăng version (vd. tripMode khi ghép thêm container). */
+  tripSet?: Parameters<typeof updateTripWithVersion>[2];
+};
+
+/**
+ * Đánh giá rồi ghi gán tài nguyên cho chuyến trong transaction của người gọi: hủy assignment cũ của chuyến (gán lại), tạo mới
+ * một dòng cho mỗi Stop, đồng bộ primary*, tăng version, audit. Người gọi đã khóa chuyến và tài nguyên theo thứ tự cố định
+ * (spec 03 mục 1). Dùng chung cho assignResources, createConsolidatedTrip và addContainerToTrip.
+ */
+export async function applyAssignment(
+  ctx: RequestContext,
+  tx: TenantDb,
+  deps: DispatchDeps,
+  input: ApplyAssignmentInput,
+): Promise<{ trip: TripRow; assignments: AssignmentRow[]; warnings: TripResult['warnings'] }> {
+  const { trip, ids, locked, context, settings } = input;
+  const window = { start: trip.plannedStart, end: trip.plannedEnd };
+  const evaluated = await evaluateAssignment(ctx, tx, {
+    tripId: trip.id,
+    tripMode: input.tripMode,
+    window,
+    ids,
+    locked,
+    context,
+    now: deps.now(),
+    options: {
+      maxDrivingHoursPerDay: settings.maxDrivingHoursPerDay,
+      confirmMissingWeight: input.confirmMissingWeight,
+      overrideDrivingHours: input.overrideDrivingHours,
+    },
+  });
+  const blocking = evaluated.errors[0];
+  if (blocking) throw new AppError(blocking.code, blocking.message, blocking.details);
+
+  // Ghi: hủy assignment cũ của chuyến (gán lại), tạo mới một dòng cho mỗi Stop, đồng bộ primary*, tăng version, audit.
+  const repo = createDispatchRepo(tx);
+  const stops = context.stops;
+  if (stops.length === 0) {
+    throw new AppError('VALIDATION_ERROR', 'Container của chuyến chưa có Stop để gán.', {
+      field: 'tripId',
+    });
+  }
+
+  const previous = (
+    await repo.assignments.list(eq(dispatchAssignments.consolidatedTripId, trip.id))
+  ).filter(isActiveAssignment);
+  for (const old of previous) {
+    await repo.assignments.updateWhere(
+      and(
+        eq(dispatchAssignments.id, old.id),
+        notInArray(dispatchAssignments.status, INACTIVE_ASSIGNMENT_STATUSES),
+      )!,
+      { status: 'CANCELLED', version: old.version + 1 },
+    );
+    await writeAudit(tx, ctx, {
+      entity: 'dispatch_assignments',
+      entityId: old.id,
+      action: 'CANCEL',
+      before: snapshot(old),
+      after: { ...snapshot(old), status: 'CANCELLED', version: old.version + 1 },
+    });
+  }
+
+  const now = deps.now();
+  const inserted = await repo.assignments.insertMany(
+    stops.map((stop) => ({
+      consolidatedTripId: trip.id,
+      stopId: stop.id,
+      assignmentType: 'INTERNAL_FLEET' as const,
+      driverId: ids.driverId,
+      tractorId: ids.tractorId,
+      trailerId: ids.trailerId,
+      plannedStart: window.start,
+      plannedEnd: window.end,
+      dispatchedAt: now,
+      createdBy: ctx.userId,
+    })),
+  );
+  // insertMany trả đúng giá trị đã ghi (không có mặc định của DB như status, version): đọc lại bản đầy đủ.
+  const created = await repo.assignments.list(
+    inArray(
+      dispatchAssignments.id,
+      inserted.map((a) => a.id),
+    ),
+  );
+  for (const assignment of created) {
+    await writeAudit(tx, ctx, {
+      entity: 'dispatch_assignments',
+      entityId: assignment.id,
+      action: 'CREATE',
+      before: null,
+      after: snapshot(assignment),
+    });
+  }
+
+  await updateTripWithVersion(tx, trip, {
+    ...input.tripSet,
+    primaryDriverId: ids.driverId,
+    primaryTractorId: ids.tractorId,
+    primaryTrailerId: ids.trailerId,
+  });
+  await writeAudit(tx, ctx, {
+    entity: 'consolidated_trips',
+    entityId: trip.id,
+    action: 'ASSIGN',
+    before: {
+      primaryDriverId: trip.primaryDriverId,
+      primaryTractorId: trip.primaryTractorId,
+      primaryTrailerId: trip.primaryTrailerId,
+      version: trip.version,
+    },
+    after: {
+      primaryDriverId: ids.driverId,
+      primaryTractorId: ids.tractorId,
+      primaryTrailerId: ids.trailerId,
+      version: trip.version + 1,
+      assignmentIds: created.map((a) => a.id).join(','),
+      ...(evaluated.drivingHoursOverrideReason
+        ? { drivingHoursOverrideReason: evaluated.drivingHoursOverrideReason }
+        : {}),
+    },
+  });
+
+  return {
+    trip: (await repo.trips.get(trip.id))!,
+    assignments: created,
+    warnings: evaluated.warnings,
+  };
+}
 
 export function createAssignService(deps: DispatchDeps) {
   async function assignResources(
@@ -62,120 +212,19 @@ export function createAssignService(deps: DispatchDeps) {
           };
           const locked = await lockResources(tx, ids);
 
-          // 3) Sau khi giữ khóa mới đọc thường: kiểm tra quy tắc.
-          const window = { start: trip.plannedStart, end: trip.plannedEnd };
+          // 3) Sau khi giữ khóa mới đọc thường: kiểm tra quy tắc rồi ghi (dùng chung với ghép chuyến).
           const context = await loadTripContext(tx, trip.id);
-          const evaluated = await evaluateAssignment(ctx, tx, {
-            tripId: trip.id,
-            window,
+          const applied = await applyAssignment(ctx, tx, deps, {
+            trip,
+            tripMode: trip.tripMode,
             ids,
             locked,
             context,
-            now: deps.now(),
-            options: {
-              maxDrivingHoursPerDay: settings.maxDrivingHoursPerDay,
-              confirmMissingWeight: input.confirmMissingWeight === true,
-              overrideDrivingHours: input.overrideDrivingHours ?? null,
-            },
+            settings,
+            confirmMissingWeight: input.confirmMissingWeight === true,
+            overrideDrivingHours: input.overrideDrivingHours ?? null,
           });
-          const blocking = evaluated.errors[0];
-          if (blocking) throw new AppError(blocking.code, blocking.message, blocking.details);
-
-          // 4) Ghi: hủy assignment cũ của chuyến (gán lại), tạo mới một dòng cho mỗi Stop, đồng bộ primary*, tăng version, audit.
-          const repo = createDispatchRepo(tx);
-          const stops = context.stops;
-          const containerIds = context.orderContainerIds;
-          if (stops.length === 0) {
-            throw new AppError('VALIDATION_ERROR', 'Container của chuyến chưa có Stop để gán.', {
-              field: 'tripId',
-            });
-          }
-
-          const previous = (
-            await repo.assignments.list(eq(dispatchAssignments.consolidatedTripId, trip.id))
-          ).filter(isActiveAssignment);
-          for (const old of previous) {
-            await repo.assignments.updateWhere(
-              and(
-                eq(dispatchAssignments.id, old.id),
-                notInArray(dispatchAssignments.status, INACTIVE_ASSIGNMENT_STATUSES),
-              )!,
-              { status: 'CANCELLED', version: old.version + 1 },
-            );
-            await writeAudit(tx, ctx, {
-              entity: 'dispatch_assignments',
-              entityId: old.id,
-              action: 'CANCEL',
-              before: snapshot(old),
-              after: { ...snapshot(old), status: 'CANCELLED', version: old.version + 1 },
-            });
-          }
-
-          const now = deps.now();
-          const inserted = await repo.assignments.insertMany(
-            stops.map((stop) => ({
-              consolidatedTripId: trip.id,
-              stopId: stop.id,
-              assignmentType: 'INTERNAL_FLEET' as const,
-              driverId: input.driverId,
-              tractorId: input.tractorId,
-              trailerId: input.trailerId,
-              plannedStart: window.start,
-              plannedEnd: window.end,
-              dispatchedAt: now,
-              createdBy: ctx.userId,
-            })),
-          );
-          // insertMany trả đúng giá trị đã ghi (không có mặc định của DB như status, version): đọc lại bản đầy đủ.
-          const created = await repo.assignments.list(
-            inArray(
-              dispatchAssignments.id,
-              inserted.map((a) => a.id),
-            ),
-          );
-          for (const assignment of created) {
-            await writeAudit(tx, ctx, {
-              entity: 'dispatch_assignments',
-              entityId: assignment.id,
-              action: 'CREATE',
-              before: null,
-              after: snapshot(assignment),
-            });
-          }
-
-          await updateTripWithVersion(tx, trip, {
-            primaryDriverId: input.driverId,
-            primaryTractorId: input.tractorId,
-            primaryTrailerId: input.trailerId,
-          });
-          await writeAudit(tx, ctx, {
-            entity: 'consolidated_trips',
-            entityId: trip.id,
-            action: 'ASSIGN',
-            before: {
-              primaryDriverId: trip.primaryDriverId,
-              primaryTractorId: trip.primaryTractorId,
-              primaryTrailerId: trip.primaryTrailerId,
-              version: trip.version,
-            },
-            after: {
-              primaryDriverId: input.driverId,
-              primaryTractorId: input.tractorId,
-              primaryTrailerId: input.trailerId,
-              version: trip.version + 1,
-              assignmentIds: created.map((a) => a.id).join(','),
-              ...(evaluated.drivingHoursOverrideReason
-                ? { drivingHoursOverrideReason: evaluated.drivingHoursOverrideReason }
-                : {}),
-            },
-          });
-
-          return {
-            trip: (await repo.trips.get(trip.id))!,
-            assignments: created,
-            warnings: evaluated.warnings,
-            orderContainerIds: containerIds,
-          };
+          return { ...applied, orderContainerIds: context.orderContainerIds };
         },
         { lockWaitTimeoutSec: LOCK_WAIT_TIMEOUT_SECONDS },
       );
