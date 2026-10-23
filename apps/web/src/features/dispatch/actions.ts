@@ -3,16 +3,22 @@
 // Server Action điều vận (task 06). Mỗi action dựng bằng defineAction: requireRole → zod → service → Result.
 // Service kiểm lại quyền, khóa bi quan tài nguyên và ghi audit trong cùng transaction; sau khi service trả ok mới làm mới /dispatch.
 import { rolesFor } from '@core/modules/identity/permissions';
-import type { TripResult } from '@core/modules/dispatch';
+import type { RemoveContainerResult, TripResult } from '@core/modules/dispatch';
 import { ok } from '@shared/result';
 import {
+  addContainerToTripSchema,
   assignResourcesSchema,
   cancelAssignmentSchema,
+  createConsolidatedTripSchema,
   createSingleTripSchema,
   dispatchTripSchema,
   getDispatchBoardSchema,
+  linkStreetTurnSchema,
   listResourceAvailabilitySchema,
+  listStreetTurnsSchema,
   loadBoardCardsSchema,
+  removeContainerFromTripSchema,
+  setStreetTurnApprovalSchema,
   updateTripTimesSchema,
 } from '@shared/schemas/dispatch';
 import { revalidatePath } from 'next/cache';
@@ -36,6 +42,7 @@ function summary({ trip, assignments, warnings }: TripResult) {
       primaryDriverId: trip.primaryDriverId,
       primaryTractorId: trip.primaryTractorId,
       primaryTrailerId: trip.primaryTrailerId,
+      tripMode: trip.tripMode,
     },
     assignments: assignments.map((a) => ({
       id: a.id,
@@ -93,4 +100,71 @@ export const loadDispatchBoard = defineAction(VIEW, getDispatchBoardSchema, asyn
 
 export const loadBoardCards = defineAction(VIEW, loadBoardCardsSchema, async (ctx, input) =>
   ok(await svc().getBoardCards(ctx, input)),
+);
+
+// ---- Ghép chuyến, tách chuyến và Street Turn (task 08).
+export const createConsolidatedTrip = defineAction(
+  ASSIGN,
+  createConsolidatedTripSchema,
+  async (ctx, input) => {
+    const result = await svc().createConsolidatedTrip(ctx, input);
+    revalidatePath('/dispatch');
+    return ok(summary(result));
+  },
+);
+
+export const addContainerToTrip = defineAction(ASSIGN, addContainerToTripSchema, async (ctx, input) => {
+  const result = await svc().addContainerToTrip(ctx, input);
+  revalidatePath('/dispatch');
+  return ok(summary(result));
+});
+
+function removedSummary(result: RemoveContainerResult) {
+  return {
+    ...summary(result),
+    removedContainerId: result.removedContainerId,
+    repriceContainerIds: result.repriceContainerIds,
+  };
+}
+
+export const removeContainerFromTrip = defineAction(
+  ASSIGN,
+  removeContainerFromTripSchema,
+  async (ctx, input) => {
+    const result = await svc().removeContainerFromTrip(ctx, input);
+    revalidatePath('/dispatch');
+    return ok(removedSummary(result));
+  },
+);
+
+// Trả về hai container của cặp (số cont, số chấp thuận), không trả cả dòng DB.
+function streetTurnSummary(result: Awaited<ReturnType<ReturnType<typeof svc>['linkStreetTurn']>>) {
+  return {
+    importContainerId: result.importContainer.id,
+    exportContainerId: result.exportContainer.id,
+    containerNo: result.exportContainer.containerNo,
+    approvalRef: result.exportContainer.streetTurnApprovalRef,
+    feeAmount: result.fee?.amount ?? null,
+  };
+}
+
+export const linkStreetTurn = defineAction(ASSIGN, linkStreetTurnSchema, async (ctx, input) => {
+  const result = await svc().linkStreetTurn(ctx, input);
+  revalidatePath('/dispatch');
+  return ok(streetTurnSummary(result));
+});
+
+export const setStreetTurnApproval = defineAction(
+  ASSIGN,
+  setStreetTurnApprovalSchema,
+  async (ctx, input) => {
+    const result = await svc().setStreetTurnApproval(ctx, input);
+    revalidatePath('/dispatch');
+    return ok(streetTurnSummary(result));
+  },
+);
+
+// Danh sách Street Turn (chờ chấp thuận): chỉ đọc nên không làm mới trang.
+export const listStreetTurns = defineAction(VIEW, listStreetTurnsSchema, async (ctx, input) =>
+  ok(await svc().listStreetTurns(ctx, input)),
 );

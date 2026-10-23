@@ -50,9 +50,12 @@ import { cn } from '@/lib/utils';
 import {
   assignResources,
   cancelAssignment,
+  createConsolidatedTrip,
   createSingleTrip,
+  linkStreetTurn,
   loadBoardCards,
   loadDispatchBoard,
+  removeContainerFromTrip,
 } from './actions';
 import { AssignPanel, type AssignSelection } from './assign-panel';
 import { performAssign, safeCall, type AssignDeps, type AssignOutcome } from './assign-flow';
@@ -74,12 +77,15 @@ import {
   shiftDate,
   type BoardFilters,
 } from './board-view';
+import { CombineDialog, type CombineChoice } from './combine-dialog';
 import { ConfirmDialog } from './confirm-dialog';
+import { combinedWindow, streetTurnPair, togglePick } from './consolidate-view';
 import { DispatchCard } from './dispatch-card';
 import { describeDispatchError, type DispatchErrorView } from './error-messages';
 import { KanbanColumn } from './kanban-column';
 import { laneCollisionDetection, laneKeyboardCoordinates } from './lane-dnd';
 import { ResourceLanes } from './resource-lanes';
+import { StreetTurnPanel } from './street-turn-panel';
 import { useDispatchStream } from './use-dispatch-stream';
 
 export type BoardAccess = {
@@ -171,6 +177,14 @@ export function DispatchBoardView({
   const [assigning, setAssigning] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  // Ghép chuyến (task 08): thẻ đã chọn để ghép, hộp ghép, thẻ đang hỏi tách chuyến, khóa tải lại danh sách Street Turn.
+  const [picked, setPicked] = useState<string[]>([]);
+  const [combineOpen, setCombineOpen] = useState(false);
+  const [combineBusy, setCombineBusy] = useState(false);
+  const [combineError, setCombineError] = useState<string | null>(null);
+  const [splitCard, setSplitCard] = useState<BoardCard | null>(null);
+  const [splitBusy, setSplitBusy] = useState(false);
+  const [streetTurnKey, setStreetTurnKey] = useState(0);
   const noticeSeq = useRef(0);
 
   // "Bây giờ" chạy theo đồng hồ trình duyệt, cập nhật mỗi 30 giây (thẻ đếm ngược, vạch trên lịch xe).
@@ -244,6 +258,7 @@ export function DispatchBoardView({
       reactStartTransition(() => {
         setSyncError(false);
         setLastSyncedAt(Date.now());
+        setStreetTurnKey((n) => n + 1);
       });
       // Lịch xe và số đếm chiều hàng đến từ máy chủ: làm mới, không quá một lần mỗi 2 giây.
       if (Date.now() - lanesRefreshedAt.current > 2000) {
@@ -426,6 +441,118 @@ export function DispatchBoardView({
     });
   };
 
+  // ---- Ghép chuyến (task 08): chọn 2 thẻ Chờ điều rồi "Ghép chuyến"; chuyến tạo xong thì mở bảng gán xe cho cả chuyến.
+  const pickedCards = useMemo(
+    () =>
+      picked
+        .map((id) => view.columns.WAITING.cards.find((c) => c.orderContainerId === id))
+        .filter((c): c is BoardCard => c !== undefined),
+    [picked, view.columns.WAITING.cards],
+  );
+  const pickedSet = useMemo(() => new Set(picked), [picked]);
+
+  const submitCombine = (choice: CombineChoice) => {
+    if (pickedCards.length !== 2) return;
+    const window = combinedWindow(pickedCards);
+    if (!window) {
+      setCombineError(
+        'Một trong hai container chưa có giờ lấy hoặc trả hàng ở Stop đầu nên chưa có khung giờ chuyến. Nhập giờ trong Order rồi ghép lại.',
+      );
+      return;
+    }
+    const ids = pickedCards.map((c) => c.orderContainerId);
+    const pair = streetTurnPair(pickedCards);
+    setCombineError(null);
+    setCombineBusy(true);
+    startTransition(async () => {
+      if (choice.streetTurn && pair) {
+        const linked = await safeCall(() =>
+          linkStreetTurn({
+            importContainerId: pair.importCard.orderContainerId,
+            exportContainerId: pair.exportCard.orderContainerId,
+          }),
+        );
+        if (!linked.ok) {
+          reactStartTransition(() => {
+            setCombineBusy(false);
+            setCombineError(describeDispatchError(linked).text);
+          });
+          return;
+        }
+      }
+      const result = await safeCall(() =>
+        createConsolidatedTrip({
+          tripMode: choice.mode,
+          orderContainerIds: ids,
+          plannedStart: window.start,
+          plannedEnd: window.end,
+        }),
+      );
+      if (result.ok) {
+        await refreshCards(ids);
+        const names = pickedCards.map((c) => c.containerNo ?? 'container').join(' và ');
+        const warnings = result.data.warnings
+          .filter((w) => w.severity !== 'info')
+          .map((w) => w.message);
+        reactStartTransition(() => {
+          setCombineBusy(false);
+          setCombineOpen(false);
+          setPicked([]);
+          setTarget({ cardId: ids[0]!, tractorId: null });
+          showNotice({
+            kind: 'info',
+            text: [`Đã ghép ${choice.mode} cho ${names}. Chọn xe để gán cho cả chuyến.`, ...warnings].join(
+              ' ',
+            ),
+          });
+        });
+        return;
+      }
+      const errorView = describeDispatchError(result);
+      if (errorView.kind === 'stale') await refreshCards(ids);
+      reactStartTransition(() => {
+        setCombineBusy(false);
+        setCombineError(errorView.text);
+      });
+    });
+  };
+
+  const submitSplit = () => {
+    const card = splitCard;
+    const trip = card?.trip;
+    if (!card || !trip) return;
+    setSplitBusy(true);
+    startTransition(async () => {
+      const result = await safeCall(() =>
+        removeContainerFromTrip({
+          tripId: trip.id,
+          version: trip.version,
+          orderContainerId: card.orderContainerId,
+        }),
+      );
+      const errorView = result.ok ? null : describeDispatchError(result);
+      if (result.ok || errorView?.kind === 'stale') {
+        await refreshCards([
+          card.orderContainerId,
+          ...(result.ok ? result.data.repriceContainerIds : []),
+        ]);
+      }
+      reactStartTransition(() => {
+        setSplitBusy(false);
+        setSplitCard(null);
+        setTarget((current) => (current?.cardId === card.orderContainerId ? null : current));
+        if (result.ok) {
+          showNotice({
+            kind: 'info',
+            text: `Đã tách ${card.containerNo ?? 'container'} khỏi chuyến ${trip.code}. Giá của các container trong chuyến cần tính lại.`,
+          });
+        } else if (errorView) {
+          showNotice({ kind: 'error', text: errorView.text });
+        }
+      });
+    });
+  };
+
   // ---- Kéo thả (dnd-kit): chuột kéo cả thẻ, bàn phím dùng nút kéo của thẻ đang chọn.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -550,6 +677,35 @@ export function DispatchBoardView({
         ) : null}
       </div>
 
+      {access.assign && picked.length > 0 ? (
+        <section
+          aria-label="Ghép chuyến"
+          data-combine-bar
+          className="flex flex-wrap items-center gap-12 rounded-card border border-primary bg-info-soft px-16 py-10"
+        >
+          <span className="text-body-sm">
+            Đã chọn <strong>{picked.length}/2</strong> container để ghép chuyến
+            {pickedCards.length > 0
+              ? `: ${pickedCards.map((c) => c.containerNo ?? 'chưa có số').join(', ')}`
+              : ''}
+          </span>
+          <span className="flex-1" />
+          <Button
+            size="sm"
+            disabled={pickedCards.length !== 2}
+            onClick={() => {
+              setCombineError(null);
+              setCombineOpen(true);
+            }}
+          >
+            Ghép chuyến
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setPicked([])}>
+            Bỏ chọn
+          </Button>
+        </section>
+      ) : null}
+
       {showError ? (
         <Alert
           tone="crit"
@@ -638,6 +794,12 @@ export function DispatchBoardView({
                   nowMs={nowMs}
                   timeZone={timeZone}
                   selectable={access.assign && id === 'WAITING'}
+                  canAssign={access.assign}
+                  pickedIds={pickedSet}
+                  onTogglePick={(card: BoardCard) =>
+                    setPicked((current) => togglePick(current, card.orderContainerId))
+                  }
+                  onSplit={setSplitCard}
                   selectedId={target?.cardId ?? null}
                   onSelect={(card: BoardCard) =>
                     setTarget((current) =>
@@ -666,6 +828,12 @@ export function DispatchBoardView({
             />
           ) : null}
 
+          <StreetTurnPanel
+            canEdit={access.assign}
+            reloadKey={streetTurnKey}
+            onChanged={(ids) => void refreshCards(ids)}
+          />
+
           {view.lanes ? (
             <ResourceLanes
               lanes={view.lanes}
@@ -693,6 +861,29 @@ export function DispatchBoardView({
           </DragOverlay>
         </DndContext>
       )}
+
+      <CombineDialog
+        key={picked.join(',')}
+        open={combineOpen}
+        cards={pickedCards}
+        busy={combineBusy}
+        error={combineError}
+        onConfirm={submitCombine}
+        onCancel={() => setCombineOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={splitCard !== null}
+        title="Tách chuyến"
+        confirmLabel="Tách chuyến"
+        busy={splitBusy}
+        onCancel={() => setSplitCard(null)}
+        onConfirm={submitSplit}
+      >
+        Tách <strong className="font-mono">{splitCard?.containerNo ?? 'container'}</strong> khỏi
+        chuyến {splitCard?.trip?.code} ({splitCard?.trip?.mode}). Container quay về cột Chờ điều,
+        chuyến còn lại chạy một mình và giá của các container trong chuyến cần tính lại.
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={confirm !== null}

@@ -4,7 +4,16 @@ import type { BoardCard } from '@shared/dispatch-board';
 import { deadlineStatus, type DeadlineLevel } from '@shared/deadline';
 
 export type ChipTone = 'crit' | 'warn' | 'ok' | 'info';
-export type ChipIcon = 'clock' | 'check' | 'lock' | 'snowflake' | 'warning' | 'swap' | 'file';
+export type ChipIcon =
+  | 'clock'
+  | 'check'
+  | 'lock'
+  | 'snowflake'
+  | 'warning'
+  | 'swap'
+  | 'file'
+  | 'merge'
+  | 'refresh';
 export type ChipSpec = { key: string; tone: ChipTone; icon: ChipIcon; label: string };
 
 const LEVEL_TONE: Record<DeadlineLevel, ChipTone> = { crit: 'crit', warn: 'warn', info: 'info' };
@@ -74,8 +83,20 @@ export function cardChips(card: BoardCard, nowMs: number, timeZone: string): Chi
   if (card.isDangerousGoods) {
     chips.push({ key: 'dg', tone: 'warn', icon: 'warning', label: 'Hàng nguy hiểm' });
   }
-  if (card.isStreetTurn)
-    chips.push({ key: 'st', tone: 'info', icon: 'swap', label: 'Street Turn' });
+  if (card.trip && card.trip.mode !== 'SINGLE') {
+    chips.push({ key: 'mode', tone: 'info', icon: 'merge', label: card.trip.mode });
+  }
+  if (card.isStreetTurn) {
+    // Chưa có số chấp thuận của hãng tàu thì chuyến chưa được điều (spec 03 Rule 3): nhắc ngay trên thẻ.
+    chips.push(
+      card.streetTurnApprovalRef
+        ? { key: 'st', tone: 'info', icon: 'swap', label: 'Street Turn' }
+        : { key: 'st', tone: 'warn', icon: 'swap', label: 'Street Turn chờ chấp thuận' },
+    );
+  }
+  if (card.repriceRequired) {
+    chips.push({ key: 'reprice', tone: 'warn', icon: 'refresh', label: 'Cần tính lại giá' });
+  }
   if (card.missing.includes('CONTAINER_NO')) {
     chips.push({ key: 'no-cont', tone: 'warn', icon: 'file', label: 'Thiếu số cont' });
   }

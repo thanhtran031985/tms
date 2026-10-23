@@ -366,13 +366,21 @@ export function createBoardQuery(deps: DispatchDeps) {
         isReefer: container.containerType.endsWith('RF'),
         isDangerousGoods: container.isDangerousGoods,
         isStreetTurn: container.linkedContainerId !== null,
+        streetTurnApprovalRef: container.streetTurnApprovalRef,
+        repriceRequired: container.repriceRequired,
         missing: missingOf(container),
         column,
         windowStart: iso(windowStart),
         windowEnd: iso(windowEnd),
         windowFromTrip: !!trip,
         trip: trip
-          ? { id: trip.id, code: trip.tripCode, version: trip.version, status: trip.status }
+          ? {
+              id: trip.id,
+              code: trip.tripCode,
+              version: trip.version,
+              status: trip.status,
+              mode: trip.tripMode,
+            }
           : null,
         tractorPlate: first?.tractorId ? (tractorById.get(first.tractorId) ?? null) : null,
         trailerPlate: first?.trailerId ? (trailerById.get(first.trailerId) ?? null) : null,

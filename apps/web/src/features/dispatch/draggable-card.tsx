@@ -12,10 +12,13 @@ import { cn } from '@/lib/utils';
 export function DraggableCard({
   card,
   selected,
+  below,
   children,
 }: {
   card: BoardCard;
   selected: boolean;
+  /** Nút phụ dưới thẻ (chọn để ghép, tách chuyến); không phải vùng kéo. */
+  below?: ReactNode;
   children: ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
@@ -43,6 +46,7 @@ export function DraggableCard({
           Kéo vào làn xe
         </button>
       ) : null}
+      {below}
     </div>
   );
 }

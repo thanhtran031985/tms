@@ -7,7 +7,8 @@ import { createTariffService, type TariffService } from '@core/modules/billing/t
 import { createIdentityRepo, type IdentityRepo } from '@core/modules/identity/repo';
 import { createOrderService, type OrderService } from '@core/modules/orders/service';
 import { createDispatchService, type DispatchService } from '@core/modules/dispatch';
-import { publishDispatchEvent } from '@core/lib/redis/publish';
+import { detachContainersFromTrips } from '@core/modules/dispatch/split.service';
+import { publishDispatchEvent, publishPricingEvent } from '@core/lib/redis/publish';
 import { getRedis } from '@core/lib/redis/client';
 
 let repo: IdentityRepo | undefined;
@@ -40,7 +41,14 @@ export function getTariffService(): TariffService {
 let orders: OrderService | undefined;
 
 export function getOrderService(): OrderService {
-  orders ??= createOrderService({ tenantDb: (ctx) => getTenantDb(ctx) });
+  orders ??= createOrderService({
+    tenantDb: (ctx) => getTenantDb(ctx),
+    // Hủy container hoặc Order gỡ container khỏi chuyến ghép (task 08) và báo Kanban qua Redis sau commit.
+    detachFromTrips: detachContainersFromTrips,
+    publishDispatch: async (events) => {
+      for (const event of events) await publishDispatchEvent(getRedis(), event);
+    },
+  });
   return orders;
 }
 
@@ -54,6 +62,10 @@ export function getDispatchService(): DispatchService {
     // Phát sau commit lên kênh theo tenant; lỗi Redis bị service bỏ qua, không làm hỏng thao tác đã commit.
     publish: async (event) => {
       await publishDispatchEvent(getRedis(), event);
+    },
+    // Báo worker tính lại giá sau khi ghép hoặc tách chuyến; cờ trong DB vẫn là nguồn sự thật nếu Redis lỗi.
+    publishPricing: async (event) => {
+      await publishPricingEvent(getRedis(), event);
     },
   });
   return dispatch;

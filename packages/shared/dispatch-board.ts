@@ -1,6 +1,6 @@
 // Kiểu dữ liệu bảng điều vận Kanban (task 07). Dùng chung service (board.query), Server Action, SSE và giao diện.
 // Thời điểm là chuỗi ISO 8601 UTC để đi qua Server Action/JSON mà không mất kiểu.
-import type { OrderType, PORT_READINESS, TripStatus } from './enums';
+import type { OrderType, PORT_READINESS, TripMode, TripStatus } from './enums';
 
 export type PortReadiness = (typeof PORT_READINESS)[number];
 
@@ -30,7 +30,14 @@ export const DEFAULT_TRIP_HOURS = 3.5;
 
 export type BoardDirection = 'IMPORT' | 'EXPORT';
 
-export type BoardCardTrip = { id: string; code: string; version: number; status: TripStatus };
+export type BoardCardTrip = {
+  id: string;
+  code: string;
+  version: number;
+  status: TripStatus;
+  /** SINGLE, hoặc TWIN_20 / COMBINED khi chuyến chở 2 container (task 08). */
+  mode: TripMode;
+};
 
 export type BoardCard = {
   orderContainerId: string;
@@ -52,6 +59,10 @@ export type BoardCard = {
   isReefer: boolean;
   isDangerousGoods: boolean;
   isStreetTurn: boolean;
+  /** Số chấp thuận Street Turn của hãng tàu; null khi chưa nhập (hoặc cont không đảo vỏ). */
+  streetTurnApprovalRef: string | null;
+  /** Khóa tra giá đã đổi (ghép, tách chuyến), chờ tính lại (task 08). */
+  repriceRequired: boolean;
   /** Thiếu thông tin điều vận cần: số container, khối lượng. */
   missing: ('CONTAINER_NO' | 'WEIGHT')[];
   column: BoardColumnId;

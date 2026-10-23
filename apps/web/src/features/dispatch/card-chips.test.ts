@@ -86,6 +86,7 @@ describe('cardChips', () => {
         isReefer: true,
         isDangerousGoods: true,
         isStreetTurn: true,
+        streetTurnApprovalRef: 'MSK-ST-1',
         missing: ['CONTAINER_NO', 'WEIGHT'],
       }),
     );
@@ -105,5 +106,37 @@ describe('cardChips', () => {
     const running = makeCard({ column: 'IN_TRANSIT', cutOffAt: later(1 * H) });
     expect(labels(running)).toEqual([]);
     expect(labels({ ...running, portReadiness: 'HOLD_LINE' })).toEqual(['Hãng tàu giữ']);
+  });
+});
+
+describe('cardChips: ghép chuyến, Street Turn và tính lại giá (task 08)', () => {
+  const trip = (mode: 'SINGLE' | 'TWIN_20' | 'COMBINED') => ({
+    id: 't',
+    code: 'TRIP-2610-001',
+    version: 1,
+    status: 'PLANNED' as const,
+    mode,
+  });
+
+  it('chuyến ghép có chip TWIN_20 hoặc COMBINED, chuyến đơn thì không', () => {
+    expect(labels(makeCard({ trip: trip('TWIN_20') }))).toContain('TWIN_20');
+    expect(labels(makeCard({ trip: trip('COMBINED') }))).toContain('COMBINED');
+    expect(labels(makeCard({ trip: trip('SINGLE') }))).not.toContain('SINGLE');
+  });
+
+  it('Street Turn chưa có số chấp thuận nhắc màu cảnh báo, có số thì chỉ là thông tin', () => {
+    const waiting = cardChips(makeCard({ isStreetTurn: true }), NOW, TZ).find((c) => c.key === 'st');
+    expect(waiting).toMatchObject({ tone: 'warn', label: 'Street Turn chờ chấp thuận' });
+    const approved = cardChips(
+      makeCard({ isStreetTurn: true, streetTurnApprovalRef: 'MSK-ST-1' }),
+      NOW,
+      TZ,
+    ).find((c) => c.key === 'st');
+    expect(approved).toMatchObject({ tone: 'info', label: 'Street Turn' });
+  });
+
+  it('cont cần tính lại giá có chip cảnh báo kèm icon', () => {
+    const chip = cardChips(makeCard({ repriceRequired: true }), NOW, TZ).find((c) => c.key === 'reprice');
+    expect(chip).toMatchObject({ tone: 'warn', icon: 'refresh', label: 'Cần tính lại giá' });
   });
 });

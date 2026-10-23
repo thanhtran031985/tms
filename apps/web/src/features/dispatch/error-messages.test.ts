@@ -127,3 +127,25 @@ describe('lý do trên bảng gán xe', () => {
     expect(pickDefault([], 'a')).toBe('');
   });
 });
+
+describe('describeDispatchError: ghép chuyến và Street Turn (task 08)', () => {
+  const cases: [string, string][] = [
+    ['TWIN20_TRAILER_NOT_ALLOWED', 'Rule 1'],
+    ['TWIN20_CONTAINER_NOT_20FT', 'Rule 1'],
+    ['DG_TWIN20_MIXED_CUSTOMER', 'Rule 6'],
+    ['STREET_TURN_LINE_MISMATCH', 'Rule 3'],
+    ['STREET_TURN_TYPE_MISMATCH', 'Rule 3'],
+    ['STREET_TURN_NOT_ALLOWED', 'Rule 3'],
+    ['STREET_TURN_NOT_APPROVED', 'Rule 3'],
+    ['INVALID_STOP_SEQUENCE', 'Rule 3, 4'],
+    ['TRIP_MODE_INVALID', 'Chế độ ghép'],
+    ['TRIP_LAST_CONTAINER', 'Tách chuyến'],
+  ];
+
+  it.each(cases)('%s nói rule nào chặn và giữ câu cách xử lý của máy chủ', (code, prefix) => {
+    const view = describeDispatchError({ code, message: 'Làm bước tiếp theo.' });
+    expect(view.kind).toBe('message');
+    expect(view.text).toContain(prefix);
+    expect(view.text).toContain('Làm bước tiếp theo.');
+  });
+});

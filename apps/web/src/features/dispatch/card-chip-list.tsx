@@ -3,6 +3,8 @@ import {
   Clock,
   FileWarning,
   Lock,
+  Merge,
+  RefreshCw,
   Repeat2,
   Snowflake,
   TriangleAlert,
@@ -19,6 +21,8 @@ const ICONS: Record<ChipIcon, LucideIcon> = {
   warning: TriangleAlert,
   swap: Repeat2,
   file: FileWarning,
+  merge: Merge,
+  refresh: RefreshCw,
 };
 
 // Chip cỡ sm trên thẻ container: luôn có icon và chữ, màu theo mức.

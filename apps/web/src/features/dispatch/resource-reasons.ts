@@ -39,6 +39,10 @@ export function reasonText(reason: AvailabilityReason): string {
       return 'Thiếu chứng chỉ hàng nguy hiểm còn hạn';
     case 'PAYLOAD_EXCEEDED':
       return 'Vượt tải trọng cho phép';
+    case 'TWIN20_TRAILER_NOT_ALLOWED':
+      return 'Không có chốt khóa giữa, không ghép TWIN_20 được';
+    case 'TWIN20_OK':
+      return 'Ghép TWIN_20 được';
     case 'WEIGHT_MISSING':
       return 'Được điều · chưa có khối lượng cont';
     default:

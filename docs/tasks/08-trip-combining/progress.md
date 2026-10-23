@@ -8,8 +8,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 2 | Ghép TWIN_20 và chọn tripMode doanh thu | ✅ | c2da49e |
 | 3 | COMBINED và Street Turn | ✅ | 02c2d5a |
 | 4 | Tách chuyến và hủy Order có chuyến | ✅ | 3e2e021 |
-| 5 | Tính lại giá | ✅ | |
-| 6 | Server Action và thao tác trên màn Điều vận | ⬜ | |
+| 5 | Tính lại giá | ✅ | 6d3e3a0 |
+| 6 | Server Action và thao tác trên màn Điều vận | ✅ | |
 | 7 | Hoàn tất | ⬜ | |
 
 ## Nhật ký
@@ -48,3 +48,10 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Worker (`apps/worker`): queue `pricing.reprice`, `jobs/reprice.ts` (`processRepriceJob`, `subscribePricingEvents` đăng ký `tenant:*:pricing` rồi đẩy job, `scheduleRepriceSweeps` mỗi 5 phút cho từng tenant ACTIVE), nối vào `startWorker` và dừng êm. Không thêm package (worker kiểm tra sự kiện bằng tay thay vì zod).
 - Giới hạn đã biết: hủy container/Order đã gỡ khỏi chuyến chỉ đặt cờ, không phát sự kiện giá; job quét sẽ nhặt trong tối đa 5 phút. Phụ phí TARIFF không còn áp dụng theo bảng phí mới không bị xóa, chỉ cập nhật và thêm.
 - Kiểm tra: `reprice.service.int.test.ts` 9/9 và `apps/worker` `reprice.int.test.ts` 5/5 xanh; `consolidate.rules` và `split.service` thêm kiểm tra phát sự kiện giá, 57/57 xanh; typecheck và eslint sạch.
+
+### Bước 6 — 23/10/2026
+- Server Action (`features/dispatch/actions.ts`, đều qua `defineAction` nên có `requireRole` và zod): `createConsolidatedTrip`, `addContainerToTrip`, `removeContainerFromTrip`, `linkStreetTurn`, `setStreetTurnApproval` (quyền gán xe) và `listStreetTurns` (quyền xem). `server/services.ts` nối `publishPricing` cho điều vận, `detachFromTrips` và `publishDispatch` cho Order (hủy container hoặc Order gỡ khỏi chuyến ghép).
+- Dữ liệu thẻ: `BoardCard` thêm `trip.mode`, `streetTurnApprovalRef`, `repriceRequired`; chip mới "TWIN_20/COMBINED", "Street Turn chờ chấp thuận" (cảnh báo) và "Cần tính lại giá" (icon làm mới). Bảng gán xe xét cả chuyến ghép: rơ moóc 20FT bị khóa kèm lý do Rule 1, rơ moóc có chốt giữa ghi "Ghép TWIN_20 được" (`availability.query` đọc chuyến của container).
+- Giao diện: nút "Chọn để ghép" dưới thẻ Chờ điều (chọn tối đa 2, bàn phím Space hoặc Enter), thanh "Ghép chuyến" chỉ hiện khi có thẻ chọn, hộp chọn TWIN_20 hoặc COMBINED (kèm tùy chọn Đảo vỏ khi một cont Nhập một cont Xuất), lỗi quy tắc hiện `Alert` crit ngay trong hộp và nói rule nào; ghép xong tự mở bảng gán xe cho cả chuyến; nút "Tách chuyến" trên thẻ của chuyến ghép (hộp xác nhận); khối "Street Turn chờ chấp thuận" nhập số chấp thuận và phí, `EmptyState` khi trống. Thiết kế Screen03 chưa có mockup phần này nên dựng từ `Button`, `Alert`, `Field`, `ContainerCard`, `EmptyState` và token hiện có (ghi `decisions.md`).
+- Kiểm tra: unit web 177+ xanh (thêm `consolidate-view.test.ts`, test chip và lỗi Rule); `e2e/consolidate.spec.ts` 5/5 xanh gồm ghép 2 cont 20 cùng khách lên xe 2×20 và gán thành công, rơ moóc 20FT bị khóa kèm lý do Rule 1, tách chuyến thấy cờ "Cần tính lại giá", ghép làm hoàn toàn bằng bàn phím, Street Turn từ ghép tới nhập số chấp thuận, 1366×768 không tràn ngang; ảnh chụp 1366 đã xem. `pnpm typecheck` và `pnpm lint` sạch.
+- Lưu ý: optimistic UI của bảng gán xe vẫn chỉ dời thẻ đang chọn; thẻ còn lại của chuyến ghép cập nhật qua SSE sau vài trăm mili giây.

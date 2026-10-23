@@ -17,10 +17,13 @@ import {
   tripContainers,
 } from '../../lib/db/schema';
 import type { DriverRow, TractorRow, TrailerRow } from '../fleet/repo';
+import { loadTripContext } from './context';
 import { authorize, ACTIVE_TRIP_STATUSES, type DispatchDeps } from './deps';
 import { evaluateResource } from './evaluate';
 import type { AvailabilityReason, AvailabilityResult, ResourceAvailability } from './index';
 import { checkPhysical } from './rules/physical';
+import { checkTwin20 } from './rules/twin20';
+import { checkTripWeight } from './rules/weight';
 import { mergeResults, type ResourceKind, type RuleResult } from './rules/types';
 
 const CHUNK = 8; // dưới connectionLimit của pool để không chiếm hết kết nối
@@ -94,19 +97,49 @@ export function createAvailabilityQuery(deps: DispatchDeps) {
       now: deps.now(),
       ...(activeTrip ? { excludeTripId: activeTrip.id } : {}),
     };
+    // Container đã nằm trong chuyến ghép: bảng gán xe xét cả chuyến (Rule 1, 2 cộng dồn, 5, 6), không chỉ container này.
+    const tripContext = activeTrip ? await loadTripContext(tdb, activeTrip.id) : undefined;
+    const containers = tripContext?.containers.length ? tripContext.containers : [container];
+    const tripMode = activeTrip?.tripMode ?? 'SINGLE';
     const physical = (rows: {
       driver?: (typeof drivers)['$inferSelect'];
       trailer?: (typeof trailers)['$inferSelect'];
-    }): RuleResult =>
-      checkPhysical({
-        container,
-        driver: rows.driver,
-        tractor: undefined,
-        trailer: rows.trailer,
-        plannedEnd: window.end,
-        timeZone: ctx.timezone,
-        confirmMissingWeight: true, // chỉ để cảnh báo thiếu khối lượng, không chặn từng dòng
-      });
+    }): RuleResult => {
+      const result = mergeResults(
+        ...containers.map((c) =>
+          checkPhysical({
+            container: c,
+            driver: rows.driver,
+            tractor: undefined,
+            trailer: rows.trailer,
+            plannedEnd: window.end,
+            timeZone: ctx.timezone,
+            confirmMissingWeight: true, // chỉ để cảnh báo thiếu khối lượng, không chặn từng dòng
+            skipWeight: containers.length > 1,
+          }),
+        ),
+      );
+      if (containers.length > 1 && rows.trailer) {
+        const twin = checkTwin20({ tripMode, containers, trailer: rows.trailer });
+        const weight = checkTripWeight({
+          containers,
+          tractor: undefined,
+          trailer: rows.trailer,
+          confirmMissingWeight: true,
+        });
+        result.errors.push(...twin.errors, ...weight.errors);
+        result.warnings.push(...twin.warnings, ...weight.warnings);
+        if (tripMode === 'TWIN_20' && twin.errors.length === 0) {
+          result.warnings.push({
+            code: 'TWIN20_OK',
+            severity: 'info',
+            resource: 'TRAILER',
+            message: 'Ghép TWIN_20 được',
+          });
+        }
+      }
+      return result;
+    };
 
     const evaluate = async (
       kind: ResourceKind,

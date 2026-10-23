@@ -31,6 +31,20 @@ const NOT_AVAILABLE_REASON: Record<string, string> = {
 
 const message = (text: string): DispatchErrorView => ({ kind: 'message', text });
 
+// Rule ghép chuyến, Street Turn (task 08): nói rule nào chặn; câu chữ nói cách xử lý lấy từ máy chủ (ERROR_MESSAGES).
+const RULE_PREFIX: Record<string, string> = {
+  TRIP_MODE_INVALID: 'Chế độ ghép chưa hợp lệ',
+  TWIN20_TRAILER_NOT_ALLOWED: 'Rule 1 (rơ moóc cho TWIN_20)',
+  TWIN20_CONTAINER_NOT_20FT: 'Rule 1 (cont 20 feet cho TWIN_20)',
+  DG_TWIN20_MIXED_CUSTOMER: 'Rule 6 (hàng nguy hiểm)',
+  STREET_TURN_LINE_MISMATCH: 'Rule 3 (Street Turn)',
+  STREET_TURN_TYPE_MISMATCH: 'Rule 3 (Street Turn)',
+  STREET_TURN_NOT_ALLOWED: 'Rule 3 (Street Turn)',
+  STREET_TURN_NOT_APPROVED: 'Rule 3 (Street Turn)',
+  INVALID_STOP_SEQUENCE: 'Rule 3, 4 (thứ tự Stop)',
+  TRIP_LAST_CONTAINER: 'Tách chuyến',
+};
+
 export function describeDispatchError(
   error: DispatchErrorInput,
   options: { canOverrideHours?: boolean } = {},
@@ -103,7 +117,9 @@ export function describeDispatchError(
       return message(
         'Mất kết nối mạng nên chưa gán được. Thẻ đã quay về vị trí cũ; kiểm tra mạng rồi gán lại.',
       );
-    default:
-      return message(error.message);
+    default: {
+      const prefix = RULE_PREFIX[code];
+      return message(prefix ? `${prefix}: ${error.message}` : error.message);
+    }
   }
 }

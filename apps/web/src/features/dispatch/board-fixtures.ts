@@ -21,6 +21,8 @@ export function makeCard(overrides: Partial<BoardCard> = {}): BoardCard {
     isReefer: false,
     isDangerousGoods: false,
     isStreetTurn: false,
+    streetTurnApprovalRef: null,
+    repriceRequired: false,
     missing: [],
     column: 'WAITING',
     windowStart: '2026-10-17T07:30:00.000Z', // 14:30 giờ Việt Nam

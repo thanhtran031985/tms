@@ -34,7 +34,7 @@ describe('mergeCards', () => {
       card('a', {
         column: 'PLANNED',
         version: 1,
-        trip: { id: 't', code: 'T1', version: 1, status: 'PLANNED' },
+        trip: { id: 't', code: 'T1', version: 1, status: 'PLANNED', mode: 'SINGLE' },
       }),
     ]);
 
@@ -55,7 +55,13 @@ describe('mergeCards', () => {
   });
 
   it('cùng phiên bản container nhưng chuyến mới hơn thì thay', () => {
-    const trip = (version: number) => ({ id: 't', code: 'T', version, status: 'PLANNED' as const });
+    const trip = (version: number) => ({
+      id: 't',
+      code: 'T',
+      version,
+      status: 'PLANNED' as const,
+      mode: 'SINGLE' as const,
+    });
     const state = toColumnsState({
       PLANNED: column([card('a', { column: 'PLANNED', trip: trip(1), tractorPlate: 'cũ' })]),
     });

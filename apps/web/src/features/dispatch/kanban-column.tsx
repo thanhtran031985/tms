@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Merge, Unlink } from 'lucide-react';
 import { useState } from 'react';
 import {
   BOARD_COLUMN_LABELS,
@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { buildColumnItems } from './board-view';
+import { isPickable, isSplittable } from './consolidate-view';
 import { DispatchCard } from './dispatch-card';
 import { DraggableCard } from './draggable-card';
 
@@ -30,8 +31,12 @@ export function KanbanColumn({
   nowMs,
   timeZone,
   selectable,
+  canAssign,
   selectedId,
   onSelect,
+  pickedIds,
+  onTogglePick,
+  onSplit,
   filtered,
   loadingMore,
   onLoadMore,
@@ -42,8 +47,15 @@ export function KanbanColumn({
   timeZone: string;
   /** Thẻ trong cột này chọn được để gán xe (cột Chờ điều, người dùng có quyền gán). */
   selectable: boolean;
+  /** Người dùng được gán xe và tách chuyến (hiện nút "Tách chuyến" ở mọi cột). */
+  canAssign: boolean;
   selectedId: string | null;
   onSelect: (card: BoardCard) => void;
+  /** Thẻ đã chọn để ghép chuyến (tối đa 2); chỉ có ý nghĩa khi người dùng được gán xe. */
+  pickedIds: ReadonlySet<string>;
+  onTogglePick: (card: BoardCard) => void;
+  /** Bấm "Tách chuyến" trên thẻ của chuyến ghép. */
+  onSplit: (card: BoardCard) => void;
   /** Đang có bộ lọc: cột trống ghi "không khớp bộ lọc". */
   filtered: boolean;
   loadingMore: boolean;
@@ -63,6 +75,9 @@ export function KanbanColumn({
 
   const renderCard = (card: BoardCard) => {
     const selected = selectedId === card.orderContainerId;
+    const picked = pickedIds.has(card.orderContainerId);
+    const canPick = selectable && isPickable(card);
+    const canSplit = canAssign && isSplittable(card);
     const element = (
       <DispatchCard
         card={card}
@@ -73,12 +88,48 @@ export function KanbanColumn({
         onSelect={onSelect}
       />
     );
+    const actions =
+      canPick || canSplit ? (
+        <div className="mt-4 flex flex-col gap-4">
+          {canPick ? (
+            <button
+              type="button"
+              aria-pressed={picked}
+              data-pick={card.orderContainerId}
+              onClick={() => onTogglePick(card)}
+              className={cn(
+                'flex min-h-ctl w-full cursor-pointer items-center justify-center gap-6 rounded-control border bg-surface text-small',
+                picked
+                  ? 'border-primary font-semibold text-primary ring-2 ring-primary'
+                  : 'border-line-strong text-ink-soft hover:text-ink',
+              )}
+            >
+              <Merge className="size-16" aria-hidden="true" />
+              {picked ? 'Bỏ chọn ghép' : 'Chọn để ghép'}
+            </button>
+          ) : null}
+          {canSplit ? (
+            <button
+              type="button"
+              data-split={card.orderContainerId}
+              onClick={() => onSplit(card)}
+              className="flex min-h-ctl w-full cursor-pointer items-center justify-center gap-6 rounded-control border border-line-strong bg-surface text-small text-ink-soft hover:text-ink"
+            >
+              <Unlink className="size-16" aria-hidden="true" />
+              Tách chuyến
+            </button>
+          ) : null}
+        </div>
+      ) : null;
     return selectable ? (
-      <DraggableCard key={card.orderContainerId} card={card} selected={selected}>
+      <DraggableCard key={card.orderContainerId} card={card} selected={selected} below={actions}>
         {element}
       </DraggableCard>
     ) : (
-      <div key={card.orderContainerId}>{element}</div>
+      <div key={card.orderContainerId}>
+        {element}
+        {actions}
+      </div>
     );
   };
 

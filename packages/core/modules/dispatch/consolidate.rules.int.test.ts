@@ -639,3 +639,22 @@ describe('Hai Điều vận ghép chéo cùng lúc', () => {
   });
 });
 
+
+describe('Bảng gán xe cho chuyến ghép', () => {
+  it('rơ moóc 20FT không điều được, rơ moóc có chốt giữa ghi "Ghép TWIN_20 được"', async () => {
+    const { a } = await w.newTwinTrip({ assigned: false });
+    const bad = await w.newTrailer(A, { trailerType: '20FT', canCarryTwin20: false });
+    const good = await w.newTrailer(A, { trailerType: '40FT_COMBO', canCarryTwin20: true });
+    const result = await w.service.listResourceAvailability(dispatcher, {
+      orderContainerId: a.container.id,
+      start: at('08:00'),
+      end: at('12:00'),
+    });
+    const badRow = result.trailers.find((t) => t.id === bad.id)!;
+    expect(badRow.available).toBe(false);
+    expect(badRow.reasons.map((r) => r.code)).toContain('TWIN20_TRAILER_NOT_ALLOWED');
+    const goodRow = result.trailers.find((t) => t.id === good.id)!;
+    expect(goodRow.available).toBe(true);
+    expect(goodRow.reasons.map((r) => r.code)).toContain('TWIN20_OK');
+  });
+});
