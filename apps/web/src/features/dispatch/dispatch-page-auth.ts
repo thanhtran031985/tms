@@ -19,6 +19,7 @@ export async function requireDispatchPage(): Promise<{
       now: Date.now(),
       access: {
         assign: can(ctx.role, 'dispatch.assign'),
+        overrideHours: can(ctx.role, 'dispatch.overrideDriveHours'),
         createOrder: can(ctx.role, 'order.write'),
       },
     };

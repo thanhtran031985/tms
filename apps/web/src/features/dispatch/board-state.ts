@@ -1,6 +1,6 @@
 // Trạng thái dữ liệu của bảng Kanban phía client: gộp thẻ mới tải (theo sự kiện SSE hoặc sau khi gán),
 // nối thêm trang của một cột. Hàm thuần để test; component chỉ giữ kết quả trong state.
-import type { BoardCard, BoardColumn, BoardColumnId } from '@shared/dispatch-board';
+import type { BoardCard, BoardColumn, BoardColumnId, ResourceLane } from '@shared/dispatch-board';
 import { BOARD_COLUMN_IDS } from '@shared/dispatch-board';
 
 export type ColumnsState = Record<BoardColumnId, BoardColumn>;
@@ -96,4 +96,60 @@ export function appendPage(
       nextCursor: page.nextCursor,
     },
   };
+}
+
+// ---- Optimistic UI (Rule 3): thẻ dời sang Đã lên kế hoạch và khối chuyến hiện trên lịch ngay khi bấm gán.
+// React tự trả về trạng thái thật khi thao tác kết thúc, nên lỗi thì thẻ quay về chỗ cũ mà không cần hoàn nguyên tay.
+export type OptimisticAssign = {
+  containerId: string;
+  tractorId: string;
+  tractorPlate: string;
+  trailerPlate: string | null;
+  driverName: string | null;
+};
+
+export function applyOptimisticAssign(
+  columns: ColumnsState,
+  assign: OptimisticAssign,
+): ColumnsState {
+  const card = columns.WAITING.cards.find((c) => c.orderContainerId === assign.containerId);
+  if (!card) return columns;
+  return mergeCards(columns, [
+    {
+      ...card,
+      column: 'PLANNED',
+      windowFromTrip: true,
+      tractorPlate: assign.tractorPlate,
+      trailerPlate: assign.trailerPlate,
+      driverName: assign.driverName,
+    },
+  ]);
+}
+
+export function applyOptimisticLane(
+  lanes: ResourceLane[] | null,
+  assign: OptimisticAssign,
+  card: Pick<BoardCard, 'containerNo' | 'windowStart' | 'windowEnd'>,
+): ResourceLane[] | null {
+  if (!lanes || !card.windowStart || !card.windowEnd) return lanes;
+  return lanes.map((lane) =>
+    lane.tractorId !== assign.tractorId
+      ? lane
+      : {
+          ...lane,
+          blocks: [
+            ...lane.blocks,
+            {
+              id: `optimistic-${assign.containerId}`,
+              kind: 'TRIP' as const,
+              title: card.containerNo ?? 'Chưa có số cont',
+              subtitle: [assign.driverName, assign.trailerPlate].filter(Boolean).join(' · '),
+              start: card.windowStart!,
+              end: card.windowEnd!,
+              tone: 'info' as const,
+              tripId: null,
+            },
+          ],
+        },
+  );
 }

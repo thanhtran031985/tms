@@ -1,23 +1,45 @@
 'use client';
 
 import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import {
   ChevronLeft,
   ChevronRight,
   CircleAlert,
+  CircleCheck,
   Columns3,
   Plus,
   RefreshCw,
   Search,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import {
+  startTransition as reactStartTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from 'react';
 import {
   BOARD_COLUMN_IDS,
   type BoardCard,
   type BoardColumnId,
   type DispatchBoard,
   type DispatchStreamEvent,
+  type ResourceLane,
 } from '@shared/dispatch-board';
 import { Alert } from '@/components/ui/alert';
 import { Button, buttonClass, IconButton } from '@/components/ui/button';
@@ -25,8 +47,24 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SelectField } from '@/components/ui/field';
 import { FilterTabs } from '@/components/ui/filter-tabs';
 import { cn } from '@/lib/utils';
-import { loadBoardCards, loadDispatchBoard } from './actions';
-import { appendPage, mergeCards, toColumnsState, type ColumnsState } from './board-state';
+import {
+  assignResources,
+  cancelAssignment,
+  createSingleTrip,
+  loadBoardCards,
+  loadDispatchBoard,
+} from './actions';
+import { AssignPanel, type AssignSelection } from './assign-panel';
+import { performAssign, safeCall, type AssignDeps, type AssignOutcome } from './assign-flow';
+import {
+  appendPage,
+  applyOptimisticAssign,
+  applyOptimisticLane,
+  mergeCards,
+  toColumnsState,
+  type ColumnsState,
+  type OptimisticAssign,
+} from './board-state';
 import {
   boardSearchString,
   cardMatchesFilters,
@@ -36,13 +74,19 @@ import {
   shiftDate,
   type BoardFilters,
 } from './board-view';
+import { ConfirmDialog } from './confirm-dialog';
+import { DispatchCard } from './dispatch-card';
+import { describeDispatchError, type DispatchErrorView } from './error-messages';
 import { KanbanColumn } from './kanban-column';
+import { laneCollisionDetection, laneKeyboardCoordinates } from './lane-dnd';
 import { ResourceLanes } from './resource-lanes';
 import { useDispatchStream } from './use-dispatch-stream';
 
 export type BoardAccess = {
   /** Gán xe, hủy gán (OWNER, ADMIN, DISPATCHER). */
   assign: boolean;
+  /** Ghi đè giờ lái khi vượt giới hạn (chỉ ADMIN). */
+  overrideHours: boolean;
   /** Tạo Order (nút ở trạng thái trống). */
   createOrder: boolean;
 };
@@ -62,8 +106,46 @@ type Props = {
   options: BoardOptions;
 };
 
+type Target = { cardId: string; tractorId: string | null };
+type UndoInfo = { tripId: string; version: number; containerId: string; label: string };
+type Notice =
+  | { id: number; kind: 'ok'; text: string; extra: string[]; undo: UndoInfo }
+  | { id: number; kind: 'info' | 'error'; text: string };
+// Nội dung thông báo chưa có id (id do showNotice gán).
+type NoticeInput =
+  | { kind: 'ok'; text: string; extra: string[]; undo: UndoInfo }
+  | { kind: 'info' | 'error'; text: string };
+type Extras = { confirmMissingWeight?: boolean; overrideReason?: string };
+type PendingConfirm = {
+  view: DispatchErrorView;
+  cardId: string;
+  selection: AssignSelection;
+  extras: Extras;
+};
+
+type OptimisticState = { columns: ColumnsState; lanes: ResourceLane[] | null };
+type OptimisticAction = OptimisticAssign & { card: BoardCard };
+
 const FLUSH_MS = 300;
 const SEARCH_DEBOUNCE_MS = 350;
+const NOTICE_MS = 8000;
+
+// Thông báo đọc cho trình đọc màn hình khi kéo thẻ bằng bàn phím (mặc định của dnd-kit là tiếng Anh).
+const ANNOUNCEMENTS = {
+  onDragStart: () =>
+    'Đã nhấc thẻ container. Dùng phím mũi tên để chọn làn xe, Space để thả, Esc để hủy.',
+  onDragOver: ({ over }: { over: { id: string | number } | null }) =>
+    over
+      ? `Đang ở trên làn ${String(over.id).replace('lane-', 'xe ')}.`
+      : 'Chưa ở trên làn xe nào.',
+  onDragEnd: ({ over }: { over: { id: string | number } | null }) =>
+    over ? 'Đã thả thẻ vào làn xe. Chọn tài xế và rơ moóc ở bảng gán xe.' : 'Đã thả, chưa chọn xe.',
+  onDragCancel: () => 'Đã hủy kéo thẻ.',
+};
+const SCREEN_READER = {
+  draggable:
+    'Để kéo thẻ bằng bàn phím, bấm Space, dùng phím mũi tên chọn làn xe rồi bấm Space để thả. Esc để hủy.',
+};
 
 export function DispatchBoardView({
   initialBoard,
@@ -79,12 +161,17 @@ export function DispatchBoardView({
   const [pending, startTransition] = useTransition();
 
   const [columns, setColumns] = useState<ColumnsState>(() => toColumnsState(initialBoard.columns));
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [target, setTarget] = useState<Target | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [loadingColumn, setLoadingColumn] = useState<BoardColumnId | null>(null);
   const [syncError, setSyncError] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState(serverNow);
   const [nowMs, setNowMs] = useState(serverNow);
   const [qText, setQText] = useState(filters.q);
+  const [assigning, setAssigning] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  const noticeSeq = useRef(0);
 
   // "Bây giờ" chạy theo đồng hồ trình duyệt, cập nhật mỗi 30 giây (thẻ đếm ngược, vạch trên lịch xe).
   useEffect(() => {
@@ -123,7 +210,7 @@ export function DispatchBoardView({
     return () => clearTimeout(timer);
   }, [qText, filters.q, navigate]);
 
-  // ---- Realtime: gom các container bị ảnh hưởng, tải lại đúng các thẻ đó rồi gộp vào bảng.
+  // ---- Tải lại đúng các thẻ bị ảnh hưởng rồi gộp vào bảng (sau thao tác của mình và theo sự kiện SSE).
   const filtersRef = useRef(filters);
   useEffect(() => {
     filtersRef.current = filters;
@@ -140,23 +227,28 @@ export function DispatchBoardView({
           orderContainerIds: ids.slice(i, i + 100),
         });
         if (!result.ok) {
-          setSyncError(true);
+          reactStartTransition(() => setSyncError(true));
           return;
         }
         const wanted = result.data.cards.filter((c) => cardMatchesFilters(c, filtersRef.current));
         const dropped = result.data.cards
           .filter((c) => !cardMatchesFilters(c, filtersRef.current))
           .map((c) => c.orderContainerId);
-        setColumns((current) =>
-          mergeCards(current, wanted, [...result.data.removedIds, ...dropped]),
+        // Bọc trong transition để cập nhật cùng lượt với trạng thái optimistic đang chờ kết thúc (không nháy thẻ).
+        reactStartTransition(() =>
+          setColumns((current) =>
+            mergeCards(current, wanted, [...result.data.removedIds, ...dropped]),
+          ),
         );
       }
-      setSyncError(false);
-      setLastSyncedAt(Date.now());
+      reactStartTransition(() => {
+        setSyncError(false);
+        setLastSyncedAt(Date.now());
+      });
       // Lịch xe và số đếm chiều hàng đến từ máy chủ: làm mới, không quá một lần mỗi 2 giây.
       if (Date.now() - lanesRefreshedAt.current > 2000) {
         lanesRefreshedAt.current = Date.now();
-        startTransition(() => router.refresh());
+        reactStartTransition(() => router.refresh());
       }
     },
     [filters.date, router],
@@ -212,12 +304,147 @@ export function DispatchBoardView({
     setColumns((current) => appendPage(current, id, page));
   };
 
+  // ---- Optimistic UI (Rule 3): thẻ dời ngay, lỗi thì React trả về trạng thái thật khi thao tác kết thúc.
+  const baseState = useMemo<OptimisticState>(
+    () => ({ columns, lanes: initialBoard.lanes }),
+    [columns, initialBoard.lanes],
+  );
+  const [view, applyOptimistic] = useOptimistic(
+    baseState,
+    (state: OptimisticState, action: OptimisticAction): OptimisticState => ({
+      columns: applyOptimisticAssign(state.columns, action),
+      lanes: applyOptimisticLane(state.lanes, action, action.card),
+    }),
+  );
+
+  const findCard = useCallback(
+    (id: string) =>
+      BOARD_COLUMN_IDS.flatMap((c) => columns[c].cards).find((c) => c.orderContainerId === id),
+    [columns],
+  );
+  const targetCard = target
+    ? view.columns.WAITING.cards.find((c) => c.orderContainerId === target.cardId)
+    : undefined;
+
+  const showNotice = useCallback((next: NoticeInput) => {
+    noticeSeq.current += 1;
+    setNotice({ ...next, id: noticeSeq.current } as Notice);
+  }, []);
+  useEffect(() => {
+    if (notice?.kind !== 'ok') return;
+    const timer = setTimeout(() => setNotice(null), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  const deps = useMemo<AssignDeps>(
+    () => ({
+      createSingleTrip: (input) => safeCall(() => createSingleTrip(input)),
+      assignResources: (input) => safeCall(() => assignResources(input)),
+    }),
+    [],
+  );
+
+  const submitAssign = (cardId: string, selection: AssignSelection, extras: Extras = {}) => {
+    const card = findCard(cardId);
+    if (!card) return;
+    setNotice(null);
+    setAssigning(true);
+    startTransition(async () => {
+      applyOptimistic({
+        containerId: card.orderContainerId,
+        tractorId: selection.tractor.id,
+        tractorPlate: selection.tractor.label,
+        trailerPlate: selection.trailer.label,
+        driverName: selection.driver.label,
+        card,
+      });
+      const outcome: AssignOutcome = await performAssign(deps, {
+        card,
+        driverId: selection.driver.id,
+        tractorId: selection.tractor.id,
+        trailerId: selection.trailer.id,
+        ...extras,
+      });
+
+      if (outcome.ok) {
+        await refreshCards([card.orderContainerId]);
+        const label = card.containerNo ?? 'container';
+        reactStartTransition(() => {
+          setAssigning(false);
+          setTarget(null);
+          showNotice({
+            kind: 'ok',
+            text: `Đã gán ${selection.tractor.label} cho ${label}.`,
+            extra: outcome.warnings.filter((w) => w.severity !== 'info').map((w) => w.message),
+            undo: {
+              tripId: outcome.trip.id,
+              version: outcome.trip.version,
+              containerId: card.orderContainerId,
+              label,
+            },
+          });
+        });
+        return;
+      }
+
+      const errorView = describeDispatchError(outcome.error, {
+        canOverrideHours: access.overrideHours,
+      });
+      if (outcome.createdTrip || errorView.kind === 'stale') {
+        await refreshCards([card.orderContainerId]);
+      }
+      reactStartTransition(() => {
+        setAssigning(false);
+        if (errorView.kind === 'confirm-weight' || errorView.kind === 'override-hours') {
+          setConfirm({ view: errorView, cardId: card.orderContainerId, selection, extras });
+        } else {
+          showNotice({ kind: 'error', text: errorView.text });
+        }
+      });
+    });
+  };
+
+  const undoAssign = (undo: UndoInfo) => {
+    setNotice(null);
+    startTransition(async () => {
+      const result = await safeCall(() =>
+        cancelAssignment({ tripId: undo.tripId, version: undo.version }),
+      );
+      if (result.ok) {
+        await refreshCards([undo.containerId]);
+        reactStartTransition(() =>
+          showNotice({
+            kind: 'info',
+            text: `Đã hoàn tác: ${undo.label} quay về cột Chờ điều.`,
+          }),
+        );
+        return;
+      }
+      const errorView = describeDispatchError(result);
+      if (errorView.kind === 'stale') await refreshCards([undo.containerId]);
+      reactStartTransition(() => showNotice({ kind: 'error', text: errorView.text }));
+    });
+  };
+
+  // ---- Kéo thả (dnd-kit): chuột kéo cả thẻ, bàn phím dùng nút kéo của thẻ đang chọn.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: laneKeyboardCoordinates }),
+  );
+  const onDragStart = (event: DragStartEvent) => setDraggingId(String(event.active.id));
+  const onDragEnd = (event: DragEndEvent) => {
+    setDraggingId(null);
+    const tractorId = event.over?.data.current?.tractorId as string | undefined;
+    if (tractorId) setTarget({ cardId: String(event.active.id), tractorId });
+  };
+  const draggingCard = draggingId ? findCard(draggingId) : undefined;
+
   const filtersActive = Boolean(
     filters.direction || filters.q || filters.zone || filters.customerId,
   );
   const total = useMemo(
-    () => BOARD_COLUMN_IDS.reduce((sum, id) => sum + columns[id].total, 0),
-    [columns],
+    () => BOARD_COLUMN_IDS.reduce((sum, id) => sum + view.columns[id].total, 0),
+    [view.columns],
   );
   const isToday = filters.date === today;
   const counts = initialBoard.directionCounts;
@@ -225,7 +452,7 @@ export function DispatchBoardView({
 
   return (
     <div
-      className={cn('flex flex-col gap-16', pending && 'opacity-70')}
+      className={cn('flex flex-col gap-16', pending && !assigning && 'opacity-70')}
       aria-busy={pending || undefined}
     >
       <header className="flex flex-wrap items-center gap-12">
@@ -318,7 +545,7 @@ export function DispatchBoardView({
         </div>
         {access.assign ? (
           <span className="pb-12 text-small text-ink-soft">
-            Chọn một thẻ ở cột Chờ điều để gán xe
+            Chọn một thẻ ở cột Chờ điều để gán xe, hoặc kéo thẻ vào làn xe
           </span>
         ) : null}
       </div>
@@ -342,6 +569,40 @@ export function DispatchBoardView({
         </Alert>
       ) : null}
 
+      {notice ? (
+        <Alert
+          tone={notice.kind === 'error' ? 'crit' : notice.kind === 'ok' ? 'ok' : 'info'}
+          icon={
+            notice.kind === 'error' ? (
+              <CircleAlert className="size-20" />
+            ) : (
+              <CircleCheck className="size-20" />
+            )
+          }
+          action={
+            <span className="flex flex-none items-center gap-8">
+              {notice.kind === 'ok' ? (
+                <Button variant="secondary" size="sm" onClick={() => undoAssign(notice.undo)}>
+                  Hoàn tác
+                </Button>
+              ) : null}
+              <IconButton bare aria-label="Đóng thông báo" onClick={() => setNotice(null)}>
+                <X className="size-18" aria-hidden="true" />
+              </IconButton>
+            </span>
+          }
+        >
+          <span data-notice={notice.kind}>{notice.text}</span>
+          {notice.kind === 'ok' && notice.extra.length > 0 ? (
+            <ul className="m-0 mt-4 list-disc pl-20 text-small text-ink-soft">
+              {notice.extra.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
+        </Alert>
+      ) : null}
+
       {total === 0 && !filtersActive ? (
         <section className="rounded-card border border-line bg-surface">
           <EmptyState
@@ -359,21 +620,30 @@ export function DispatchBoardView({
           />
         </section>
       ) : (
-        <>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={laneCollisionDetection}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragCancel={() => setDraggingId(null)}
+          accessibility={{ announcements: ANNOUNCEMENTS, screenReaderInstructions: SCREEN_READER }}
+        >
           <section aria-label="Bảng container theo trạng thái" className="overflow-x-auto pb-4">
             <div className="grid min-w-board grid-cols-[repeat(6,minmax(var(--spacing-kcol),1fr))] gap-12">
               {BOARD_COLUMN_IDS.map((id) => (
                 <KanbanColumn
                   key={id}
                   id={id}
-                  column={columns[id]}
+                  column={view.columns[id]}
                   nowMs={nowMs}
                   timeZone={timeZone}
                   selectable={access.assign && id === 'WAITING'}
-                  selectedId={selectedId}
+                  selectedId={target?.cardId ?? null}
                   onSelect={(card: BoardCard) =>
-                    setSelectedId((current) =>
-                      current === card.orderContainerId ? null : card.orderContainerId,
+                    setTarget((current) =>
+                      current?.cardId === card.orderContainerId
+                        ? null
+                        : { cardId: card.orderContainerId, tractorId: null },
                     )
                   }
                   filtered={filtersActive}
@@ -383,18 +653,69 @@ export function DispatchBoardView({
               ))}
             </div>
           </section>
-          {initialBoard.lanes ? (
+
+          {access.assign && target && targetCard ? (
+            <AssignPanel
+              key={`${target.cardId}:${target.tractorId ?? ''}`}
+              card={targetCard}
+              timeZone={timeZone}
+              initialTractorId={target.tractorId}
+              busy={assigning}
+              onSubmit={(selection) => submitAssign(targetCard.orderContainerId, selection)}
+              onClose={() => setTarget(null)}
+            />
+          ) : null}
+
+          {view.lanes ? (
             <ResourceLanes
-              lanes={initialBoard.lanes}
+              lanes={view.lanes}
               dayStart={initialBoard.dayStart}
               dayEnd={initialBoard.dayEnd}
               nowMs={nowMs}
               timeZone={timeZone}
               isToday={isToday && localDate(nowMs, timeZone) === filters.date}
+              droppable={access.assign}
             />
           ) : null}
-        </>
+
+          <DragOverlay>
+            {draggingCard ? (
+              <DispatchCard
+                card={draggingCard}
+                nowMs={nowMs}
+                timeZone={timeZone}
+                selectable={false}
+                selected={false}
+                onSelect={() => undefined}
+                dragging
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
+
+      <ConfirmDialog
+        open={confirm !== null}
+        title={
+          confirm?.view.kind === 'override-hours'
+            ? 'Ghi đè giờ lái tối đa'
+            : 'Gán khi chưa có khối lượng'
+        }
+        confirmLabel={confirm?.view.kind === 'override-hours' ? 'Ghi đè và gán xe' : 'Vẫn gán xe'}
+        {...(confirm?.view.kind === 'override-hours' ? { reasonLabel: 'Lý do ghi đè' } : {})}
+        onCancel={() => setConfirm(null)}
+        onConfirm={(reason) => {
+          if (!confirm) return;
+          const next: Extras =
+            confirm.view.kind === 'override-hours'
+              ? { ...confirm.extras, overrideReason: reason }
+              : { ...confirm.extras, confirmMissingWeight: true };
+          setConfirm(null);
+          submitAssign(confirm.cardId, confirm.selection, next);
+        }}
+      >
+        {confirm?.view.text}
+      </ConfirmDialog>
     </div>
   );
 }

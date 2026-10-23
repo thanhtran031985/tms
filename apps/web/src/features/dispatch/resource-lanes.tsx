@@ -1,5 +1,6 @@
 'use client';
 
+import { useDroppable } from '@dnd-kit/core';
 import { CircleAlert, TriangleAlert } from 'lucide-react';
 import type { LaneBlock, ResourceLane } from '@shared/dispatch-board';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -21,6 +22,7 @@ export function ResourceLanes({
   nowMs,
   timeZone,
   isToday,
+  droppable,
 }: {
   lanes: ResourceLane[];
   dayStart: string;
@@ -28,6 +30,8 @@ export function ResourceLanes({
   nowMs: number;
   timeZone: string;
   isToday: boolean;
+  /** Thả thẻ container vào làn để gán xe (người dùng có quyền gán). */
+  droppable: boolean;
 }) {
   const nowLeft = isToday ? nowLinePosition(nowMs, dayStart, dayEnd) : null;
   return (
@@ -73,6 +77,7 @@ export function ResourceLanes({
               dayStart={dayStart}
               nowLeft={nowLeft}
               timeZone={timeZone}
+              droppable={droppable}
             />
           ))}
         </div>
@@ -86,12 +91,19 @@ function LaneRow({
   dayStart,
   nowLeft,
   timeZone,
+  droppable,
 }: {
   lane: ResourceLane;
   dayStart: string;
   nowLeft: number | null;
   timeZone: string;
+  droppable: boolean;
 }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `lane-${lane.tractorId}`,
+    data: { tractorId: lane.tractorId },
+    disabled: !droppable,
+  });
   return (
     <>
       <div className="flex flex-col gap-2 border-t border-line px-20 py-8 text-small">
@@ -114,9 +126,13 @@ function LaneRow({
         ) : null}
       </div>
       <div
+        ref={setNodeRef}
         data-lane={lane.plateNumber}
         data-tractor-id={lane.tractorId}
-        className="relative min-h-lane-row border-t border-line"
+        className={cn(
+          'relative min-h-lane-row border-t border-line transition-colors',
+          isOver && 'bg-info-soft',
+        )}
       >
         {nowLeft !== null ? (
           <span

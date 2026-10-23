@@ -108,3 +108,22 @@ export type DispatchStreamEvent = {
   version: number;
   orderContainerIds: string[];
 };
+
+// ---- Tra cứu tài nguyên gán được (bảng gán xe), cùng dạng với kết quả listResourceAvailability của core.
+export type AvailabilityReason = {
+  code: string;
+  severity: 'info' | 'warn' | 'danger';
+  message: string;
+  details?: Record<string, string | number>;
+};
+export type ResourceAvailability = {
+  id: string;
+  label: string;
+  available: boolean;
+  reasons: AvailabilityReason[];
+};
+export type AvailabilityResult = {
+  drivers: ResourceAvailability[];
+  tractors: ResourceAvailability[];
+  trailers: ResourceAvailability[];
+};

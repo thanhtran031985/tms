@@ -14,6 +14,7 @@ export function DispatchCard({
   selectable,
   selected,
   onSelect,
+  dragging = false,
 }: {
   card: BoardCard;
   nowMs: number;
@@ -22,6 +23,8 @@ export function DispatchCard({
   selectable: boolean;
   selected: boolean;
   onSelect: (card: BoardCard) => void;
+  /** Bản sao đang bay theo con trỏ khi kéo (DragOverlay): có bóng nổi. */
+  dragging?: boolean;
 }) {
   const label = [
     card.containerNo ?? 'Chưa có số cont',
@@ -43,6 +46,7 @@ export function DispatchCard({
       plateLabel={card.tractorPlate}
       selected={selectable ? selected : undefined}
       onClick={selectable ? () => onSelect(card) : undefined}
+      dragging={dragging}
       disabled={!selectable}
       data-container-id={card.orderContainerId}
     />

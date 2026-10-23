@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { buildColumnItems } from './board-view';
 import { DispatchCard } from './dispatch-card';
+import { DraggableCard } from './draggable-card';
 
 const EMPTY_TEXT: Record<BoardColumnId, string> = {
   WAITING: 'Không còn container nào chờ điều.',
@@ -60,17 +61,26 @@ export function KanbanColumn({
       return next;
     });
 
-  const renderCard = (card: BoardCard) => (
-    <DispatchCard
-      key={card.orderContainerId}
-      card={card}
-      nowMs={nowMs}
-      timeZone={timeZone}
-      selectable={selectable}
-      selected={selectedId === card.orderContainerId}
-      onSelect={onSelect}
-    />
-  );
+  const renderCard = (card: BoardCard) => {
+    const selected = selectedId === card.orderContainerId;
+    const element = (
+      <DispatchCard
+        card={card}
+        nowMs={nowMs}
+        timeZone={timeZone}
+        selectable={selectable}
+        selected={selected}
+        onSelect={onSelect}
+      />
+    );
+    return selectable ? (
+      <DraggableCard key={card.orderContainerId} card={card} selected={selected}>
+        {element}
+      </DraggableCard>
+    ) : (
+      <div key={card.orderContainerId}>{element}</div>
+    );
+  };
 
   return (
     <section

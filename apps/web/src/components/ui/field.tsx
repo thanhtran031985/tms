@@ -135,7 +135,7 @@ type SelectFieldProps = Omit<ComponentProps<'select'>, 'id'> & {
   label: string;
   hint?: ReactNode;
   error?: ReactNode;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
   /** Dòng đầu không chọn gì, ví dụ "Chọn loại". */
   placeholder?: string;
 };
@@ -164,7 +164,7 @@ export function SelectField({
       >
         {placeholder !== undefined ? <option value="">{placeholder}</option> : null}
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} disabled={option.disabled}>
             {option.label}
           </option>
         ))}

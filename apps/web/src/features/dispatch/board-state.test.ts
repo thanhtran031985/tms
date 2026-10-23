@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardCard, BoardColumn } from '@shared/dispatch-board';
 import { makeCard } from './board-fixtures';
-import { appendPage, mergeCards, toColumnsState } from './board-state';
+import {
+  appendPage,
+  applyOptimisticAssign,
+  applyOptimisticLane,
+  mergeCards,
+  toColumnsState,
+} from './board-state';
 
 const card = (id: string, overrides: Partial<BoardCard> = {}) =>
   makeCard({ orderContainerId: id, ...overrides });
@@ -117,5 +123,55 @@ describe('toColumnsState', () => {
 
     expect(Object.keys(state)).toHaveLength(6);
     expect(state.AWAITING_HOOK).toEqual({ total: 0, cards: [], nextCursor: null });
+  });
+});
+
+describe('optimistic assign', () => {
+  const assign = {
+    containerId: 'a',
+    tractorId: 'x1',
+    tractorPlate: '51C-482.17',
+    trailerPlate: '51R-112.23',
+    driverName: 'Phạm Quốc Huy',
+  };
+
+  it('thẻ dời từ Chờ điều sang Đã lên kế hoạch kèm biển số, tài xế', () => {
+    const state = toColumnsState({ WAITING: column([card('a'), card('b')]) });
+
+    const next = applyOptimisticAssign(state, assign);
+
+    expect(ids(next.WAITING)).toEqual(['b']);
+    expect(next.PLANNED.cards[0]).toMatchObject({
+      orderContainerId: 'a',
+      column: 'PLANNED',
+      tractorPlate: '51C-482.17',
+      driverName: 'Phạm Quốc Huy',
+    });
+    expect(next.PLANNED.total).toBe(1);
+  });
+
+  it('thẻ không có trong Chờ điều thì giữ nguyên', () => {
+    const state = toColumnsState({ WAITING: column([card('b')]) });
+    expect(applyOptimisticAssign(state, assign)).toBe(state);
+  });
+
+  it('khối chuyến hiện trên đúng làn xe, các làn khác giữ nguyên', () => {
+    const lanes = [
+      { tractorId: 'x1', plateNumber: '51C-482.17', status: 'AVAILABLE', badges: [], blocks: [] },
+      { tractorId: 'x2', plateNumber: '51C-1', status: 'AVAILABLE', badges: [], blocks: [] },
+    ];
+
+    const next = applyOptimisticLane(lanes, assign, makeCard())!;
+
+    expect(next[0]!.blocks).toEqual([
+      expect.objectContaining({
+        kind: 'TRIP',
+        title: 'OOLU8842105',
+        subtitle: 'Phạm Quốc Huy · 51R-112.23',
+        start: '2026-10-17T07:30:00.000Z',
+      }),
+    ]);
+    expect(next[1]).toBe(lanes[1]);
+    expect(applyOptimisticLane(null, assign, makeCard())).toBeNull();
   });
 });
