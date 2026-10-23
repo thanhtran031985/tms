@@ -28,3 +28,5 @@
 - **Thẻ chưa có giờ Stop đầu** và chưa có chuyến: bảng gán xe báo cần nhập giờ trong Order, chưa cho gán (chưa có khung giờ để tạo chuyến). Gán xe cho thẻ chưa có chuyến chạy `createSingleTrip` rồi `assignResources`; lỗi giữa chừng thì chuyến đã tạo vẫn nằm ở Chờ điều (thẻ mang chuyến) để gán lại, không có chuyến mồ côi.
 - **Cập nhật SSE** làm mới đúng các thẻ bị ảnh hưởng và làm mới lịch xe/số đếm bằng `router.refresh()` (tối đa 2 giây một lần).
 - **Gói thư viện**: `@dnd-kit/core` đã được duyệt; `@dnd-kit/utilities`, `@dnd-kit/accessibility` đi kèm làm phụ thuộc, không dùng trực tiếp.
+- **Test e2e dùng dữ liệu mẫu chung**: `db:seed` không xóa chuyến do e2e tạo ra nên `dispatch.spec.ts` và `dispatch-concurrency.spec.ts` gọi `resetDispatchContainers` (SQL trực tiếp, vì web không phụ thuộc drizzle-orm) trước khi chạy; `dispatch.spec.ts` chạy tuần tự vì dùng chung cont `MAEU2388422`.
+- **e2e và Redis**: server Next trong e2e cần `REDIS_URL` để SSE chạy; `playwright.config.ts` mặc định `redis://localhost:6379` (Redis của docker compose) khi môi trường chưa có.

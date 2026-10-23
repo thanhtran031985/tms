@@ -1,19 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-
-const PASSWORD = process.env.SEED_DEV_PASSWORD ?? '';
-
-async function loginAs(page: Page, email: string, tenantName?: string) {
-  await page.goto('/login');
-  await page.getByLabel('Email hoặc số điện thoại').fill(email);
-  await page.getByLabel('Mật khẩu', { exact: true }).fill(PASSWORD);
-  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  if (tenantName) {
-    await expect(page).toHaveURL(/\/select-tenant/);
-    await page.getByRole('button', { name: new RegExp(tenantName) }).click();
-  }
-  await expect(page.getByRole('heading', { name: 'Trang chủ' })).toBeVisible();
-  await page.waitForLoadState('networkidle');
-}
+import { CONCURRENCY_CONTAINER_IDS, loginAs, resetDispatchContainers } from './dispatch-fixtures';
 
 // Order EXP-2610-046 có 2 cont 40HC cùng khung giờ 08:00 ngày 28/10 (seed): hai cont khác nhau, dùng chung tài xế.
 const URL = '/dispatch?date=2026-10-28&q=EXP-2610-046';
@@ -29,6 +15,13 @@ async function openBoard(browser: Browser, email: string, tenantName?: string) {
   await expect(column(page, 'Chờ điều').locator('[data-container-id]').first()).toBeVisible();
   return { context, page };
 }
+
+// Dưới tải của cả bộ e2e, đăng nhập hai người và biên dịch route lần đầu mất lâu hơn mặc định 60 giây.
+test.setTimeout(150_000);
+
+test.beforeAll(async () => {
+  await resetDispatchContainers(CONCURRENCY_CONTAINER_IDS);
+});
 
 test('hai Điều vận cùng gán một tài xế cho hai cont trùng giờ: một người thắng, người kia thấy thẻ quay lại và lỗi đúng mã', async ({
   browser,

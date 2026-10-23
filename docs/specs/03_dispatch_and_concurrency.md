@@ -76,3 +76,11 @@ Khi tài xế kéo cont tới kho khách nhưng khách giữ lại đóng/rút h
 - **[SỬA]** Mỗi thẻ trên Kanban là **một container** (hiển thị số Order, số cont, khách). Thẻ của cùng một Order có thể gom nhóm/thu gọn để Điều vận thấy cả lô. Kéo thẻ container vào thẻ Tài xế/Đầu kéo trên lane thời gian (theo ngày) để tạo assignment.
 - Bảng Kanban phải phân trang/lọc theo ngày, khu vực, khách hàng; không tải toàn bộ đơn của tenant.
 - Hiển thị nhãn: trạng thái cảng (`portReadinessStatus`), đếm ngược DEM/DET/cut-off, xe sắp đến kỳ bảo dưỡng, giấy tờ sắp hết hạn.
+
+### Ghi chú cài đặt (task 07, chốt 23/10/2026)
+- **Phân cột** (`board.query.ts`): `Chờ điều` gồm container `PENDING` của Order `CONFIRMED`/`IN_PROGRESS` mà Stop đầu chưa có giờ hoặc giờ không sau hết ngày xem (tồn từ ngày trước vẫn hiện), cộng container có chuyến `PLANNED` nhưng không còn assignment hoạt động (sau "Hoàn tác"; thẻ mang chuyến cũ để gán lại, không tạo chuyến mới). Các cột chuyến lấy chuyến giao với ngày xem theo giờ tenant. `Chờ móc rơ moóc` chưa có dữ liệu cho tới task 09.
+- **Khung giờ** của thẻ chưa có chuyến = giờ Stop đầu + 3,5 giờ (`routes` chưa có thời lượng chuẩn). Thẻ chưa có giờ Stop đầu chưa gán xe được.
+- **Phân trang**: tối đa 100 thẻ mỗi cột mỗi lần, cursor theo (giờ bắt đầu, id); tải bảng 300 thẻ khoảng 140 ms.
+- **Gán xe trên giao diện**: không có cặp xe–tài xế–rơ moóc mặc định nên làn của lịch là đầu kéo, và gán xe là chọn đầu kéo rồi chọn tài xế, rơ moóc trong bảng gán xe (hoặc thả thẻ vào làn để chọn sẵn đầu kéo). Gán xe cho thẻ chưa có chuyến gọi `createSingleTrip` rồi `assignResources`.
+- **Realtime**: Route Handler `GET /api/v1/stream/dispatch` (SSE) đăng ký kênh `tenant:{tenantId}:dispatch`, chưa đăng nhập trả 401 JSON. Client tải lại đúng các thẻ trong `orderContainerIds` của sự kiện (`getBoardCards`) và làm mới lịch xe; mất kết nối thì hiện lỗi giữ bảng cũ và tự nối lại.
+- **Mã lỗi hiển thị** theo `apps/web/src/features/dispatch/error-messages.ts`; ghi đè giờ lái chỉ cho `ADMIN` và bắt nhập lý do.

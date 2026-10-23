@@ -10,7 +10,7 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 4 | Giao diện bảng Kanban và lịch xe (chỉ hiển thị) | ✅ | |
 | 5 | Gán xe: chọn thẻ, kéo thả, optimistic, rollback, hoàn tác | ✅ | |
 | 6 | E2E hai trình duyệt | ✅ | |
-| 7 | Hoàn tất | ⬜ | |
+| 7 | Hoàn tất | ✅ | |
 
 ## Nhật ký
 <!-- Sau mỗi bước: ngày, đã làm gì, kết quả Kiểm tra, việc người dùng cần làm thủ công. -->
@@ -49,3 +49,11 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Đã làm: `apps/web/e2e/dispatch-concurrency.spec.ts`: hai context đăng nhập hai người cùng công ty (Điều vận Nguyễn Văn Hùng và Quản trị), mỗi người chọn một trong hai cont của Order EXP-2610-046 (cùng khung giờ 28/10) và cùng đầu kéo, tài xế, rơ moóc mặc định; bấm gán và trả lời hộp xác nhận thiếu khối lượng đồng thời. `dispatch.spec.ts` (Bước 4, 5) có thêm lọc Xuất/Nhập và bảng gán xe khóa "Đăng kiểm hết hạn, không được điều". `playwright.config.ts` cho server e2e mặc định `REDIS_URL=redis://localhost:6379` khi môi trường chưa có.
 - Kiểm tra: trình duyệt thua thấy thẻ quay lại Chờ điều kèm thông báo "đã có chuyến trùng giờ" (mã `RESOURCE_TIME_CONFLICT`), trình duyệt thắng thấy thẻ ở Đã lên kế hoạch, cả hai thấy cùng trạng thái sau vài giây nhờ SSE, rồi người thắng Hoàn tác và cả hai thấy cont về Chờ điều; `pnpm --filter web exec playwright test dispatch` (13 test, gồm `dispatch.spec.ts` và `dispatch-concurrency.spec.ts`) xanh 5 lần liên tiếp, không chập chờn.
 - Việc người dùng cần làm: không có.
+
+### 23/10/2026 — Bước 7: hoàn tất ✅
+- Chạy toàn bộ: `pnpm typecheck`, `pnpm lint`, `prettier --check`, `pnpm build` không lỗi; `pnpm test` xanh: shared 14, web 167, worker 7, core 498 test (gồm 23 test `board.int.test.ts`, 5 test seed điều vận). `pnpm e2e` toàn bộ chạy 3 lần liên tiếp: toàn bộ test điều vận (14 test của `dispatch.spec.ts` và `dispatch-concurrency.spec.ts`) xanh cả 3 lần; chỉ còn 3 test cũ của `orders.spec.ts` đỏ (mô tả bên dưới). Riêng điều vận chạy 5 lần liên tiếp cũng xanh.
+- Đạt "Chấp nhận khi" của ticket: E2E Playwright hai trình duyệt cùng gán một tài xế cho hai cont trùng giờ, trình duyệt thua thấy thẻ quay lại Chờ điều và thông báo lỗi trùng giờ, trình duyệt thắng thấy thẻ ở Đã lên kế hoạch, cả hai đồng bộ qua SSE. Route Handler SSE (`requireRole(dispatch.view)` trong `stream-handler.ts`) và mọi Server Action điều vận (`defineAction`: `requireRole` + zod, có test `actions-guard`) đều đủ.
+- Đã sửa spec 03: thêm mục "Ghi chú cài đặt (task 07)" ở cuối; decisions.md ghi mọi chỗ khác preview Screen03.
+- Hỗ trợ e2e: `e2e/dispatch-fixtures.ts` (`loginAs` chờ form đăng nhập hydrate xong rồi mới bấm, vì bấm sớm dưới tải của cả bộ e2e làm form gửi kiểu GET; `resetDispatchContainers` đưa cont mẫu về chưa điều trước khi chạy vì `db:seed` không xóa chuyến do e2e tạo ra), `playwright.config.ts` đặt mặc định `REDIS_URL` cho server e2e.
+- Lỗi có sẵn, không thuộc task này (không sửa vì ngoài phạm vi): `orders.spec.ts` có 3 test đỏ từ trước (H1 của Đơn hàng giờ là "Quản lý Đơn hàng" không còn khớp mẫu "N Order có M container cần xử lý"; test tìm/lọc theo chiều; test chọn nhiều Order nháp để xác nhận). Mã Đơn hàng và `orders.spec.ts` không bị task này sửa (`git diff` so với nhánh 06 rỗng).
+- Việc người dùng cần làm: thêm `REDIS_URL=redis://localhost:6379` vào `.env` nếu chưa có (server Next cần để đẩy sự kiện thời gian thực; e2e đã tự mặc định); quyết định sửa 3 test Đơn hàng đỏ (nên tạo task hoặc mục sửa riêng).

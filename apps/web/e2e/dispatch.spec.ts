@@ -1,21 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
+import { ASSIGN_CONTAINER_IDS, loginAs, resetDispatchContainers } from './dispatch-fixtures';
 
-const PASSWORD = process.env.SEED_DEV_PASSWORD ?? '';
 // Đặt E2E_SHOTS=<thư mục> để lưu ảnh chụp màn hình đối chiếu với designs/components/Screen03-Dispatch.
 const SHOTS = process.env.E2E_SHOTS;
-
-async function loginAs(page: Page, email: string, tenantName?: string) {
-  await page.goto('/login');
-  await page.getByLabel('Email hoặc số điện thoại').fill(email);
-  await page.getByLabel('Mật khẩu', { exact: true }).fill(PASSWORD);
-  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  if (tenantName) {
-    await expect(page).toHaveURL(/\/select-tenant/);
-    await page.getByRole('button', { name: new RegExp(tenantName) }).click();
-  }
-  await expect(page.getByRole('heading', { name: 'Trang chủ' })).toBeVisible();
-  await page.waitForLoadState('networkidle');
-}
 
 const DISPATCHER = 'hung.dv@phucan.vn';
 const TENANT = 'Vận tải Phúc An';
@@ -32,6 +19,10 @@ async function shot(page: Page, name: string) {
 
 // Các test dùng chung cont MAEU2388422 và có test đổi dữ liệu (gán rồi hoàn tác) nên chạy tuần tự trong file này.
 test.describe.configure({ mode: 'serial' });
+
+test.beforeAll(async () => {
+  await resetDispatchContainers(ASSIGN_CONTAINER_IDS);
+});
 
 test.describe('bảng điều vận Kanban', () => {
   test('mở /dispatch thấy 6 cột, thẻ đúng cột, nhãn cảng, DEM/DET và lịch xe', async ({ page }) => {
@@ -65,6 +56,21 @@ test.describe('bảng điều vận Kanban', () => {
     const lane = page.locator('[data-lane="51C-482.17"]');
     await expect(lane.locator('[data-block-kind="TRIP"]')).toContainText('MAEU2388417');
     await shot(page, 'dispatch-1440');
+  });
+
+  test('chế độ Tối: bảng và lịch xe vẫn đọc được (chỉ dùng token màu)', async ({ page }) => {
+    await loginAs(page, DISPATCHER, TENANT);
+    await page.goto(`/dispatch?date=${DAY}`);
+    await page.getByRole('button', { name: 'Chế độ tối' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    await expect(
+      column(page, 'Đã lên kế hoạch').getByRole('button', { name: /MAEU2388417/ }),
+    ).toBeVisible();
+    await expect(page.locator('[data-lane="51C-482.17"] [data-block-kind="TRIP"]')).toBeVisible();
+    await shot(page, 'dispatch-dark');
+    // Trả về giao diện Sáng để không ảnh hưởng test sau (cookie nằm trong context riêng của từng test).
+    await page.getByRole('button', { name: 'Chế độ sáng' }).click();
   });
 
   test('1366×768: không tràn ngang trang, bảng cuộn ngang trong khung', async ({ page }) => {
