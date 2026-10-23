@@ -1,13 +1,15 @@
 // Gán tài xế + đầu kéo + rơ moóc cho chuyến (spec 03 mục 1, ADR-004, task 06 bước 4).
 // Khóa bi quan theo thứ tự cố định drivers -> tractors -> trailers; mọi đọc thường (consistent read) chỉ diễn ra SAU khi đã khóa
 // để thấy dữ liệu đã commit của người đi trước. Lỗi trả bằng AppError, Server Action chuyển thành Result.
-import { and, asc, eq, inArray, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { AppError } from '@shared/errors';
-import type { AssignResourcesInput } from '@shared/schemas/dispatch';
+import { parseDispatchSettings, type AssignResourcesInput } from '@shared/schemas/dispatch';
 import { writeAudit } from '../../lib/audit';
 import type { RequestContext } from '../../lib/context';
 import { isLockContentionError } from '../../lib/db/errors';
-import { dispatchAssignments, orderStops, tripContainers } from '../../lib/db/schema';
+import { dispatchAssignments } from '../../lib/db/schema';
+import { can } from '../identity/permissions';
+import { loadTripContext } from './context';
 import {
   authorize,
   emit,
@@ -29,6 +31,11 @@ export function createAssignService(deps: DispatchDeps) {
     input: AssignResourcesInput,
   ): Promise<TripResult> {
     authorize(ctx, 'dispatch.assign');
+    // Chỉ Quản trị được ghi đè giờ lái; role khác gửi cờ này bị từ chối ngay, kể cả khi chưa vượt giờ.
+    if (input.overrideDrivingHours && !can(ctx.role, 'dispatch.overrideDriveHours')) {
+      throw new AppError('DRIVING_HOURS_OVERRIDE_FORBIDDEN');
+    }
+    const settings = parseDispatchSettings(await deps.loadSettings(ctx));
 
     let outcome: {
       trip: TripRow;
@@ -53,27 +60,27 @@ export function createAssignService(deps: DispatchDeps) {
 
           // 3) Sau khi giữ khóa mới đọc thường: kiểm tra quy tắc.
           const window = { start: trip.plannedStart, end: trip.plannedEnd };
+          const context = await loadTripContext(tx, trip.id);
           const evaluated = await evaluateAssignment(ctx, tx, {
             tripId: trip.id,
             window,
             ids,
             locked,
+            context,
             now: deps.now(),
+            options: {
+              maxDrivingHoursPerDay: settings.maxDrivingHoursPerDay,
+              confirmMissingWeight: input.confirmMissingWeight === true,
+              overrideDrivingHours: input.overrideDrivingHours ?? null,
+            },
           });
           const blocking = evaluated.errors[0];
           if (blocking) throw new AppError(blocking.code, blocking.message, blocking.details);
 
           // 4) Ghi: hủy assignment cũ của chuyến (gán lại), tạo mới một dòng cho mỗi Stop, đồng bộ primary*, tăng version, audit.
           const repo = createDispatchRepo(tx);
-          const links = await tx.select(tripContainers, eq(tripContainers.tripId, trip.id));
-          const containerIds = links.map((l) => l.orderContainerId);
-          const stops = containerIds.length
-            ? (
-                await tx.select(orderStops, inArray(orderStops.orderContainerId, containerIds), {
-                  orderBy: [asc(orderStops.orderContainerId), asc(orderStops.sequenceNo)],
-                })
-              ).filter((s) => s.status !== 'SKIPPED')
-            : [];
+          const stops = context.stops;
+          const containerIds = context.orderContainerIds;
           if (stops.length === 0) {
             throw new AppError('VALIDATION_ERROR', 'Container của chuyến chưa có Stop để gán.', {
               field: 'tripId',
@@ -153,6 +160,9 @@ export function createAssignService(deps: DispatchDeps) {
               primaryTrailerId: input.trailerId,
               version: trip.version + 1,
               assignmentIds: created.map((a) => a.id).join(','),
+              ...(evaluated.drivingHoursOverrideReason
+                ? { drivingHoursOverrideReason: evaluated.drivingHoursOverrideReason }
+                : {}),
             },
           });
 

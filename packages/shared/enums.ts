@@ -54,6 +54,7 @@ export const LOCATION_TYPES = [
   'GARAGE',
   'PARKING',
 ] as const;
+export type LocationType = (typeof LOCATION_TYPES)[number];
 
 export const TRACTOR_OWNERSHIP = ['OWNED', 'LEASED'] as const;
 export type TractorOwnership = (typeof TRACTOR_OWNERSHIP)[number];

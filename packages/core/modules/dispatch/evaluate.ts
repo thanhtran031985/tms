@@ -1,12 +1,20 @@
 // Đánh giá một bộ tài nguyên cho một khung giờ chuyến: khóa theo thứ tự cố định rồi gom lỗi và cảnh báo của mọi quy tắc.
-// Dùng chung cho assignResources và updateTripTimes (đổi giờ chuyến đã gán phải kiểm tra lại như gán mới).
+// Dùng chung cho assignResources, updateTripTimes (đổi giờ chuyến đã gán phải kiểm tra lại như gán mới) và listResourceAvailability.
 import { eq } from 'drizzle-orm';
 import type { RequestContext } from '../../lib/context';
 import { drivers, tractors, trailers } from '../../lib/db/schema';
 import type { TenantDb } from '../../lib/db/tenant-db';
 import type { DriverRow, TractorRow, TrailerRow } from '../fleet/repo';
+import type { TripContext } from './context';
+import { checkDocuments, documentsOf } from './rules/documents';
+import {
+  drivingHoursError,
+  findDrivingHoursExcess,
+  loadDriverIntervals,
+} from './rules/driving-hours';
 import { checkMaintenance } from './rules/maintenance';
 import { findAssignmentOverlaps, overlapError } from './rules/overlap';
+import { checkCutOff, checkPhysical } from './rules/physical';
 import { checkResourceState } from './rules/resource-state';
 import {
   mergeResults,
@@ -43,23 +51,26 @@ export async function lockResources(tx: TenantDb, ids: ResourceIds): Promise<Loc
   return { driver, tractor, trailer };
 }
 
-type Resource = {
-  kind: ResourceKind;
-  id: string;
-  row: { status: string; deletedAt: Date | null } | undefined;
-  label: string;
-};
+type ResourceRow = DriverRow | TractorRow | TrailerRow;
+type Resource = { kind: ResourceKind; id: string; row: ResourceRow | undefined; label: string };
 
 /**
- * Quy tắc theo từng tài nguyên: tồn tại + trạng thái, chồng lấn assignment, bảo dưỡng (đầu kéo và rơ moóc).
- * Dùng chung cho assignResources (sau khi khóa) và listResourceAvailability (không khóa).
+ * Quy tắc theo từng tài nguyên: tồn tại + trạng thái, chồng lấn assignment, bảo dưỡng (đầu kéo và rơ moóc), giấy tờ tại giờ kết thúc
+ * và (tài xế) giờ lái trong ngày khi có `maxDrivingHoursPerDay`. Dùng chung cho assignResources (sau khi khóa) và
+ * listResourceAvailability (không khóa).
  */
 export async function evaluateResource(
   ctx: RequestContext,
   tdb: TenantDb,
-  input: { resource: Resource; window: TimeWindow; now: Date; excludeTripId?: string },
+  input: {
+    resource: Resource;
+    window: TimeWindow;
+    now: Date;
+    excludeTripId?: string;
+    maxDrivingHoursPerDay?: number;
+  },
 ): Promise<RuleResult> {
-  const { resource, window, now, excludeTripId } = input;
+  const { resource, window, now, excludeTripId, maxDrivingHoursPerDay } = input;
   const result = noIssues();
 
   const stateError = checkResourceState({
@@ -93,10 +104,47 @@ export async function evaluateResource(
     });
     if (maintenance) result.errors.push(maintenance);
   }
+
+  const documents = checkDocuments({
+    kind: resource.kind,
+    label: resource.label,
+    items: documentsOf(resource.kind, resource.row),
+    plannedEnd: window.end,
+    timeZone: ctx.timezone,
+  });
+  result.errors.push(...documents.errors);
+  result.warnings.push(...documents.warnings);
+
+  if (resource.kind === 'DRIVER' && maxDrivingHoursPerDay !== undefined) {
+    const excess = findDrivingHoursExcess({
+      existing: await loadDriverIntervals(tdb, {
+        driverId: resource.id,
+        window,
+        timeZone: ctx.timezone,
+        ...(excludeTripId ? { excludeTripId } : {}),
+      }),
+      window,
+      timeZone: ctx.timezone,
+      limitHours: maxDrivingHoursPerDay,
+    });
+    if (excess) result.errors.push(drivingHoursError(resource.label, excess));
+  }
   return result;
 }
 
-/** Đánh giá cả ba tài nguyên đã khóa của một chuyến. Phải gọi SAU lockResources. */
+export type AssignmentOptions = {
+  maxDrivingHoursPerDay: number;
+  confirmMissingWeight: boolean;
+  /** Đã kiểm quyền ADMIN ở service; có thì lỗi vượt giờ lái được chuyển thành cảnh báo. */
+  overrideDrivingHours?: { reason: string } | null;
+};
+
+export type AssignmentEvaluation = RuleResult & {
+  /** Lý do ghi đè giờ lái đã được áp dụng (để audit), có khi thật sự vượt giờ và có ghi đè. */
+  drivingHoursOverrideReason?: string;
+};
+
+/** Đánh giá cả ba tài nguyên đã khóa của một chuyến cùng ràng buộc theo container. Phải gọi SAU lockResources. */
 export async function evaluateAssignment(
   ctx: RequestContext,
   tx: TenantDb,
@@ -105,14 +153,18 @@ export async function evaluateAssignment(
     window: TimeWindow;
     ids: ResourceIds;
     locked: LockedResources;
+    context: TripContext;
     now: Date;
+    options: AssignmentOptions;
   },
-): Promise<RuleResult> {
-  const { tripId, window, ids, locked, now } = input;
+): Promise<AssignmentEvaluation> {
+  const { tripId, window, ids, locked, context, now, options } = input;
   const common = { window, now, excludeTripId: tripId };
-  return mergeResults(
+
+  const resources = mergeResults(
     await evaluateResource(ctx, tx, {
       ...common,
+      maxDrivingHoursPerDay: options.maxDrivingHoursPerDay,
       resource: {
         kind: 'DRIVER',
         id: ids.driverId,
@@ -139,4 +191,52 @@ export async function evaluateAssignment(
       },
     }),
   );
+
+  // Ràng buộc theo container: chỉ xét khi cả ba tài nguyên dùng được, tránh báo lỗi vật lý trên tài nguyên không tồn tại.
+  const containerRules = noIssues();
+  if (resources.errors.length === 0) {
+    for (const container of context.containers) {
+      const physical = checkPhysical({
+        container,
+        driver: locked.driver,
+        tractor: locked.tractor,
+        trailer: locked.trailer,
+        plannedEnd: window.end,
+        timeZone: ctx.timezone,
+        confirmMissingWeight: options.confirmMissingWeight,
+      });
+      const order = context.orders.get(container.orderId);
+      const cutOff = order
+        ? checkCutOff({
+            order,
+            stops: context.stops.filter((s) => s.orderContainerId === container.id),
+            plannedEnd: window.end,
+            containerLabel: container.containerNo ?? `dòng ${container.lineNo}`,
+          })
+        : noIssues();
+      containerRules.errors.push(...physical.errors, ...cutOff.errors);
+      containerRules.warnings.push(...physical.warnings, ...cutOff.warnings);
+    }
+  }
+
+  const merged = mergeResults(resources, containerRules);
+  const override = options.overrideDrivingHours;
+  const exceeded = merged.errors.find((e) => e.code === 'DRIVING_HOURS_EXCEEDED');
+  if (exceeded && override) {
+    return {
+      errors: merged.errors.filter((e) => e !== exceeded),
+      warnings: [
+        ...merged.warnings,
+        {
+          code: 'DRIVING_HOURS_OVERRIDDEN',
+          severity: 'warn',
+          resource: 'DRIVER',
+          message: `${exceeded.message} Quản trị đã ghi đè: ${override.reason}`,
+          ...(exceeded.details ? { details: exceeded.details } : {}),
+        },
+      ],
+      drivingHoursOverrideReason: override.reason,
+    };
+  }
+  return merged;
 }

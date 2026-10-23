@@ -95,7 +95,7 @@ export function createDispatchService(options: DispatchServiceOptions): Dispatch
     createSingleTrip: trips.createSingleTrip,
     updateTripTimes: trips.updateTripTimes,
     assignResources: assign.assignResources,
-    dispatchTrip: notImplemented('dispatchTrip'),
+    dispatchTrip: trips.dispatchTrip,
     cancelAssignment: notImplemented('cancelAssignment'),
     listResourceAvailability: notImplemented('listResourceAvailability'),
   };

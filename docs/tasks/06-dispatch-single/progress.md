@@ -7,8 +7,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 1 | Schema chuyến và assignment, migration, seed, tenant isolation | ✅ | 9ddfb41 |
 | 2 | Test đồng thời và test quy tắc (đỏ) | ✅ | 5dec2c5 |
 | 3 | Tạo chuyến SINGLE cho một container | ✅ | 84585d2 |
-| 4 | assignResources: khóa, chồng lấn, tồn tại, trạng thái, timeout | ✅ | |
-| 5 | Giấy tờ, giờ lái và ràng buộc vật lý một container | ⬜ | |
+| 4 | assignResources: khóa, chồng lấn, tồn tại, trạng thái, timeout | ✅ | 0b3bf48 |
+| 5 | Giấy tờ, giờ lái và ràng buộc vật lý một container | ✅ | |
 | 6 | Sau commit, hủy assignment, truy vấn tài nguyên gán được và Server Action | ⬜ | |
 | 7 | Hoàn tất | ⬜ | |
 
@@ -50,3 +50,8 @@ Ghi chú: `updateTripTimes` hiện chỉ dời giờ assignment; kiểm tra lạ
 ### Bước 4 — 23/10/2026 (xong)
 Đã làm: `lib/db/tenant-db.ts` nhận `transaction(fn, { lockWaitTimeoutSec })` (SET SESSION innodb_lock_wait_timeout rồi trả về DEFAULT ở finally); `lib/db/errors.ts` (`isLockContentionError`: lỗi 1205 và 1213 kể cả khi drizzle bọc trong `cause`). `rules/{types,resource-state,overlap,maintenance}.ts` (hàm riêng cho từng quy tắc), `evaluate.ts` (`lockResources` theo thứ tự drivers -> tractors -> trailers, `evaluateResource`, `evaluateAssignment`), `assign.service.ts` (`assignResources`: khóa chuyến, khóa tài nguyên, rồi mới đọc thường; hủy assignment cũ khi gán lại; mỗi Stop một assignment; đồng bộ `primary*`; tăng `version`; audit từng assignment và chuyến; publish sau commit; lock timeout hoặc deadlock -> RESOURCE_BUSY_RETRY). `updateTripTimes` kiểm tra lại chồng lấn/bảo dưỡng cho chuyến đã gán rồi dời giờ assignment (thêm 2 test).
 Kết quả kiểm tra: `assign.concurrency` 5/5 test xanh, chạy 5 lần liên tiếp đều xanh (gồm 2 Điều vận cùng tài xế lặp 5 vòng, ghép chéo 20 vòng không deadlock, giữ khóa >5 giây ra RESOURCE_BUSY_RETRY và gán lại được sau khi nhả); `trips` 16/16 xanh; `assign.rules` 23/41 xanh, đủ nhóm của bước này (tồn tại, tenant, INACTIVE, xóa mềm, chồng lấn theo status, bảo dưỡng, trạng thái khi sắp chạy, kết quả gán); 18 test còn đỏ đều thuộc Bước 5 (giấy tờ, giờ lái, vật lý, dispatchTrip). `pnpm typecheck` xanh.
+
+### Bước 5 — 23/10/2026 (xong)
+Đã làm: `rules/documents.ts` (GPLX; đăng kiểm, bảo hiểm, phù hiệu; kiểm định; hết hạn chặn, dưới 15 ngày cảnh báo, hết hạn đúng ngày kết thúc vẫn còn hạn), `rules/driving-hours.ts` (tổng giờ kế hoạch theo ngày múi giờ tenant, hợp khoảng để 3 dòng của một chuyến không bị đếm ba lần, chuyến qua nửa đêm chia theo ngày), `rules/physical.ts` (Rule 2 tải trọng dùng decimal.js, Rule 5 genset, Rule 6 chứng chỉ hàng nguy hiểm tại giờ kết thúc, Rule 8 cut-off), `rules/port-readiness.ts` (Rule 7), `context.ts` (tải container, Order, Stop, loại địa điểm). `evaluate.ts` gộp mọi quy tắc; `assignResources` đọc cấu hình tenant (`parseDispatchSettings`), từ chối ngay `DRIVING_HOURS_OVERRIDE_FORBIDDEN` nếu không phải ADMIN gửi ghi đè, ghi lý do ghi đè vào audit. `dispatchTrip` (PLANNED -> DISPATCHED): bắt buộc đã gán đủ ba tài nguyên, xét lại trạng thái tài nguyên, áp Rule 7, cập nhật `dispatchedAt`, audit `DISPATCH`. `lib/time` thêm `startOfTenantDay`, `addCalendarDays`, `diffCalendarDays`.
+Kết quả kiểm tra: `pnpm test --filter core -- assign.rules` 41/41 xanh; toàn bộ `modules/dispatch` 71/71 test tích hợp xanh (repo 9, trips 16, concurrency 5, rules 41); test đơn vị `core` 121 xanh (thêm `rules.test.ts` và `time.test.ts`); `pnpm typecheck` xanh. Test dispatchTrip: cont HOLD_CUSTOMS/HOLD_LINE/PENDING bị PORT_NOT_READY, READY_EDO được; hàng Xuất cần READY_EMPTY_RELEASE.
+Ghi chú: ngày đang xét là ngày tenant của giờ kế hoạch; `dispatchTrip` chỉ xét lại trạng thái tài nguyên và Rule 7 (không lặp lại giờ lái/khối lượng, vì cờ xác nhận và ghi đè không được lưu).

@@ -25,3 +25,6 @@
 <!-- Chỗ làm khác task.md, spec hoặc thiết kế: lý do, ai đồng ý, đã sửa spec chưa. -->
 - (23/10/2026, Bước 1) Thêm index `idx_assign_trip (tenant_id, consolidated_trip_id)` trên `dispatch_assignments`, spec 02 chưa có: dùng khi hủy/gán lại theo chuyến và khi bỏ qua assignment cùng chuyến lúc kiểm tra chồng lấn. Cần thêm vào spec 02 ở Bước 7.
 - (23/10/2026, Bước 1) Giữ `primary_*` trên `consolidated_trips` và `replaces_assignment_id` không có FK, đúng spec 02 (ADR-004 coi đây là cột hiển thị/tham chiếu mềm).
+- (23/10/2026, Bước 4-5) `dispatchTrip` chỉ xét lại trạng thái tài nguyên (OFF_DUTY, INACTIVE…) và Rule 7; không lặp lại giờ lái, khối lượng, giấy tờ vì cờ `confirmMissingWeight` và ghi đè giờ lái không được lưu giữa hai lần gọi. Nếu muốn chặn cả giấy tờ hết hạn giữa lúc gán và lúc điều thì cần lưu cờ xác nhận trên chuyến.
+- (23/10/2026, Bước 5) Ngày tính giờ lái là ngày dương lịch theo múi giờ tenant; chuyến vắt qua nửa đêm chia giờ cho từng ngày. `updateTripTimes` coi như đã xác nhận thiếu khối lượng và không cho ghi đè giờ lái (vượt thì Điều vận gán lại bằng assignResources).
+- (23/10/2026, Bước 5) Khối lượng cont không có VGM = khối lượng hàng + vỏ chuẩn (20ft 2,3 t; 40/45ft 3,8 t; cont lạnh +1,2 t), hằng số trong `rules/physical.ts`.

@@ -1,7 +1,12 @@
 // Chuyến SINGLE của một container: tạo chuyến, sửa giờ (task 06, bước 3). Gán tài nguyên ở assign.service.ts.
 import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { AppError } from '@shared/errors';
-import type { CreateSingleTripInput, UpdateTripTimesInput } from '@shared/schemas/dispatch';
+import {
+  parseDispatchSettings,
+  type CreateSingleTripInput,
+  type DispatchTripInput,
+  type UpdateTripTimesInput,
+} from '@shared/schemas/dispatch';
 import { writeAudit } from '../../lib/audit';
 import type { RequestContext } from '../../lib/context';
 import { nextNumber } from '../../lib/db/numbering';
@@ -29,9 +34,12 @@ import {
   updateTripWithVersion,
   type DispatchDeps,
 } from './deps';
+import { loadTripContext } from './context';
 import { evaluateAssignment, lockResources } from './evaluate';
 import type { TripResult } from './index';
 import { createDispatchRepo, type AssignmentRow, type TripRow } from './repo';
+import { checkPortReadiness } from './rules/port-readiness';
+import { checkResourceState } from './rules/resource-state';
 
 // Order còn nhận điều xe: đã xác nhận hoặc đang chạy (các container khác của Order vẫn chờ điều).
 const TRIPPABLE_ORDER_STATUSES = ['CONFIRMED', 'IN_PROGRESS', 'PARTIALLY_DELIVERED'] as const;
@@ -152,6 +160,7 @@ export function createTripService(deps: DispatchDeps) {
       throw invalid('plannedEnd', 'Giờ kết thúc phải sau giờ bắt đầu.');
     }
 
+    const settings = parseDispatchSettings(await deps.loadSettings(ctx));
     let result: {
       trip: TripRow;
       assignments: AssignmentRow[];
@@ -180,7 +189,13 @@ export function createTripService(deps: DispatchDeps) {
               window: { start: input.plannedStart, end: input.plannedEnd },
               ids,
               locked: await lockResources(tx, ids),
+              context: await loadTripContext(tx, before.id),
               now: deps.now(),
+              // Đổi giờ không đòi xác nhận lại khối lượng và không ghi đè giờ lái: nếu vượt giờ lái thì Điều vận gán lại bằng assignResources.
+              options: {
+                maxDrivingHoursPerDay: settings.maxDrivingHoursPerDay,
+                confirmMissingWeight: true,
+              },
             });
             const blocking = evaluated.errors[0];
             if (blocking) throw new AppError(blocking.code, blocking.message, blocking.details);
@@ -242,5 +257,118 @@ export function createTripService(deps: DispatchDeps) {
     };
   }
 
-  return { createSingleTrip, updateTripTimes };
+  async function dispatchTrip(ctx: RequestContext, input: DispatchTripInput): Promise<TripResult> {
+    authorize(ctx, 'dispatch.assign');
+
+    let result: {
+      trip: TripRow;
+      assignments: AssignmentRow[];
+      orderContainerIds: string[];
+    };
+    try {
+      result = await deps.tenantDb(ctx).transaction(
+        async (tx) => {
+          const before = await lockTrip(tx, input.tripId, input.version);
+          if (before.status !== 'PLANNED') throw new AppError('INVALID_STATUS_TRANSITION');
+          if (!before.primaryDriverId || !before.primaryTractorId || !before.primaryTrailerId) {
+            throw invalid('tripId', 'Chuyến chưa được gán đủ tài xế, đầu kéo và rơ moóc.');
+          }
+
+          // Tài nguyên có thể đã đổi trạng thái từ lúc gán (vd. tài xế nghỉ phép): xét lại khi điều.
+          const locked = await lockResources(tx, {
+            driverId: before.primaryDriverId,
+            tractorId: before.primaryTractorId,
+            trailerId: before.primaryTrailerId,
+          });
+          const states = [
+            checkResourceState({
+              kind: 'DRIVER',
+              row: locked.driver,
+              label: locked.driver?.fullName ?? '',
+              start: before.plannedStart,
+              now: deps.now(),
+            }),
+            checkResourceState({
+              kind: 'TRACTOR',
+              row: locked.tractor,
+              label: locked.tractor?.plateNumber ?? '',
+              start: before.plannedStart,
+              now: deps.now(),
+            }),
+            checkResourceState({
+              kind: 'TRAILER',
+              row: locked.trailer,
+              label: locked.trailer?.plateNumber ?? '',
+              start: before.plannedStart,
+              now: deps.now(),
+            }),
+          ];
+          const stateError = states.find((e) => e !== null);
+          if (stateError)
+            throw new AppError(stateError.code, stateError.message, stateError.details);
+
+          // Rule 7: chặn lúc điều nếu cont chưa sẵn sàng tại cảng/depot.
+          const context = await loadTripContext(tx, before.id);
+          for (const container of context.containers) {
+            const order = context.orders.get(container.orderId);
+            const firstStop = context.stops.find((s) => s.orderContainerId === container.id);
+            if (!order) continue;
+            const readiness = checkPortReadiness({
+              container,
+              order,
+              firstStopLocationType: firstStop?.locationId
+                ? (context.locationTypes.get(firstStop.locationId) ?? null)
+                : null,
+            });
+            const blocking = readiness.errors[0];
+            if (blocking) throw new AppError(blocking.code, blocking.message, blocking.details);
+          }
+
+          await updateTripWithVersion(tx, before, { status: 'DISPATCHED' });
+          const repo = createDispatchRepo(tx);
+          const active = (
+            await repo.assignments.list(eq(dispatchAssignments.consolidatedTripId, before.id))
+          ).filter(isActiveAssignment);
+          const dispatchedAt = deps.now();
+          for (const assignment of active) {
+            await repo.assignments.update(assignment.id, {
+              dispatchedAt,
+              version: assignment.version + 1,
+            });
+          }
+
+          const trip = (await repo.trips.get(before.id))!;
+          await writeAudit(tx, ctx, {
+            entity: 'consolidated_trips',
+            entityId: trip.id,
+            action: 'DISPATCH',
+            before: { status: before.status, version: before.version },
+            after: { status: trip.status, version: trip.version },
+          });
+          return {
+            trip,
+            assignments: (
+              await repo.assignments.list(eq(dispatchAssignments.consolidatedTripId, trip.id))
+            ).filter(isActiveAssignment),
+            orderContainerIds: context.orderContainerIds,
+          };
+        },
+        { lockWaitTimeoutSec: LOCK_WAIT_TIMEOUT_SECONDS },
+      );
+    } catch (error) {
+      if (isLockContentionError(error)) throw new AppError('RESOURCE_BUSY_RETRY');
+      throw error;
+    }
+
+    await emit(deps, {
+      type: 'dispatch.updated',
+      tenantId: ctx.tenantId,
+      tripId: result.trip.id,
+      version: result.trip.version,
+      orderContainerIds: result.orderContainerIds,
+    });
+    return { trip: result.trip, assignments: result.assignments, warnings: [] };
+  }
+
+  return { createSingleTrip, updateTripTimes, dispatchTrip };
 }
