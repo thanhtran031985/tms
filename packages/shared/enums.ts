@@ -119,12 +119,41 @@ export const STOP_STATUSES = ['PENDING', 'ARRIVED', 'COMPLETED', 'SKIPPED'] as c
 export const ORDER_FEE_CATEGORIES = ['REVENUE_SURCHARGE', 'PASS_THROUGH'] as const;
 export const ORDER_FEE_SOURCES = ['TARIFF', 'DEM_DET_JOB', 'MANUAL', 'EXPENSE_REBILL'] as const;
 
+// 6. ĐIỀU VẬN (spec 02 nhóm 6, task 06): chuyến, chuyến-container và assignment.
+export const TRIP_STATUSES = [
+  'PLANNED',
+  'DISPATCHED',
+  'IN_TRANSIT',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
+export const ALLOCATION_METHODS = [
+  'COST_NORM_RATIO',
+  'REVENUE_RATIO',
+  'EQUAL',
+  'DISTANCE_RATIO',
+  'MANUAL',
+] as const;
+export const ASSIGNMENT_TYPES = ['INTERNAL_FLEET', 'SUB_CONTRACTOR'] as const;
+export const ASSIGNMENT_STATUSES = [
+  'ASSIGNED',
+  'IN_TRANSIT',
+  'COMPLETED',
+  'ABORTED_MIDWAY',
+  'RESCUE_ASSIGNED',
+  'CANCELLED',
+] as const;
+// Assignment còn hiệu lực cho kiểm tra chồng lấn (spec 03 mục 1 bước 3): mọi trạng thái trừ ba trạng thái này.
+export const ASSIGNMENT_INACTIVE_STATUSES = ['CANCELLED', 'COMPLETED', 'ABORTED_MIDWAY'] as const;
+
 export type ContainerType = (typeof CONTAINER_TYPES)[number];
 export type OrderType = (typeof ORDER_TYPES)[number];
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type ContainerStatus = (typeof CONTAINER_STATUSES)[number];
 export type StopType = (typeof STOP_TYPES)[number];
 export type TripMode = (typeof TRIP_MODES)[number];
+export type TripStatus = (typeof TRIP_STATUSES)[number];
+export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
 
 // Trạng thái được phép đặt tay trên form (task 05). IN_USE, ON_DUTY, DROPPED do điều vận tự đặt (task 06, 09).
 export const TRACTOR_MANUAL_STATUS = ['AVAILABLE', 'MAINTENANCE', 'INACTIVE'] as const;

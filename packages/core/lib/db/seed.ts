@@ -1,6 +1,7 @@
 import type { Db } from './client';
 import { closeDb, getDb } from './client';
 import { requireEnv } from '../env';
+import { seedDispatch } from './seeds/dispatch';
 import { seedFleet } from './seeds/fleet';
 import { seedIdentity } from './seeds/identity';
 import { seedMasterData } from './seeds/master-data';
@@ -20,6 +21,7 @@ const seeders: Seeder[] = [
   { name: 'fleet', run: (db) => seedFleet(db) },
   { name: 'tariffs', run: (db) => seedTariffs(db) },
   { name: 'orders', run: (db) => seedOrders(db) },
+  { name: 'dispatch', run: (db) => seedDispatch(db) },
 ];
 
 try {

@@ -43,6 +43,13 @@
       "when": 1792675065626,
       "tag": "0005_fleet",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1792720926845,
+      "tag": "0006_dispatch",
+      "breakpoints": true
     }
   ]
 }
