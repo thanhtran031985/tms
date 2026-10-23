@@ -6,6 +6,9 @@ import { createMasterDataService, type MasterDataService } from '@core/modules/m
 import { createTariffService, type TariffService } from '@core/modules/billing/tariffs.service';
 import { createIdentityRepo, type IdentityRepo } from '@core/modules/identity/repo';
 import { createOrderService, type OrderService } from '@core/modules/orders/service';
+import { createDispatchService, type DispatchService } from '@core/modules/dispatch';
+import { publishDispatchEvent } from '@core/lib/redis/publish';
+import { getRedis } from '@core/lib/redis/client';
 
 let repo: IdentityRepo | undefined;
 let service: AuthService | undefined;
@@ -39,4 +42,19 @@ let orders: OrderService | undefined;
 export function getOrderService(): OrderService {
   orders ??= createOrderService({ tenantDb: (ctx) => getTenantDb(ctx) });
   return orders;
+}
+
+let dispatch: DispatchService | undefined;
+
+export function getDispatchService(): DispatchService {
+  dispatch ??= createDispatchService({
+    tenantDb: (ctx) => getTenantDb(ctx),
+    // Cấu hình điều vận (giờ lái tối đa/ngày…) nằm ở tenants.settings; chỉ identity được đọc bảng toàn cục.
+    loadSettings: (ctx) => getIdentityRepo().findTenantSettings(ctx.tenantId),
+    // Phát sau commit lên kênh theo tenant; lỗi Redis bị service bỏ qua, không làm hỏng thao tác đã commit.
+    publish: async (event) => {
+      await publishDispatchEvent(getRedis(), event);
+    },
+  });
+  return dispatch;
 }

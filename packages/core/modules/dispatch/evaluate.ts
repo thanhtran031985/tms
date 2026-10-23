@@ -44,10 +44,13 @@ async function lockById<T extends typeof drivers | typeof tractors | typeof trai
  * Khóa dòng (SELECT … FOR UPDATE) theo thứ tự cố định drivers -> tractors -> trailers để hai Điều vận ghép chéo không deadlock
  * (spec 03 mục 1 bước 2). Mỗi bảng một dòng nên đã tăng dần theo id. Trả undefined nếu không tồn tại hoặc khác tenant.
  */
-export async function lockResources(tx: TenantDb, ids: ResourceIds): Promise<LockedResources> {
-  const driver = await lockById(tx, drivers, ids.driverId);
-  const tractor = await lockById(tx, tractors, ids.tractorId);
-  const trailer = await lockById(tx, trailers, ids.trailerId);
+export async function lockResources(
+  tx: TenantDb,
+  ids: { [K in keyof ResourceIds]: string | null },
+): Promise<LockedResources> {
+  const driver = ids.driverId ? await lockById(tx, drivers, ids.driverId) : undefined;
+  const tractor = ids.tractorId ? await lockById(tx, tractors, ids.tractorId) : undefined;
+  const trailer = ids.trailerId ? await lockById(tx, trailers, ids.trailerId) : undefined;
   return { driver, tractor, trailer };
 }
 

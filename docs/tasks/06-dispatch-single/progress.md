@@ -8,8 +8,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 2 | Test đồng thời và test quy tắc (đỏ) | ✅ | 5dec2c5 |
 | 3 | Tạo chuyến SINGLE cho một container | ✅ | 84585d2 |
 | 4 | assignResources: khóa, chồng lấn, tồn tại, trạng thái, timeout | ✅ | 0b3bf48 |
-| 5 | Giấy tờ, giờ lái và ràng buộc vật lý một container | ✅ | |
-| 6 | Sau commit, hủy assignment, truy vấn tài nguyên gán được và Server Action | ⬜ | |
+| 5 | Giấy tờ, giờ lái và ràng buộc vật lý một container | ✅ | e528ce7 |
+| 6 | Sau commit, hủy assignment, truy vấn tài nguyên gán được và Server Action | ✅ | |
 | 7 | Hoàn tất | ⬜ | |
 
 ## Nhật ký
@@ -55,3 +55,7 @@ Kết quả kiểm tra: `assign.concurrency` 5/5 test xanh, chạy 5 lần liên
 Đã làm: `rules/documents.ts` (GPLX; đăng kiểm, bảo hiểm, phù hiệu; kiểm định; hết hạn chặn, dưới 15 ngày cảnh báo, hết hạn đúng ngày kết thúc vẫn còn hạn), `rules/driving-hours.ts` (tổng giờ kế hoạch theo ngày múi giờ tenant, hợp khoảng để 3 dòng của một chuyến không bị đếm ba lần, chuyến qua nửa đêm chia theo ngày), `rules/physical.ts` (Rule 2 tải trọng dùng decimal.js, Rule 5 genset, Rule 6 chứng chỉ hàng nguy hiểm tại giờ kết thúc, Rule 8 cut-off), `rules/port-readiness.ts` (Rule 7), `context.ts` (tải container, Order, Stop, loại địa điểm). `evaluate.ts` gộp mọi quy tắc; `assignResources` đọc cấu hình tenant (`parseDispatchSettings`), từ chối ngay `DRIVING_HOURS_OVERRIDE_FORBIDDEN` nếu không phải ADMIN gửi ghi đè, ghi lý do ghi đè vào audit. `dispatchTrip` (PLANNED -> DISPATCHED): bắt buộc đã gán đủ ba tài nguyên, xét lại trạng thái tài nguyên, áp Rule 7, cập nhật `dispatchedAt`, audit `DISPATCH`. `lib/time` thêm `startOfTenantDay`, `addCalendarDays`, `diffCalendarDays`.
 Kết quả kiểm tra: `pnpm test --filter core -- assign.rules` 41/41 xanh; toàn bộ `modules/dispatch` 71/71 test tích hợp xanh (repo 9, trips 16, concurrency 5, rules 41); test đơn vị `core` 121 xanh (thêm `rules.test.ts` và `time.test.ts`); `pnpm typecheck` xanh. Test dispatchTrip: cont HOLD_CUSTOMS/HOLD_LINE/PENDING bị PORT_NOT_READY, READY_EDO được; hàng Xuất cần READY_EMPTY_RELEASE.
 Ghi chú: ngày đang xét là ngày tenant của giờ kế hoạch; `dispatchTrip` chỉ xét lại trạng thái tài nguyên và Rule 7 (không lặp lại giờ lái/khối lượng, vì cờ xác nhận và ghi đè không được lưu).
+
+### Bước 6 — 23/10/2026 (xong)
+Đã làm: `lib/redis/publish.ts` (`dispatchChannel` = `tenant:{tenantId}:dispatch`, `publishDispatchEvent`); `cancelAssignment` (hủy mọi assignment hoạt động của chuyến PLANNED/DISPATCHED, xóa primary*, chuyến về PLANNED, trả tài xế ON_DUTY/xe IN_USE về AVAILABLE khi không còn assignment hoạt động khác giữ chúng, audit từng dòng); `availability.query.ts` (`listResourceAvailability`: mọi tài xế/đầu kéo/rơ moóc chưa xóa mềm, dùng lại đúng hàm quy tắc của assignResources, không khóa dòng nào, lý do AVAILABLE "Rảnh trong khung giờ này", loại trừ chuyến hiện tại của chính container); `findTenantSettings` trong identity repo; `apps/web/src/features/dispatch/actions.ts` (6 action bằng defineAction, `revalidatePath("/dispatch")` chỉ sau khi service trả ok, trả tóm tắt không lộ tenantId) và `getDispatchService` trong `server/services.ts` (Redis publish + đọc tenants.settings).
+Kết quả kiểm tra: `pnpm test --filter core -- dispatch` 10 file / 117 test xanh (events 4, cancel 7, availability 10, rules 43, trips 16, concurrency 5, perf 1, repo 9, seed 4, rules.test unit); web 13 file / 106 test xanh (actions dispatch 9, kể cả VIEWER/ACCOUNTANT/FLEET_MANAGER bị FORBIDDEN, actions-guard); đo hiệu năng trên DB Testcontainers có 300 assignment trong ngày: assignResources p50=48 ms, p95=87 ms, max=98 ms (40 lần) < 500 ms.

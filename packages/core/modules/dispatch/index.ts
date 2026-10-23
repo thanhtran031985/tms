@@ -1,7 +1,6 @@
 // Nghiệp vụ điều vận SINGLE (task 06, TICKET-06): lập chuyến, gán tài xế + đầu kéo + rơ moóc, điều, hủy gán.
 // Mọi truy cập DB đi qua TenantDb (ADR-003); mọi thay đổi ghi audit_logs trong cùng transaction (Rule 8).
 // Service ném AppError cho lỗi nghiệp vụ; Server Action chuyển thành Result.
-// Đang cài dần: tạo chuyến và sửa giờ (bước 3); gán, điều, hủy gán, tra tài nguyên gán được (bước 4 đến 6).
 import type {
   AssignResourcesInput,
   CancelAssignmentInput,
@@ -12,20 +11,15 @@ import type {
   UpdateTripTimesInput,
 } from '@shared/schemas/dispatch';
 import type { RequestContext } from '../../lib/context';
+import type { DispatchEvent } from '../../lib/redis/publish';
 import type { TenantDb } from '../../lib/db/tenant-db';
 import type { DispatchDeps } from './deps';
 import type { AssignmentRow, TripRow } from './repo';
 import { createAssignService } from './assign.service';
+import { createAvailabilityQuery } from './availability.query';
 import { createTripService } from './trips.service';
 
-export type DispatchEvent = {
-  tenantId: string;
-  /** Loại thay đổi, để Kanban biết cần tải lại gì. */
-  type: 'dispatch.updated';
-  tripId: string;
-  version: number;
-  orderContainerIds: string[];
-};
+export type { DispatchEvent };
 
 export type DispatchServiceOptions = {
   tenantDb: (ctx: RequestContext) => TenantDb;
@@ -78,10 +72,6 @@ export type DispatchService = {
   ): Promise<AvailabilityResult>;
 };
 
-const notImplemented = (name: string) => async (): Promise<never> => {
-  throw new Error(`dispatch.${name} chưa được cài đặt`);
-};
-
 export function createDispatchService(options: DispatchServiceOptions): DispatchService {
   const deps: DispatchDeps = {
     tenantDb: options.tenantDb,
@@ -91,12 +81,13 @@ export function createDispatchService(options: DispatchServiceOptions): Dispatch
   };
   const trips = createTripService(deps);
   const assign = createAssignService(deps);
+  const availability = createAvailabilityQuery(deps);
   return {
     createSingleTrip: trips.createSingleTrip,
     updateTripTimes: trips.updateTripTimes,
     assignResources: assign.assignResources,
     dispatchTrip: trips.dispatchTrip,
-    cancelAssignment: notImplemented('cancelAssignment'),
-    listResourceAvailability: notImplemented('listResourceAvailability'),
+    cancelAssignment: assign.cancelAssignment,
+    listResourceAvailability: availability.listResourceAvailability,
   };
 }

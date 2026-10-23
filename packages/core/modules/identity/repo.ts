@@ -72,6 +72,16 @@ export function createIdentityRepo(db: SystemDb) {
       return row;
     },
 
+    // tenants.settings thô (json), để module khác parse bằng zod của riêng mình; undefined nếu không có tenant.
+    async findTenantSettings(tenantId: string): Promise<unknown> {
+      const [row] = await db
+        .select({ settings: tenants.settings })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      return row?.settings ?? undefined;
+    },
+
     async setLoginState(
       userId: string,
       state: { failedLoginCount: number; lockedUntil: Date | null },

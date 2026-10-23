@@ -1,13 +1,17 @@
 // Gán tài xế + đầu kéo + rơ moóc cho chuyến (spec 03 mục 1, ADR-004, task 06 bước 4).
 // Khóa bi quan theo thứ tự cố định drivers -> tractors -> trailers; mọi đọc thường (consistent read) chỉ diễn ra SAU khi đã khóa
 // để thấy dữ liệu đã commit của người đi trước. Lỗi trả bằng AppError, Server Action chuyển thành Result.
-import { and, eq, inArray, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, notInArray, or } from 'drizzle-orm';
 import { AppError } from '@shared/errors';
-import { parseDispatchSettings, type AssignResourcesInput } from '@shared/schemas/dispatch';
+import {
+  parseDispatchSettings,
+  type AssignResourcesInput,
+  type CancelAssignmentInput,
+} from '@shared/schemas/dispatch';
 import { writeAudit } from '../../lib/audit';
 import type { RequestContext } from '../../lib/context';
 import { isLockContentionError } from '../../lib/db/errors';
-import { dispatchAssignments } from '../../lib/db/schema';
+import { dispatchAssignments, drivers, tractors, trailers } from '../../lib/db/schema';
 import { can } from '../identity/permissions';
 import { loadTripContext } from './context';
 import {
@@ -190,5 +194,154 @@ export function createAssignService(deps: DispatchDeps) {
     return { trip: outcome.trip, assignments: outcome.assignments, warnings: outcome.warnings };
   }
 
-  return { assignResources };
+  /**
+   * Hủy mọi assignment đang hoạt động của chuyến (spec 03 mục 4): chuyển CANCELLED, không xóa. Xóa primary*, chuyến về PLANNED.
+   * Tài xế ON_DUTY, đầu kéo/rơ moóc IN_USE trở về AVAILABLE nếu không còn assignment hoạt động nào khác giữ chúng.
+   */
+  async function cancelAssignment(
+    ctx: RequestContext,
+    input: CancelAssignmentInput,
+  ): Promise<TripResult> {
+    authorize(ctx, 'dispatch.assign');
+
+    let outcome: { trip: TripRow; orderContainerIds: string[] };
+    try {
+      outcome = await deps.tenantDb(ctx).transaction(
+        async (tx) => {
+          const trip = await lockTrip(tx, input.tripId, input.version);
+          if (trip.status !== 'PLANNED' && trip.status !== 'DISPATCHED') {
+            throw new AppError('INVALID_STATUS_TRANSITION');
+          }
+          // Khóa tài nguyên theo thứ tự cố định (từ primary* của dòng chuyến đã khóa) trước mọi đọc thường.
+          const locked = await lockResources(tx, {
+            driverId: trip.primaryDriverId,
+            tractorId: trip.primaryTractorId,
+            trailerId: trip.primaryTrailerId,
+          });
+
+          const repo = createDispatchRepo(tx);
+          const active = (
+            await repo.assignments.list(eq(dispatchAssignments.consolidatedTripId, trip.id))
+          ).filter(isActiveAssignment);
+          if (active.length === 0) {
+            throw new AppError('VALIDATION_ERROR', 'Chuyến chưa có assignment nào để hủy.', {
+              field: 'tripId',
+            });
+          }
+
+          for (const assignment of active) {
+            await repo.assignments.update(assignment.id, {
+              status: 'CANCELLED',
+              version: assignment.version + 1,
+            });
+            await writeAudit(tx, ctx, {
+              entity: 'dispatch_assignments',
+              entityId: assignment.id,
+              action: 'CANCEL',
+              before: snapshot(assignment),
+              after: {
+                ...snapshot(assignment),
+                status: 'CANCELLED',
+                version: assignment.version + 1,
+              },
+            });
+          }
+
+          // Trả tài nguyên về AVAILABLE khi không còn assignment hoạt động nào khác giữ chúng.
+          const stillHeld = async (column: 'driverId' | 'tractorId' | 'trailerId', id: string) =>
+            (
+              await tx.select(
+                dispatchAssignments,
+                and(
+                  eq(dispatchAssignments[column], id),
+                  notInArray(dispatchAssignments.status, INACTIVE_ASSIGNMENT_STATUSES),
+                  or(
+                    isNull(dispatchAssignments.consolidatedTripId),
+                    ne(dispatchAssignments.consolidatedTripId, trip.id),
+                  ),
+                ),
+                { limit: 1 },
+              )
+            ).length > 0;
+          const { driver, tractor, trailer } = locked;
+          if (driver && driver.status === 'ON_DUTY' && !(await stillHeld('driverId', driver.id))) {
+            await tx.update(
+              drivers,
+              { status: 'AVAILABLE', version: driver.version + 1 },
+              eq(drivers.id, driver.id),
+            );
+          }
+          if (
+            tractor &&
+            tractor.status === 'IN_USE' &&
+            !(await stillHeld('tractorId', tractor.id))
+          ) {
+            await tx.update(
+              tractors,
+              { status: 'AVAILABLE', version: tractor.version + 1 },
+              eq(tractors.id, tractor.id),
+            );
+          }
+          if (
+            trailer &&
+            trailer.status === 'IN_USE' &&
+            !(await stillHeld('trailerId', trailer.id))
+          ) {
+            await tx.update(
+              trailers,
+              { status: 'AVAILABLE', version: trailer.version + 1 },
+              eq(trailers.id, trailer.id),
+            );
+          }
+
+          await updateTripWithVersion(tx, trip, {
+            primaryDriverId: null,
+            primaryTractorId: null,
+            primaryTrailerId: null,
+            status: 'PLANNED',
+          });
+          const updated = (await repo.trips.get(trip.id))!;
+          await writeAudit(tx, ctx, {
+            entity: 'consolidated_trips',
+            entityId: trip.id,
+            action: 'CANCEL_ASSIGNMENT',
+            before: {
+              status: trip.status,
+              primaryDriverId: trip.primaryDriverId,
+              primaryTractorId: trip.primaryTractorId,
+              primaryTrailerId: trip.primaryTrailerId,
+              version: trip.version,
+            },
+            after: {
+              status: updated.status,
+              primaryDriverId: null,
+              primaryTractorId: null,
+              primaryTrailerId: null,
+              version: updated.version,
+              cancelledAssignmentIds: active.map((a) => a.id).join(','),
+            },
+          });
+          return {
+            trip: updated,
+            orderContainerIds: (await loadTripContext(tx, trip.id)).orderContainerIds,
+          };
+        },
+        { lockWaitTimeoutSec: LOCK_WAIT_TIMEOUT_SECONDS },
+      );
+    } catch (error) {
+      if (isLockContentionError(error)) throw new AppError('RESOURCE_BUSY_RETRY');
+      throw error;
+    }
+
+    await emit(deps, {
+      type: 'dispatch.updated',
+      tenantId: ctx.tenantId,
+      tripId: outcome.trip.id,
+      version: outcome.trip.version,
+      orderContainerIds: outcome.orderContainerIds,
+    });
+    return { trip: outcome.trip, assignments: [], warnings: [] };
+  }
+
+  return { assignResources, cancelAssignment };
 }

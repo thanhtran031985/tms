@@ -77,8 +77,8 @@ export function checkPhysical(input: {
     }
   }
 
-  // Rule 2: tải trọng.
-  if (trailer && tractor) {
+  // Rule 2: tải trọng. Cần rơ moóc; có đầu kéo thì kiểm thêm khối lượng cho phép của đầu kéo (tra cứu từng rơ moóc không có đầu kéo).
+  if (trailer) {
     const weight = containerWeight(container);
     if (!weight.known) {
       if (confirmMissingWeight) {
@@ -119,7 +119,11 @@ export function checkPhysical(input: {
           `Container ${label} nặng ${tons.toString()} tấn, vượt tải trọng ${maxPayload.toString()} tấn của rơ moóc ${trailer.plateNumber}.`,
           { maxPayloadTons: maxPayload.toString() },
         );
-      } else if (trailer.tareWeightTons != null && tractor.permittedGrossWeightTons != null) {
+      } else if (
+        tractor &&
+        trailer.tareWeightTons != null &&
+        tractor.permittedGrossWeightTons != null
+      ) {
         const gross = tons.plus(trailer.tareWeightTons);
         const permitted = new Decimal(tractor.permittedGrossWeightTons);
         if (gross.greaterThan(permitted)) {
@@ -130,12 +134,14 @@ export function checkPhysical(input: {
         }
       }
       // Bảng tractors chưa có cột tự trọng đầu kéo nên phép tính bỏ phần này; nói rõ để Điều vận biết.
-      result.warnings.push({
-        code: 'TRACTOR_TARE_NOT_COUNTED',
-        severity: 'info',
-        resource: 'TRACTOR',
-        message: 'Phép kiểm tra khối lượng chưa tính tự trọng đầu kéo (chưa có dữ liệu).',
-      });
+      if (tractor) {
+        result.warnings.push({
+          code: 'TRACTOR_TARE_NOT_COUNTED',
+          severity: 'info',
+          resource: 'TRACTOR',
+          message: 'Phép kiểm tra khối lượng chưa tính tự trọng đầu kéo (chưa có dữ liệu).',
+        });
+      }
     }
   }
   return result;

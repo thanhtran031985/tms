@@ -16,6 +16,7 @@ import {
   viewer,
   type World,
 } from './dispatch.test-world';
+import { createDispatchService } from './index';
 
 const WINDOW = { start: at('01:00'), end: at('05:00') };
 
@@ -507,6 +508,36 @@ describe('assignResources: quy tắc', () => {
       );
       const audit = await listAuditForEntity(w.tdb(A), 'consolidated_trips', trip.id);
       expect(JSON.stringify(audit)).toContain('Khách gấp, tài xế đồng ý chạy thêm');
+    });
+
+    it('giới hạn giờ lái lấy từ tenants.settings của tenant', async () => {
+      const strict = createDispatchService({
+        tenantDb: (ctx) => w.tdb(ctx.tenantId),
+        now: () => NOW,
+        loadSettings: async () => ({ dispatch: { maxDrivingHoursPerDay: 3 } }),
+      });
+      const r = await w.newResources();
+      const { trip } = await w.newTrip(WINDOW); // 4 giờ
+
+      const error = await expectAppError(
+        strict.assignResources(dispatcher, { tripId: trip.id, version: trip.version, ...r.ids }),
+        'DRIVING_HOURS_EXCEEDED',
+      );
+      expect(error.details).toMatchObject({ limitHours: 3, plannedHours: 4 });
+    });
+
+    it('settings sai kiểu thì rơi về mặc định 10 giờ', async () => {
+      const lenient = createDispatchService({
+        tenantDb: (ctx) => w.tdb(ctx.tenantId),
+        now: () => NOW,
+        loadSettings: async () => ({ dispatch: { maxDrivingHoursPerDay: 'nhiều' } }),
+      });
+      const r = await w.newResources();
+      const { trip } = await w.newTrip(WINDOW);
+
+      await expect(
+        lenient.assignResources(dispatcher, { tripId: trip.id, version: trip.version, ...r.ids }),
+      ).resolves.toBeDefined();
     });
 
     it('ADMIN gửi ghi đè khi không vượt giờ: bỏ qua, không ghi lý do', async () => {

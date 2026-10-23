@@ -13,6 +13,7 @@ import { seedOrders } from '../../lib/db/seeds/orders';
 import { SEED_ORDERS } from '../../lib/db/seeds/orders.test-data';
 import { seedTariffs } from '../../lib/db/seeds/tariffs';
 import { getTenantDb } from '../../lib/db/tenant-db';
+import { publishDispatchEvent } from '../../lib/redis/publish';
 import { startTestInfra, type TestInfra } from '../../test/containers';
 import { createFleetRepo } from '../fleet/repo';
 import { createOrderRepo } from '../orders/repo';
@@ -95,8 +96,8 @@ export type ContainerOptions = {
 
 export type World = Awaited<ReturnType<typeof createWorld>>;
 
-export async function createWorld() {
-  const infra: TestInfra = await startTestInfra({ redis: false });
+export async function createWorld(options: { redis?: boolean } = {}) {
+  const infra: TestInfra = await startTestInfra({ redis: options.redis ?? false });
   await seedIdentity(infra.db, { password: 'mat-khau-thu-nghiem' });
   await seedMasterData(infra.db);
   await seedFleet(infra.db, NOW);
@@ -115,6 +116,7 @@ export async function createWorld() {
     loadSettings: async () => ({}),
     publish: async (event) => {
       published.push(event);
+      if (options.redis) await publishDispatchEvent(infra.redis, event);
     },
   });
 

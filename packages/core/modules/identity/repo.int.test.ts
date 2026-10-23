@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startTestInfra, type TestInfra } from '../../test/containers';
-import { tenantMemberships } from '../../lib/db/schema';
+import { tenantMemberships, tenants } from '../../lib/db/schema';
 import { seedIdentity } from '../../lib/db/seeds/identity';
 import { SEED_TENANTS, SEED_USERS } from '../../lib/db/seeds/identity.test-data';
 import { getTenantDb } from '../../lib/db/tenant-db';
@@ -58,6 +58,20 @@ describe('identity repo: cách ly tenant', () => {
     expect((await repo.findMembership(SEED_USERS.hungDv.id, SEED_TENANTS.saoViet.id))?.role).toBe(
       'DISPATCHER',
     );
+  });
+
+  it('findTenantSettings trả cấu hình thô của đúng tenant; tenant chưa cấu hình hoặc không có thì undefined', async () => {
+    const repo = createIdentityRepo(infra.db);
+    await infra.db
+      .update(tenants)
+      .set({ settings: { dispatch: { maxDrivingHoursPerDay: 8 } } })
+      .where(eq(tenants.id, SEED_TENANTS.phucAn.id));
+
+    expect(await repo.findTenantSettings(SEED_TENANTS.phucAn.id)).toEqual({
+      dispatch: { maxDrivingHoursPerDay: 8 },
+    });
+    expect(await repo.findTenantSettings(SEED_TENANTS.saoViet.id)).toBeUndefined();
+    expect(await repo.findTenantSettings('00000000-0000-7000-8000-000000000000')).toBeUndefined();
   });
 
   it('tra user theo email, SĐT và id', async () => {

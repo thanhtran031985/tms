@@ -10,7 +10,7 @@ import type { RequestContext } from '../../lib/context';
 import { consolidatedTrips } from '../../lib/db/schema';
 import type { TenantDb } from '../../lib/db/tenant-db';
 import { can, type Permission } from '../identity/permissions';
-import type { DispatchEvent } from './index';
+import type { DispatchEvent } from '../../lib/redis/publish';
 import type { TripRow } from './repo';
 
 export type DispatchDeps = {
