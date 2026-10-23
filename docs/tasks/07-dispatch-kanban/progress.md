@@ -5,7 +5,7 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | Bước | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
 | 1 | Truy vấn bảng điều vận | ✅ | |
-| 2 | Mức hạn và chữ đếm ngược | ⬜ | |
+| 2 | Mức hạn và chữ đếm ngược | ✅ | |
 | 3 | SSE realtime theo tenant | ⬜ | |
 | 4 | Giao diện bảng Kanban và lịch xe (chỉ hiển thị) | ⬜ | |
 | 5 | Gán xe: chọn thẻ, kéo thả, optimistic, rollback, hoàn tác | ⬜ | |
@@ -19,4 +19,10 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Plan mode xong, kế hoạch lưu ở plan.md. Người dùng duyệt cài `@dnd-kit/core` (chỉ gói này, cài ở Bước 5) và cho toàn quyền: làm lần lượt các bước, commit sau mỗi bước.
 - Đã làm: kiểu dùng chung `packages/shared/dispatch-board.ts`; zod `getDispatchBoardSchema`, `loadBoardCardsSchema`; `modules/dispatch/board.query.ts` (`getDispatchBoard`: 6 cột, lọc ngày/khu vực/khách/chiều/ô tìm, số đếm theo chiều, phân trang cursor, làn xe; `getBoardCards` cho SSE) nối vào `DispatchService`; Server Action `loadDispatchBoard`, `loadBoardCards` (quyền xem, zod, không làm mới trang); seed bổ sung nhãn cảng/DEM/DET cho cont mẫu.
 - Kiểm tra: `board.int.test.ts` 23 test xanh (phân cột, Order nháp/hủy, ngày theo giờ Việt Nam, lọc, phân trang không trùng/sót kể cả khi chèn thẻ giữa hai trang, tách tenant, quyền); tải bảng 300 thẻ = 136 ms (mục tiêu < 2 giây); `actions.test.ts` 10 xanh; seed test 5 xanh; `pnpm typecheck` và `pnpm lint` sạch.
+- Việc người dùng cần làm: không có.
+
+### 23/10/2026 — Bước 2: mức hạn và chữ đếm ngược ✅
+- Đã làm: `packages/shared/deadline.ts` có `deadlineStatus(mốc, now, múi giờ, {hold})` trả `level`, `text` ("còn 2 giờ 15", "còn 1 ngày 16 giờ", "quá 35 phút") và `absolute` (giờ tuyệt đối theo múi giờ tenant, thêm ngày/tháng khi khác ngày); `deadlineLevel` và `formatRemaining` (cách viết cũ của danh sách Order) chuyển sang đây, `apps/web/src/lib/deadline.ts` re-export nên các màn Order không đổi.
+- Package `shared` chưa có chạy test: thêm script `test` và devDependency `vitest ^5.0.5` (đúng phiên bản core và web đang dùng, không tải gói mới; lockfile chỉ thêm liên kết).
+- Kiểm tra: `pnpm test --filter shared -- deadline` 14 test xanh (2 giờ 15 crit, 7 giờ 40 warn, 20 giờ 40 info, quá 35 phút crit, qua nửa đêm giờ Việt Nam, HOLD, ranh giới 3 giờ và 8 giờ); test cũ của web 7 xanh; `pnpm typecheck`, `pnpm lint` sạch.
 - Việc người dùng cần làm: không có.
