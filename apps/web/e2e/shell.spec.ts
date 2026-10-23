@@ -31,11 +31,11 @@ test.describe('khung AppShell', () => {
 
     const home = nav(page).getByRole('link', { name: 'Trang chủ' });
     await expect(home).toHaveAttribute('aria-current', 'page');
-    // "Trang chủ", "Đơn hàng", "Đội xe & Tài xế", "Danh mục" và "Bảng giá" là liên kết thật; các phân hệ chưa làm hiện ở trạng thái chưa có trang.
+    // "Trang chủ", "Điều vận", "Đơn hàng", "Đội xe & Tài xế", "Danh mục" và "Bảng giá" là liên kết thật; các phân hệ chưa làm hiện ở trạng thái chưa có trang.
     await expect(nav(page).getByRole('link')).toHaveCount(11);
-    await expect(nav(page).locator('a')).toHaveCount(5);
+    await expect(nav(page).locator('a')).toHaveCount(6);
     const pending = nav(page).locator('[aria-disabled="true"]');
-    await expect(pending).toHaveCount(6);
+    await expect(pending).toHaveCount(5);
     await expect(pending.first()).toHaveAttribute('title', 'Chưa có trang');
   });
 
@@ -74,7 +74,7 @@ test.describe('khung AppShell', () => {
     await page.waitForLoadState('networkidle');
 
     const regions: string[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       await page.keyboard.press('Tab');
       regions.push(
         await page.evaluate(() => {

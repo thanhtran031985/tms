@@ -2,7 +2,7 @@
 
 // Nhận sự kiện điều vận qua SSE (/api/v1/stream/dispatch). Tự nối lại khi mất kết nối và báo trạng thái để
 // bảng chuyển sang "Lỗi" (giữ dữ liệu cũ). Sau khi nối lại gọi onReconnect vì có thể đã lỡ sự kiện.
-import type { DispatchEvent } from '@core/lib/redis/publish';
+import type { DispatchStreamEvent as DispatchEvent } from '@shared/dispatch-board';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type StreamStatus = 'connecting' | 'open' | 'lost';

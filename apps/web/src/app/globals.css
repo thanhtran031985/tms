@@ -58,6 +58,13 @@
   --spacing-ctl: var(--size-ctl);
   --spacing-tab: var(--size-tab);
   --spacing-nav: var(--size-nav);
+  /* Kích thước riêng của bảng điều vận (task 07), chưa có trong token thiết kế: cột Kanban, cả bảng 6 cột, lịch xe. */
+  --spacing-kcol: 210px;
+  --spacing-board: 1320px;
+  --spacing-lane-label: 240px;
+  --spacing-lane-grid: 1100px;
+  --spacing-lane-row: 72px;
+  --spacing-kcol-min: 200px;
   --container-content: var(--size-content);
   --container-phone: var(--size-phone);
 

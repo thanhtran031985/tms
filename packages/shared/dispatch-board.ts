@@ -99,3 +99,12 @@ export type DispatchBoard = {
 };
 
 export type BoardCardsResult = { cards: BoardCard[]; removedIds: string[] };
+
+/** Sự kiện SSE `dispatch.updated` (cùng dạng với DispatchEvent phát từ core); client dùng kiểu này, không import core. */
+export type DispatchStreamEvent = {
+  type: 'dispatch.updated';
+  tenantId: string;
+  tripId: string;
+  version: number;
+  orderContainerIds: string[];
+};

@@ -32,7 +32,7 @@ type NavItem = {
 // Mục menu theo designs/components/AppShell. Phân hệ nào chưa có trang thì không có href.
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Trang chủ', href: '/', icon: House },
-  { label: 'Điều vận', icon: Columns3 },
+  { label: 'Điều vận', href: '/dispatch', match: '/dispatch', icon: Columns3 },
   { label: 'Đơn hàng', href: '/orders', match: '/orders', icon: FileText },
   { label: 'Bản đồ đội xe', icon: MapIcon },
   { label: 'Đội xe & Tài xế', href: '/fleet/tractors', match: '/fleet', icon: Truck },
