@@ -100,3 +100,32 @@ export function parseDispatchSettings(raw: unknown): TenantDispatchSettings {
     ? parsed.data.dispatch
     : { maxDrivingHoursPerDay: DEFAULT_MAX_DRIVING_HOURS_PER_DAY };
 }
+
+// ---- Bảng điều vận Kanban (task 07).
+const calendarDate = z
+  .string({ error: 'Chọn ngày hợp lệ.' })
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Chọn ngày hợp lệ.');
+
+export const getDispatchBoardSchema = z.object({
+  /** Ngày dương lịch YYYY-MM-DD theo múi giờ tenant. */
+  date: calendarDate,
+  zone: z.string().trim().min(1).max(100).nullish(),
+  customerId: id36('Khách hàng không hợp lệ.').nullish(),
+  direction: z.enum(['IMPORT', 'EXPORT']).nullish(),
+  q: z.string().trim().max(100, 'Từ khóa tối đa 100 ký tự.').nullish(),
+  /** Tải thêm một cột: gửi kèm `cursor` lấy từ lần trước. Bỏ trống thì tải cả bảng. */
+  column: z
+    .enum(['WAITING', 'PLANNED', 'DISPATCHED', 'IN_TRANSIT', 'AWAITING_HOOK', 'AWAITING_DOCS'])
+    .nullish(),
+  cursor: z.string().max(200).nullish(),
+});
+export type GetDispatchBoardInput = z.infer<typeof getDispatchBoardSchema>;
+
+export const loadBoardCardsSchema = z.object({
+  date: calendarDate,
+  orderContainerIds: z
+    .array(id36('Container không hợp lệ.'))
+    .min(1, 'Chọn ít nhất một container.')
+    .max(100, 'Tối đa 100 container mỗi lần.'),
+});
+export type LoadBoardCardsInput = z.infer<typeof loadBoardCardsSchema>;

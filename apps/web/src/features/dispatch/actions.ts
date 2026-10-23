@@ -10,7 +10,9 @@ import {
   cancelAssignmentSchema,
   createSingleTripSchema,
   dispatchTripSchema,
+  getDispatchBoardSchema,
   listResourceAvailabilitySchema,
+  loadBoardCardsSchema,
   updateTripTimesSchema,
 } from '@shared/schemas/dispatch';
 import { revalidatePath } from 'next/cache';
@@ -82,4 +84,13 @@ export const listResourceAvailability = defineAction(
   VIEW,
   listResourceAvailabilitySchema,
   async (ctx, input) => ok(await svc().listResourceAvailability(ctx, input)),
+);
+
+// Bảng Kanban theo ngày và làm mới vài thẻ theo sự kiện SSE: chỉ đọc nên không làm mới trang.
+export const loadDispatchBoard = defineAction(VIEW, getDispatchBoardSchema, async (ctx, input) =>
+  ok(await svc().getDispatchBoard(ctx, input)),
+);
+
+export const loadBoardCards = defineAction(VIEW, loadBoardCardsSchema, async (ctx, input) =>
+  ok(await svc().getBoardCards(ctx, input)),
 );

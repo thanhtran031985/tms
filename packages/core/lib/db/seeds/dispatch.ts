@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from '../client';
 import {
   consolidatedTrips,
@@ -11,6 +11,8 @@ import {
   SEED_ASSIGNMENTS,
   SEED_DISPATCH_CONTAINER_ID,
   SEED_TRIP_CONTAINERS,
+  SEED_BOARD_EXPORT_ORDER_ID,
+  SEED_BOARD_IMPORT_CONTAINER,
   SEED_TRIP_SEQ_KEY,
   SEED_TRIPS,
 } from './dispatch.test-data';
@@ -51,4 +53,22 @@ export async function seedDispatch(db: Db): Promise<void> {
     .update(orderContainers)
     .set({ status: 'PLANNED' })
     .where(eq(orderContainers.id, SEED_DISPATCH_CONTAINER_ID));
+  // Dữ liệu cho nhãn trên thẻ Kanban (task 07): cont nhập còn hạn DEM/DET, cont xuất đã có lệnh cấp rỗng.
+  await db
+    .update(orderContainers)
+    .set({
+      portReadinessStatus: 'READY_EDO',
+      demFreeUntil: SEED_BOARD_IMPORT_CONTAINER.demFreeUntil,
+      detFreeUntil: SEED_BOARD_IMPORT_CONTAINER.detFreeUntil,
+    })
+    .where(
+      and(
+        eq(orderContainers.tenantId, SEED_BOARD_IMPORT_CONTAINER.tenantId),
+        eq(orderContainers.containerNo, SEED_BOARD_IMPORT_CONTAINER.containerNo),
+      ),
+    );
+  await db
+    .update(orderContainers)
+    .set({ portReadinessStatus: 'READY_EMPTY_RELEASE' })
+    .where(eq(orderContainers.orderId, SEED_BOARD_EXPORT_ORDER_ID));
 }

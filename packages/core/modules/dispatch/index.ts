@@ -1,13 +1,16 @@
 // Nghiệp vụ điều vận SINGLE (task 06, TICKET-06): lập chuyến, gán tài xế + đầu kéo + rơ moóc, điều, hủy gán.
 // Mọi truy cập DB đi qua TenantDb (ADR-003); mọi thay đổi ghi audit_logs trong cùng transaction (Rule 8).
 // Service ném AppError cho lỗi nghiệp vụ; Server Action chuyển thành Result.
+import type { BoardCardsResult, DispatchBoard } from '@shared/dispatch-board';
 import type {
   AssignResourcesInput,
   CancelAssignmentInput,
   CreateSingleTripInput,
   DispatchTripInput,
   DispatchWarning,
+  GetDispatchBoardInput,
   ListResourceAvailabilityInput,
+  LoadBoardCardsInput,
   UpdateTripTimesInput,
 } from '@shared/schemas/dispatch';
 import type { RequestContext } from '../../lib/context';
@@ -17,6 +20,7 @@ import type { DispatchDeps } from './deps';
 import type { AssignmentRow, TripRow } from './repo';
 import { createAssignService } from './assign.service';
 import { createAvailabilityQuery } from './availability.query';
+import { createBoardQuery } from './board.query';
 import { createTripService } from './trips.service';
 
 export type { DispatchEvent };
@@ -70,6 +74,10 @@ export type DispatchService = {
     ctx: RequestContext,
     input: ListResourceAvailabilityInput,
   ): Promise<AvailabilityResult>;
+  /** Bảng Kanban theo ngày: 6 cột thẻ container (phân trang theo cursor) và làn xe (task 07). */
+  getDispatchBoard(ctx: RequestContext, input: GetDispatchBoardInput): Promise<DispatchBoard>;
+  /** Thẻ mới nhất của vài container (cập nhật theo sự kiện SSE); container ngoài bảng trả trong removedIds. */
+  getBoardCards(ctx: RequestContext, input: LoadBoardCardsInput): Promise<BoardCardsResult>;
 };
 
 export function createDispatchService(options: DispatchServiceOptions): DispatchService {
@@ -82,6 +90,7 @@ export function createDispatchService(options: DispatchServiceOptions): Dispatch
   const trips = createTripService(deps);
   const assign = createAssignService(deps);
   const availability = createAvailabilityQuery(deps);
+  const board = createBoardQuery(deps);
   return {
     createSingleTrip: trips.createSingleTrip,
     updateTripTimes: trips.updateTripTimes,
@@ -89,5 +98,7 @@ export function createDispatchService(options: DispatchServiceOptions): Dispatch
     dispatchTrip: trips.dispatchTrip,
     cancelAssignment: assign.cancelAssignment,
     listResourceAvailability: availability.listResourceAvailability,
+    getDispatchBoard: board.getDispatchBoard,
+    getBoardCards: board.getBoardCards,
   };
 }

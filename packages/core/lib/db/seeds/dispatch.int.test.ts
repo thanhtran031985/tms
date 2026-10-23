@@ -4,7 +4,12 @@ import { createOrderRepo } from '../../../modules/orders/repo';
 import { startTestInfra, type TestInfra } from '../../../test/containers';
 import { nextNumber } from '../numbering';
 import { getTenantDb } from '../tenant-db';
-import { SEED_DISPATCH_CONTAINER_ID, SEED_TRIP_SEQ_KEY } from './dispatch.test-data';
+import {
+  SEED_BOARD_EXPORT_ORDER_ID,
+  SEED_BOARD_IMPORT_CONTAINER,
+  SEED_DISPATCH_CONTAINER_ID,
+  SEED_TRIP_SEQ_KEY,
+} from './dispatch.test-data';
 import { seedDispatch } from './dispatch';
 import { seedFleet } from './fleet';
 import { seedIdentity } from './identity';
@@ -73,6 +78,22 @@ describe('seed chuyến điều vận', () => {
     const planned = containers.filter((c) => c.status === 'PLANNED');
 
     expect(planned.map((c) => c.id)).toEqual([SEED_DISPATCH_CONTAINER_ID]);
+  });
+
+  it('cont mẫu có nhãn cho Kanban: DEM/DET, EDO, lệnh cấp rỗng', async () => {
+    const containers = await createOrderRepo(tdbOf(SEED_TENANTS.phucAn.id)).containers.list();
+    const imported = containers.find(
+      (c) => c.containerNo === SEED_BOARD_IMPORT_CONTAINER.containerNo,
+    )!;
+    const exported = containers.filter((c) => c.orderId === SEED_BOARD_EXPORT_ORDER_ID);
+
+    expect(imported).toMatchObject({
+      portReadinessStatus: 'READY_EDO',
+      demFreeUntil: SEED_BOARD_IMPORT_CONTAINER.demFreeUntil,
+      detFreeUntil: SEED_BOARD_IMPORT_CONTAINER.detFreeUntil,
+    });
+    expect(exported).toHaveLength(2);
+    expect(exported.every((c) => c.portReadinessStatus === 'READY_EMPTY_RELEASE')).toBe(true);
   });
 
   it('bộ đếm TRIP đi sau mã đã seed: chuyến tạo mới không trùng TRIP-2610-001', async () => {

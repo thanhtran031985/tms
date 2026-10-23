@@ -4,7 +4,7 @@
 import type { consolidatedTrips, dispatchAssignments, tripContainers } from '../schema';
 import { getSeedFleetData } from './fleet.test-data';
 import { SEED_TENANTS } from './identity.test-data';
-import { SEED_ORDER_CONTAINERS, SEED_ORDER_STOPS } from './orders.test-data';
+import { SEED_ORDER_CONTAINERS, SEED_ORDER_STOPS, SEED_ORDERS } from './orders.test-data';
 
 type TripInsert = typeof consolidatedTrips.$inferInsert;
 type TripContainerInsert = typeof tripContainers.$inferInsert;
@@ -73,3 +73,12 @@ export const SEED_ASSIGNMENTS: (AssignmentInsert & { id: string; tenantId: strin
 );
 
 export const SEED_DISPATCH_CONTAINER_ID = container.id;
+
+// Nhãn Kanban: cont nhập MAEU2388422 (cùng Order với cont của chuyến mẫu) còn hạn DEM/DET; Order xuất EXP-2610-046 có lệnh cấp rỗng.
+export const SEED_BOARD_IMPORT_CONTAINER = {
+  tenantId: phucAn,
+  containerNo: 'MAEU2388422',
+  demFreeUntil: new Date('2026-10-27T10:00:00.000Z'),
+  detFreeUntil: new Date('2026-10-29T10:00:00.000Z'),
+};
+export const SEED_BOARD_EXPORT_ORDER_ID = SEED_ORDERS.find((o) => o.orderNo === 'EXP-2610-046')!.id;

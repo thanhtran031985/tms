@@ -13,6 +13,8 @@ const fakeService = {
   dispatchTrip: vi.fn(),
   cancelAssignment: vi.fn(),
   listResourceAvailability: vi.fn(),
+  getDispatchBoard: vi.fn(),
+  getBoardCards: vi.fn(),
 };
 const revalidatePath = vi.fn();
 
@@ -273,6 +275,51 @@ describe('Server Action điều vận', () => {
     expect(await actions.listResourceAvailability(input)).toMatchObject({
       ok: false,
       code: 'FORBIDDEN',
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('loadDispatchBoard / loadBoardCards: người chỉ xem đọc được, Kế toán thì không; input sai không chạm service', async () => {
+    fakeService.getDispatchBoard.mockResolvedValue({
+      date: '2026-10-26',
+      columns: {},
+      lanes: null,
+    });
+    fakeService.getBoardCards.mockResolvedValue({ cards: [], removedIds: [ID] });
+
+    for (const role of ['VIEWER', 'DISPATCHER', 'FLEET_MANAGER'] as const) {
+      currentRole = role;
+      expect(
+        await actions.loadDispatchBoard({ date: '2026-10-26', direction: 'EXPORT' }),
+      ).toMatchObject({
+        ok: true,
+      });
+      expect(await actions.loadBoardCards({ date: '2026-10-26', orderContainerIds: [ID] })).toEqual(
+        {
+          ok: true,
+          data: { cards: [], removedIds: [ID] },
+        },
+      );
+    }
+    expect(fakeService.getDispatchBoard).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'FLEET_MANAGER' }),
+      expect.objectContaining({ date: '2026-10-26', direction: 'EXPORT' }),
+    );
+    currentRole = 'ACCOUNTANT';
+    expect(await actions.loadDispatchBoard({ date: '2026-10-26' })).toMatchObject({
+      ok: false,
+      code: 'FORBIDDEN',
+    });
+    currentRole = 'VIEWER';
+    expect(await actions.loadDispatchBoard({ date: '26/10/2026' })).toMatchObject({
+      ok: false,
+      code: 'VALIDATION_ERROR',
+    });
+    expect(
+      await actions.loadBoardCards({ date: '2026-10-26', orderContainerIds: [] }),
+    ).toMatchObject({
+      ok: false,
+      code: 'VALIDATION_ERROR',
     });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
