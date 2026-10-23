@@ -5,8 +5,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | Bước | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
 | 1 | Schema chuyến và assignment, migration, seed, tenant isolation | ✅ | 9ddfb41 |
-| 2 | Test đồng thời và test quy tắc (đỏ) | ✅ | |
-| 3 | Tạo chuyến SINGLE cho một container | ⬜ | |
+| 2 | Test đồng thời và test quy tắc (đỏ) | ✅ | 5dec2c5 |
+| 3 | Tạo chuyến SINGLE cho một container | ✅ | |
 | 4 | assignResources: khóa, chồng lấn, tồn tại, trạng thái, timeout | ⬜ | |
 | 5 | Giấy tờ, giờ lái và ràng buộc vật lý một container | ⬜ | |
 | 6 | Sau commit, hủy assignment, truy vấn tài nguyên gán được và Server Action | ⬜ | |
@@ -41,3 +41,8 @@ Việc người dùng cần làm: bật Docker Desktop, rồi tôi chạy `pnpm 
 - `dispatch.test-world.ts`: dựng Testcontainers + seed + hàm tạo tài xế/đầu kéo/rơ moóc/container/chuyến riêng cho từng test.
 - `assign.concurrency.int.test.ts` (5 test: 2 Điều vận cùng tài xế lặp 5 lần, chiều sau sáng, song song không chồng giờ, ghép chéo 20 vòng, giữ khóa >5 giây) và `assign.rules.int.test.ts` (41 test: kết quả gán, tenant/INACTIVE/xóa mềm, chồng lấn theo status, bảo dưỡng, trạng thái khi sắp chạy, giấy tờ, giờ lái, genset, hàng nguy hiểm, khối lượng, cut-off, dispatchTrip/Rule 7).
 Kết quả kiểm tra: `pnpm test --filter core -- assign` chạy và đỏ: 46 test fail, mọi lỗi đều là "chưa được cài đặt" (setup và dữ liệu mẫu chạy được). `pnpm typecheck` xanh; `pnpm lint` xanh với mã của task (lint toàn repo đôi lúc báo lỗi ở thư mục `.fleet/` — worktree của công cụ khác, đã nằm trong .gitignore, không thuộc task này).
+
+### Bước 3 — 23/10/2026 (xong)
+Đã làm: test trước `trips.service.int.test.ts` (14 test) rồi cài `deps.ts` (kiểm quyền, `lockTrip`, khóa lạc quan `updateTripWithVersion`, `emit` sau commit) và `trips.service.ts`: `createSingleTrip` (khóa dòng container, Order phải CONFIRMED/IN_PROGRESS/PARTIALLY_DELIVERED, chặn container đã có chuyến hoạt động, `tripCode` TRIP-yymm-NNN từ `nextNumber`, container sang PLANNED, audit) và `updateTripTimes` (version, chỉ chuyến PLANNED, dời giờ assignment hoạt động). `createDispatchService` ở `index.ts` đã nối hai hàm này.
+Kết quả kiểm tra: `pnpm test --filter core -- trips` 14/14 xanh (gồm ca hai Điều vận cùng tạo chuyến cho một container: đúng một người thành công); `pnpm typecheck` xanh.
+Ghi chú: `updateTripTimes` hiện chỉ dời giờ assignment; kiểm tra lại chồng lấn/giấy tờ khi dời giờ chuyến đã gán sẽ làm ở Bước 4 và 5.

@@ -1,7 +1,7 @@
 // Nghiệp vụ điều vận SINGLE (task 06, TICKET-06): lập chuyến, gán tài xế + đầu kéo + rơ moóc, điều, hủy gán.
 // Mọi truy cập DB đi qua TenantDb (ADR-003); mọi thay đổi ghi audit_logs trong cùng transaction (Rule 8).
 // Service ném AppError cho lỗi nghiệp vụ; Server Action chuyển thành Result.
-// [Bước 2] Mới có chữ ký để test đỏ chạy được; phần thân được cài ở Bước 3 đến 6.
+// Đang cài dần: tạo chuyến và sửa giờ (bước 3); gán, điều, hủy gán, tra tài nguyên gán được (bước 4 đến 6).
 import type {
   AssignResourcesInput,
   CancelAssignmentInput,
@@ -13,7 +13,9 @@ import type {
 } from '@shared/schemas/dispatch';
 import type { RequestContext } from '../../lib/context';
 import type { TenantDb } from '../../lib/db/tenant-db';
+import type { DispatchDeps } from './deps';
 import type { AssignmentRow, TripRow } from './repo';
+import { createTripService } from './trips.service';
 
 export type DispatchEvent = {
   tenantId: string;
@@ -80,10 +82,16 @@ const notImplemented = (name: string) => async (): Promise<never> => {
 };
 
 export function createDispatchService(options: DispatchServiceOptions): DispatchService {
-  void options;
+  const deps: DispatchDeps = {
+    tenantDb: options.tenantDb,
+    now: options.now ?? (() => new Date()),
+    loadSettings: options.loadSettings ?? (async () => ({})),
+    publish: options.publish ?? (async () => {}),
+  };
+  const trips = createTripService(deps);
   return {
-    createSingleTrip: notImplemented('createSingleTrip'),
-    updateTripTimes: notImplemented('updateTripTimes'),
+    createSingleTrip: trips.createSingleTrip,
+    updateTripTimes: trips.updateTripTimes,
     assignResources: notImplemented('assignResources'),
     dispatchTrip: notImplemented('dispatchTrip'),
     cancelAssignment: notImplemented('cancelAssignment'),
