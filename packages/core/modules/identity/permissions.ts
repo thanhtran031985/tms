@@ -23,6 +23,9 @@ export const PERMISSIONS = {
   'order.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'ACCOUNTANT', 'FLEET_MANAGER', 'VIEWER'],
   'order.write': ['OWNER', 'ADMIN', 'DISPATCHER'],
   'order.manualPrice': ['ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
+  // Điều vận (task 06): lập chuyến, gán tài nguyên, điều, hủy assignment; xem để hiện bảng gán xe. Ghi đè giờ lái chỉ Quản trị.
+  'dispatch.view': ['OWNER', 'ADMIN', 'DISPATCHER', 'FLEET_MANAGER', 'VIEWER'],
+  'dispatch.assign': ['OWNER', 'ADMIN', 'DISPATCHER'],
   'dispatch.overrideDriveHours': ['ADMIN'],
   'fuelVoucher.issue': ['ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
   'fuelVoucher.approve': ['ACCOUNTANT'],
