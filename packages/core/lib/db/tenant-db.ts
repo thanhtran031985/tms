@@ -3,7 +3,7 @@
 // - INSERT luôn ghi đè tenantId = ctx.tenantId (bỏ giá trị từ input) và sinh id UUIDv7 nếu bảng có cột id.
 // - UPDATE không đổi được tenantId.
 // ctx.tenantId chỉ lấy từ phiên đã xác thực, không bao giờ từ input của client.
-import { and, eq, type SQL } from 'drizzle-orm';
+import { and, eq, sql, type SQL } from 'drizzle-orm';
 import type { AnyMySqlColumn, AnyMySqlTable } from 'drizzle-orm/mysql-core';
 import { uuidv7 } from '../id';
 import { getDb, type Db } from './client';
@@ -25,6 +25,10 @@ type UpdateValues<T extends TenantTable> = Partial<Omit<T['$inferInsert'], 'tena
 // Tùy chọn cho SELECT: sắp xếp, giới hạn dòng, khóa dòng (SELECT … FOR UPDATE, chỉ có nghĩa trong transaction).
 export type SelectOptions = { orderBy?: SQL[]; limit?: number; forUpdate?: boolean };
 
+// Tùy chọn cho transaction. lockWaitTimeoutSec: đặt innodb_lock_wait_timeout cho phiên của transaction này rồi trả về mặc định
+// (điều vận chờ khóa tối đa 5 giây thay vì 50 giây mặc định, spec 03 mục 1 bước 8).
+export type TransactionOptions = { lockWaitTimeoutSec?: number };
+
 export type TenantDb = {
   readonly ctx: TenantCtx;
   select<T extends TenantTable>(
@@ -40,7 +44,7 @@ export type TenantDb = {
   update<T extends TenantTable>(table: T, set: UpdateValues<T>, where?: SQL): Promise<number>;
   /** Trả số dòng bị xóa. */
   delete<T extends TenantTable>(table: T, where?: SQL): Promise<number>;
-  transaction<R>(fn: (tx: TenantDb) => Promise<R>): Promise<R>;
+  transaction<R>(fn: (tx: TenantDb) => Promise<R>, options?: TransactionOptions): Promise<R>;
   /**
    * Cửa thoát cho hạ tầng trong lib/ (numbering, audit). Cấm dùng trong modules/** (luật ESLint).
    * Câu lệnh chạy qua đây KHÔNG được tự động thêm điều kiện tenant.
@@ -98,8 +102,23 @@ function build(ctx: TenantCtx, exec: Executor, root: Db): TenantDb {
       return affectedRows(result);
     },
 
-    transaction(fn) {
-      return root.transaction((tx) => fn(build(ctx, tx as unknown as Executor, root)));
+    transaction(fn, options) {
+      return root.transaction(async (tx) => {
+        const seconds = options?.lockWaitTimeoutSec;
+        if (seconds === undefined) return fn(build(ctx, tx as unknown as Executor, root));
+        if (!Number.isInteger(seconds) || seconds < 1) {
+          throw new RangeError('lockWaitTimeoutSec phải là số nguyên dương');
+        }
+        await tx.execute(sql`SET SESSION innodb_lock_wait_timeout = ${sql.raw(String(seconds))}`);
+        try {
+          return await fn(build(ctx, tx as unknown as Executor, root));
+        } finally {
+          // Kết nối quay về pool: trả giá trị mặc định để không ảnh hưởng request sau. Bỏ qua nếu kết nối đã hỏng.
+          await tx
+            .execute(sql`SET SESSION innodb_lock_wait_timeout = DEFAULT`)
+            .catch(() => undefined);
+        }
+      });
     },
   };
 }

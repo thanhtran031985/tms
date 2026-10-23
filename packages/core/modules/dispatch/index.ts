@@ -15,6 +15,7 @@ import type { RequestContext } from '../../lib/context';
 import type { TenantDb } from '../../lib/db/tenant-db';
 import type { DispatchDeps } from './deps';
 import type { AssignmentRow, TripRow } from './repo';
+import { createAssignService } from './assign.service';
 import { createTripService } from './trips.service';
 
 export type DispatchEvent = {
@@ -89,10 +90,11 @@ export function createDispatchService(options: DispatchServiceOptions): Dispatch
     publish: options.publish ?? (async () => {}),
   };
   const trips = createTripService(deps);
+  const assign = createAssignService(deps);
   return {
     createSingleTrip: trips.createSingleTrip,
     updateTripTimes: trips.updateTripTimes,
-    assignResources: notImplemented('assignResources'),
+    assignResources: assign.assignResources,
     dispatchTrip: notImplemented('dispatchTrip'),
     cancelAssignment: notImplemented('cancelAssignment'),
     listResourceAvailability: notImplemented('listResourceAvailability'),

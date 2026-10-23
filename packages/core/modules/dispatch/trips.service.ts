@@ -12,6 +12,7 @@ import {
   orders,
   tripContainers,
 } from '../../lib/db/schema';
+import { isLockContentionError } from '../../lib/db/errors';
 import { toTenantDate } from '../../lib/time';
 import { createMasterDataRepo } from '../master-data/repo';
 import { assertContainerTransition } from '../orders/state-machine';
@@ -22,13 +23,15 @@ import {
   INACTIVE_ASSIGNMENT_STATUSES,
   invalid,
   isActiveAssignment,
+  LOCK_WAIT_TIMEOUT_SECONDS,
   lockTrip,
   snapshot,
   updateTripWithVersion,
   type DispatchDeps,
 } from './deps';
+import { evaluateAssignment, lockResources } from './evaluate';
 import type { TripResult } from './index';
-import { createDispatchRepo } from './repo';
+import { createDispatchRepo, type AssignmentRow, type TripRow } from './repo';
 
 // Order còn nhận điều xe: đã xác nhận hoặc đang chạy (các container khác của Order vẫn chờ điều).
 const TRIPPABLE_ORDER_STATUSES = ['CONFIRMED', 'IN_PROGRESS', 'PARTIALLY_DELIVERED'] as const;
@@ -149,39 +152,81 @@ export function createTripService(deps: DispatchDeps) {
       throw invalid('plannedEnd', 'Giờ kết thúc phải sau giờ bắt đầu.');
     }
 
-    const result = await deps.tenantDb(ctx).transaction(async (tx) => {
-      const before = await lockTrip(tx, input.tripId, input.version);
-      if (before.status !== 'PLANNED') throw new AppError('INVALID_STATUS_TRANSITION');
+    let result: {
+      trip: TripRow;
+      assignments: AssignmentRow[];
+      warnings: TripResult['warnings'];
+      orderContainerIds: string[];
+    };
+    try {
+      result = await deps.tenantDb(ctx).transaction(
+        async (tx) => {
+          const before = await lockTrip(tx, input.tripId, input.version);
+          if (before.status !== 'PLANNED') throw new AppError('INVALID_STATUS_TRANSITION');
 
-      await updateTripWithVersion(tx, before, {
-        plannedStart: input.plannedStart,
-        plannedEnd: input.plannedEnd,
-      });
-      // Assignment hoạt động của chuyến theo khung giờ mới (cùng khung giờ chuyến, ADR-004).
-      await tx.update(
-        dispatchAssignments,
-        { plannedStart: input.plannedStart, plannedEnd: input.plannedEnd },
-        and(
-          eq(dispatchAssignments.consolidatedTripId, before.id),
-          notInArray(dispatchAssignments.status, INACTIVE_ASSIGNMENT_STATUSES),
-        ),
+          // Chuyến đã gán tài nguyên: khóa và kiểm tra lại như gán mới cho khung giờ mới (trước mọi đọc thường).
+          const ids =
+            before.primaryDriverId && before.primaryTractorId && before.primaryTrailerId
+              ? {
+                  driverId: before.primaryDriverId,
+                  tractorId: before.primaryTractorId,
+                  trailerId: before.primaryTrailerId,
+                }
+              : null;
+          const warnings: TripResult['warnings'] = [];
+          if (ids) {
+            const evaluated = await evaluateAssignment(ctx, tx, {
+              tripId: before.id,
+              window: { start: input.plannedStart, end: input.plannedEnd },
+              ids,
+              locked: await lockResources(tx, ids),
+              now: deps.now(),
+            });
+            const blocking = evaluated.errors[0];
+            if (blocking) throw new AppError(blocking.code, blocking.message, blocking.details);
+            warnings.push(...evaluated.warnings);
+          }
+
+          await updateTripWithVersion(tx, before, {
+            plannedStart: input.plannedStart,
+            plannedEnd: input.plannedEnd,
+          });
+          // Assignment hoạt động của chuyến theo khung giờ mới (cùng khung giờ chuyến, ADR-004).
+          await tx.update(
+            dispatchAssignments,
+            { plannedStart: input.plannedStart, plannedEnd: input.plannedEnd },
+            and(
+              eq(dispatchAssignments.consolidatedTripId, before.id),
+              notInArray(dispatchAssignments.status, INACTIVE_ASSIGNMENT_STATUSES),
+            ),
+          );
+
+          const repo = createDispatchRepo(tx);
+          const trip = (await repo.trips.get(before.id))!;
+          const assignments = (
+            await repo.assignments.list(eq(dispatchAssignments.consolidatedTripId, trip.id))
+          ).filter(isActiveAssignment);
+          await writeAudit(tx, ctx, {
+            entity: 'consolidated_trips',
+            entityId: trip.id,
+            action: 'UPDATE_TIMES',
+            before: { plannedStart: before.plannedStart, plannedEnd: before.plannedEnd },
+            after: { plannedStart: trip.plannedStart, plannedEnd: trip.plannedEnd },
+          });
+          const links = await repo.tripContainers.list(eq(tripContainers.tripId, trip.id));
+          return {
+            trip,
+            assignments,
+            warnings,
+            orderContainerIds: links.map((l) => l.orderContainerId),
+          };
+        },
+        { lockWaitTimeoutSec: LOCK_WAIT_TIMEOUT_SECONDS },
       );
-
-      const repo = createDispatchRepo(tx);
-      const trip = (await repo.trips.get(before.id))!;
-      const assignments = (
-        await repo.assignments.list(eq(dispatchAssignments.consolidatedTripId, trip.id))
-      ).filter(isActiveAssignment);
-      await writeAudit(tx, ctx, {
-        entity: 'consolidated_trips',
-        entityId: trip.id,
-        action: 'UPDATE_TIMES',
-        before: { plannedStart: before.plannedStart, plannedEnd: before.plannedEnd },
-        after: { plannedStart: trip.plannedStart, plannedEnd: trip.plannedEnd },
-      });
-      const links = await repo.tripContainers.list(eq(tripContainers.tripId, trip.id));
-      return { trip, assignments, orderContainerIds: links.map((l) => l.orderContainerId) };
-    });
+    } catch (error) {
+      if (isLockContentionError(error)) throw new AppError('RESOURCE_BUSY_RETRY');
+      throw error;
+    }
 
     await emit(deps, {
       type: 'dispatch.updated',
@@ -190,7 +235,11 @@ export function createTripService(deps: DispatchDeps) {
       version: result.trip.version,
       orderContainerIds: result.orderContainerIds,
     });
-    return { trip: result.trip, assignments: result.assignments, warnings: [] };
+    return {
+      trip: result.trip,
+      assignments: result.assignments,
+      warnings: result.warnings,
+    };
   }
 
   return { createSingleTrip, updateTripTimes };

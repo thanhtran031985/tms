@@ -217,6 +217,50 @@ describe('trips.service', () => {
       );
     });
 
+    it('chuyến đã gán: dời giờ dời luôn assignment hoạt động', async () => {
+      const r = await w.newResources();
+      const { trip } = await w.newTrip({ start: at('01:00'), end: at('05:00') });
+      const planned = await w.assign(dispatcher, trip.id, r.ids);
+
+      const result = await w.service.updateTripTimes(dispatcher, {
+        tripId: trip.id,
+        version: planned.trip.version,
+        ...NEW_TIMES,
+      });
+
+      expect(result.assignments).toHaveLength(3);
+      expect(
+        result.assignments.every(
+          (a) => a.plannedStart.getTime() === NEW_TIMES.plannedStart.getTime(),
+        ),
+      ).toBe(true);
+      expect(
+        result.assignments.every((a) => a.plannedEnd.getTime() === NEW_TIMES.plannedEnd.getTime()),
+      ).toBe(true);
+    });
+
+    it('chuyến đã gán: dời sang giờ trùng chuyến khác thì RESOURCE_TIME_CONFLICT và giờ cũ giữ nguyên', async () => {
+      const r = await w.newResources();
+      const other = await w.newTrip({ start: at('08:00'), end: at('12:00') });
+      await w.assign(dispatcher, other.trip.id, r.ids);
+      const { trip } = await w.newTrip({ start: at('01:00'), end: at('05:00') });
+      const planned = await w.assign(dispatcher, trip.id, r.ids);
+
+      await expectAppError(
+        w.service.updateTripTimes(dispatcher, {
+          tripId: trip.id,
+          version: planned.trip.version,
+          plannedStart: at('07:00'),
+          plannedEnd: at('11:00'),
+        }),
+        'RESOURCE_TIME_CONFLICT',
+      );
+
+      const after = await w.repo().trips.get(trip.id);
+      expect(after?.plannedStart).toEqual(at('01:00'));
+      expect(after?.version).toBe(planned.trip.version);
+    });
+
     it('window sai: VALIDATION_ERROR; VIEWER: FORBIDDEN; tenant khác: NOT_FOUND', async () => {
       const { container } = await pendingContainer();
       const { trip } = await create(dispatcher, container.id);

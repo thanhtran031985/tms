@@ -20,6 +20,9 @@ export type DispatchDeps = {
   publish: (event: DispatchEvent) => Promise<void>;
 };
 
+/** Chờ khóa dòng tối đa ngần này giây rồi trả RESOURCE_BUSY_RETRY (spec 03 mục 1 bước 8). */
+export const LOCK_WAIT_TIMEOUT_SECONDS = 5;
+
 /** Chuyến còn hoạt động: container của chuyến này chưa được lập chuyến khác. */
 export const ACTIVE_TRIP_STATUSES: readonly TripStatus[] = ['PLANNED', 'DISPATCHED', 'IN_TRANSIT'];
 

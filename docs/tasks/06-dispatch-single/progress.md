@@ -6,8 +6,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 |---|---|---|---|
 | 1 | Schema chuyến và assignment, migration, seed, tenant isolation | ✅ | 9ddfb41 |
 | 2 | Test đồng thời và test quy tắc (đỏ) | ✅ | 5dec2c5 |
-| 3 | Tạo chuyến SINGLE cho một container | ✅ | |
-| 4 | assignResources: khóa, chồng lấn, tồn tại, trạng thái, timeout | ⬜ | |
+| 3 | Tạo chuyến SINGLE cho một container | ✅ | 84585d2 |
+| 4 | assignResources: khóa, chồng lấn, tồn tại, trạng thái, timeout | ✅ | |
 | 5 | Giấy tờ, giờ lái và ràng buộc vật lý một container | ⬜ | |
 | 6 | Sau commit, hủy assignment, truy vấn tài nguyên gán được và Server Action | ⬜ | |
 | 7 | Hoàn tất | ⬜ | |
@@ -46,3 +46,7 @@ Kết quả kiểm tra: `pnpm test --filter core -- assign` chạy và đỏ: 46
 Đã làm: test trước `trips.service.int.test.ts` (14 test) rồi cài `deps.ts` (kiểm quyền, `lockTrip`, khóa lạc quan `updateTripWithVersion`, `emit` sau commit) và `trips.service.ts`: `createSingleTrip` (khóa dòng container, Order phải CONFIRMED/IN_PROGRESS/PARTIALLY_DELIVERED, chặn container đã có chuyến hoạt động, `tripCode` TRIP-yymm-NNN từ `nextNumber`, container sang PLANNED, audit) và `updateTripTimes` (version, chỉ chuyến PLANNED, dời giờ assignment hoạt động). `createDispatchService` ở `index.ts` đã nối hai hàm này.
 Kết quả kiểm tra: `pnpm test --filter core -- trips` 14/14 xanh (gồm ca hai Điều vận cùng tạo chuyến cho một container: đúng một người thành công); `pnpm typecheck` xanh.
 Ghi chú: `updateTripTimes` hiện chỉ dời giờ assignment; kiểm tra lại chồng lấn/giấy tờ khi dời giờ chuyến đã gán sẽ làm ở Bước 4 và 5.
+
+### Bước 4 — 23/10/2026 (xong)
+Đã làm: `lib/db/tenant-db.ts` nhận `transaction(fn, { lockWaitTimeoutSec })` (SET SESSION innodb_lock_wait_timeout rồi trả về DEFAULT ở finally); `lib/db/errors.ts` (`isLockContentionError`: lỗi 1205 và 1213 kể cả khi drizzle bọc trong `cause`). `rules/{types,resource-state,overlap,maintenance}.ts` (hàm riêng cho từng quy tắc), `evaluate.ts` (`lockResources` theo thứ tự drivers -> tractors -> trailers, `evaluateResource`, `evaluateAssignment`), `assign.service.ts` (`assignResources`: khóa chuyến, khóa tài nguyên, rồi mới đọc thường; hủy assignment cũ khi gán lại; mỗi Stop một assignment; đồng bộ `primary*`; tăng `version`; audit từng assignment và chuyến; publish sau commit; lock timeout hoặc deadlock -> RESOURCE_BUSY_RETRY). `updateTripTimes` kiểm tra lại chồng lấn/bảo dưỡng cho chuyến đã gán rồi dời giờ assignment (thêm 2 test).
+Kết quả kiểm tra: `assign.concurrency` 5/5 test xanh, chạy 5 lần liên tiếp đều xanh (gồm 2 Điều vận cùng tài xế lặp 5 vòng, ghép chéo 20 vòng không deadlock, giữ khóa >5 giây ra RESOURCE_BUSY_RETRY và gán lại được sau khi nhả); `trips` 16/16 xanh; `assign.rules` 23/41 xanh, đủ nhóm của bước này (tồn tại, tenant, INACTIVE, xóa mềm, chồng lấn theo status, bảo dưỡng, trạng thái khi sắp chạy, kết quả gán); 18 test còn đỏ đều thuộc Bước 5 (giấy tờ, giờ lái, vật lý, dispatchTrip). `pnpm typecheck` xanh.
