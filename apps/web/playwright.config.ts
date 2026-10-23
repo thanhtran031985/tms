@@ -34,7 +34,8 @@ export default defineConfig({
     command: `pnpm exec next dev -p ${port}`,
     url: `http://localhost:${port}/login`,
     reuseExistingServer: !process.env.CI,
-    env: { E2E: '1' },
+    // SSE điều vận cần Redis; mặc định là Redis của docker compose nếu .env chưa khai báo REDIS_URL.
+    env: { E2E: '1', REDIS_URL: process.env.REDIS_URL ?? 'redis://localhost:6379' },
     timeout: 120_000,
   },
 });

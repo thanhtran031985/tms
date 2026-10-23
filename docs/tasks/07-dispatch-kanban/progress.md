@@ -8,8 +8,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 2 | Mức hạn và chữ đếm ngược | ✅ | |
 | 3 | SSE realtime theo tenant | ✅ | |
 | 4 | Giao diện bảng Kanban và lịch xe (chỉ hiển thị) | ✅ | |
-| 5 | Gán xe: chọn thẻ, kéo thả, optimistic, rollback, hoàn tác | ⬜ | |
-| 6 | E2E hai trình duyệt | ⬜ | |
+| 5 | Gán xe: chọn thẻ, kéo thả, optimistic, rollback, hoàn tác | ✅ | |
+| 6 | E2E hai trình duyệt | ✅ | |
 | 7 | Hoàn tất | ⬜ | |
 
 ## Nhật ký
@@ -43,4 +43,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - Cài `@dnd-kit/core` (đã được người dùng duyệt ở Plan mode; kéo theo `@dnd-kit/accessibility` và `@dnd-kit/utilities` là phụ thuộc của chính gói này).
 - Đã làm: `assign-panel.tsx` (bảng gán xe từ `listResourceAvailability`: đầu kéo kèm lý do, xe không được phép bị khóa và ghi lý do; chọn đầu kéo rồi chọn tài xế, rơ moóc đã chọn sẵn phương án rảnh đầu tiên; focus chuyển vào bảng khi chọn thẻ), `resource-reasons.ts`, `error-messages.ts` (câu theo mã lỗi: trùng giờ, không điều được, giấy tờ, Rule 5/6/7, tải trọng, `RESOURCE_BUSY_RETRY`, `STALE_DATA`, mạng...), `assign-flow.ts` (`performAssign`: tạo chuyến SINGLE nếu thẻ chưa có chuyến rồi gán; `safeCall` bọc lỗi mạng), `confirm-dialog.tsx` (hộp xác nhận thiếu khối lượng và ghi đè giờ lái có ô lý do, chỉ ADMIN), `board.tsx` (`useOptimistic`: thẻ sang Đã lên kế hoạch và khối chuyến hiện trên lịch ngay; lỗi thì thẻ quay về; thông báo thành công 8 giây kèm "Hoàn tác" gọi `cancelAssignment`; `STALE_DATA` tải lại thẻ), `draggable-card.tsx` + `lane-dnd.ts` (chuột kéo cả thẻ từ 8px; bàn phím: thẻ đang chọn có nút "Kéo vào làn xe", Space nhấc, mũi tên xuống/lên đổi làn, Space thả; thông báo cho trình đọc màn hình bằng tiếng Việt), làn xe nhận thả (`resource-lanes.tsx`), `SelectField` cho phép ô chọn bị khóa. Người chỉ xem không chọn và không kéo được thẻ.
 - Kiểm tra: web unit 150+ test xanh (`assign-flow`, `error-messages` và lý do, `board-state` optimistic); `e2e/dispatch.spec.ts` 12 test xanh, chạy 3 lần liên tiếp không chập chờn: bảng gán xe khóa "Đăng kiểm hết hạn, không được điều" và "Trùng giờ với chuyến khác", gán bằng chuột (có hộp xác nhận thiếu khối lượng) rồi Hoàn tác thẻ về Chờ điều, gán chỉ bằng bàn phím, mất mạng thì thẻ quay về kèm thông báo, kéo chuột vào làn mở bảng với đầu kéo đã chọn, kéo bằng bàn phím vào làn xe không điều được hiện lý do, người chỉ xem; `pnpm typecheck`, `pnpm lint`, `prettier --check` sạch.
+- Việc người dùng cần làm: không có.
+
+### 23/10/2026 — Bước 6: E2E hai trình duyệt ✅
+- Đã làm: `apps/web/e2e/dispatch-concurrency.spec.ts`: hai context đăng nhập hai người cùng công ty (Điều vận Nguyễn Văn Hùng và Quản trị), mỗi người chọn một trong hai cont của Order EXP-2610-046 (cùng khung giờ 28/10) và cùng đầu kéo, tài xế, rơ moóc mặc định; bấm gán và trả lời hộp xác nhận thiếu khối lượng đồng thời. `dispatch.spec.ts` (Bước 4, 5) có thêm lọc Xuất/Nhập và bảng gán xe khóa "Đăng kiểm hết hạn, không được điều". `playwright.config.ts` cho server e2e mặc định `REDIS_URL=redis://localhost:6379` khi môi trường chưa có.
+- Kiểm tra: trình duyệt thua thấy thẻ quay lại Chờ điều kèm thông báo "đã có chuyến trùng giờ" (mã `RESOURCE_TIME_CONFLICT`), trình duyệt thắng thấy thẻ ở Đã lên kế hoạch, cả hai thấy cùng trạng thái sau vài giây nhờ SSE, rồi người thắng Hoàn tác và cả hai thấy cont về Chờ điều; `pnpm --filter web exec playwright test dispatch` (13 test, gồm `dispatch.spec.ts` và `dispatch-concurrency.spec.ts`) xanh 5 lần liên tiếp, không chập chờn.
 - Việc người dùng cần làm: không có.
