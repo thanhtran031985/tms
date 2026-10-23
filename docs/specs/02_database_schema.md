@@ -558,6 +558,8 @@ export const dispatchAssignments = mysqlTable('dispatch_assignments', {
   driverTimeIdx: index('idx_assign_driver_time').on(t.tenantId, t.driverId, t.plannedStart, t.plannedEnd),
   tractorTimeIdx: index('idx_assign_tractor_time').on(t.tenantId, t.tractorId, t.plannedStart, t.plannedEnd),
   trailerTimeIdx: index('idx_assign_trailer_time').on(t.tenantId, t.trailerId, t.plannedStart, t.plannedEnd),
+  tripIdx: index('idx_assign_trip').on(t.tenantId, t.consolidatedTripId),   // [BỔ SUNG task 06] hủy/gán lại/bỏ qua cùng chuyến khi kiểm tra chồng lấn
+  // [BỔ SUNG task 06] FK consolidated_trip_id đặt tên ngắn `fk_assign_trip` (tên tự sinh dài 66 ký tự, vượt giới hạn 64 của MariaDB)
 }));
 
 export const incidents = mysqlTable('incidents', {   // [BỔ SUNG] sự cố: hỏng xe, tai nạn, hư hỏng cont, bị phạt

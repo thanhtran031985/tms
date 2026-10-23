@@ -9,8 +9,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 3 | Tạo chuyến SINGLE cho một container | ✅ | 84585d2 |
 | 4 | assignResources: khóa, chồng lấn, tồn tại, trạng thái, timeout | ✅ | 0b3bf48 |
 | 5 | Giấy tờ, giờ lái và ràng buộc vật lý một container | ✅ | e528ce7 |
-| 6 | Sau commit, hủy assignment, truy vấn tài nguyên gán được và Server Action | ✅ | |
-| 7 | Hoàn tất | ⬜ | |
+| 6 | Sau commit, hủy assignment, truy vấn tài nguyên gán được và Server Action | ✅ | fbc792d |
+| 7 | Hoàn tất | ✅ | |
 
 ## Nhật ký
 <!-- Sau mỗi bước: ngày, đã làm gì, kết quả Kiểm tra, việc người dùng cần làm thủ công. -->
@@ -59,3 +59,13 @@ Ghi chú: ngày đang xét là ngày tenant của giờ kế hoạch; `dispatchT
 ### Bước 6 — 23/10/2026 (xong)
 Đã làm: `lib/redis/publish.ts` (`dispatchChannel` = `tenant:{tenantId}:dispatch`, `publishDispatchEvent`); `cancelAssignment` (hủy mọi assignment hoạt động của chuyến PLANNED/DISPATCHED, xóa primary*, chuyến về PLANNED, trả tài xế ON_DUTY/xe IN_USE về AVAILABLE khi không còn assignment hoạt động khác giữ chúng, audit từng dòng); `availability.query.ts` (`listResourceAvailability`: mọi tài xế/đầu kéo/rơ moóc chưa xóa mềm, dùng lại đúng hàm quy tắc của assignResources, không khóa dòng nào, lý do AVAILABLE "Rảnh trong khung giờ này", loại trừ chuyến hiện tại của chính container); `findTenantSettings` trong identity repo; `apps/web/src/features/dispatch/actions.ts` (6 action bằng defineAction, `revalidatePath("/dispatch")` chỉ sau khi service trả ok, trả tóm tắt không lộ tenantId) và `getDispatchService` trong `server/services.ts` (Redis publish + đọc tenants.settings).
 Kết quả kiểm tra: `pnpm test --filter core -- dispatch` 10 file / 117 test xanh (events 4, cancel 7, availability 10, rules 43, trips 16, concurrency 5, perf 1, repo 9, seed 4, rules.test unit); web 13 file / 106 test xanh (actions dispatch 9, kể cả VIEWER/ACCOUNTANT/FLEET_MANAGER bị FORBIDDEN, actions-guard); đo hiệu năng trên DB Testcontainers có 300 assignment trong ngày: assignResources p50=48 ms, p95=87 ms, max=98 ms (40 lần) < 500 ms.
+
+### Bước 7 — 23/10/2026 (xong, task hoàn thành)
+Đã làm: cập nhật spec 03 (mục "Ghi chú cài đặt" và mục 4 hủy assignment) và spec 02 (`idx_assign_trip`, tên FK `fk_assign_trip`); README dòng 06 đổi sang ✅.
+Kết quả kiểm tra:
+- `pnpm typecheck`, `pnpm lint`, `pnpm build` không lỗi.
+- `pnpm test` toàn workspace: core 48 file / 474 test, web 13 file / 106 test, worker 2 file / 7 test, tất cả xanh.
+- Migration 0006 chạy được trên DB trống (Testcontainers mọi bộ test) và trên DB dev đã có dữ liệu; `pnpm db:seed` chạy lại nhiều lần không sinh trùng (1 chuyến, 3 assignment).
+- Mọi Server Action dùng defineAction (requireRole rồi zod); 3 repo mới đều có test tenant isolation.
+- "Chấp nhận khi" của ticket: hai transaction cùng tài xế chồng giờ đúng một thành công (lặp 5 vòng x 5 lần chạy); chuyến chiều cho xe có chuyến sáng thành công; ghép chéo 20 vòng không deadlock; p95 assignResources 87 ms với 300 assignment trong ngày.
+Không chạy `pnpm e2e`: task không có giao diện.

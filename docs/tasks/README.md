@@ -10,7 +10,7 @@ Bảng tổng các task của dự án, chia theo giai đoạn GĐ0–GĐ6 trong
 | 03 | [03-pricing-engine](03-pricing-engine/task.md) — Bảng giá và 4D Pricing Engine | ✅ | 02 | `feat/03-pricing-engine` |
 | 04 | [04-orders-containers](04-orders-containers/task.md) — Order nhiều container và tự sinh Stop | ✅ | 02, 03 | `feat/04-orders-containers` |
 | 05 | [05-fleet-drivers](05-fleet-drivers/task.md) — Đội xe, tài xế và giấy tờ | ✅ | 02 | `feat/05-fleet-drivers` |
-| 06 | [06-dispatch-single](06-dispatch-single/task.md) — Điều vận SINGLE, khóa bi quan và chống chồng lấn | 🔄 | 04, 05 | `feat/06-dispatch-single` |
+| 06 | [06-dispatch-single](06-dispatch-single/task.md) — Điều vận SINGLE, khóa bi quan và chống chồng lấn | ✅ | 04, 05 | `feat/06-dispatch-single` |
 | 07 | [07-dispatch-kanban](07-dispatch-kanban/task.md) — Giao diện Kanban điều vận | ⬜ | 06 | `feat/07-dispatch-kanban` |
 | 08 | [08-trip-combining](08-trip-combining/task.md) — Ghép chuyến TWIN_20, COMBINED, Street Turn và tách chuyến | ⬜ | 06, 07 | `feat/08-trip-combining` |
 | 09 | [09-drop-hook-rescue](09-drop-hook-rescue/task.md) — Drop & Hook, cứu hộ và bắn xe ngoài | ⬜ | 06 | `feat/09-drop-hook-rescue` |
@@ -52,7 +52,7 @@ Thiết kế đã có cho 9 màn (`designs/components/Screen01`–`Screen09`). C
 - **Dịch vụ OCR và nhà cung cấp GPS:** chốt trong Plan mode của task 12 và task 13.
 - **Màn chưa có thiết kế:** quyết định thiết kế thêm (Prompt 2, PRD Phần J) hay dựng từ thành phần có sẵn trước khi làm giao diện của 02, 03, 05, 20, 21, 22.
 - **Lương tài xế:** tính theo chuyến, theo km hay kết hợp; lương Drop & Hook theo đơn giá DROP/HOOK hay theo phần trăm hoàn thành; làm tròn khi chia lương cứu hộ (spec 01 mục 4; task 09, 20).
-- **Quan hệ chuyến và Stop:** đề xuất mỗi Stop một assignment cùng tài nguyên và khung giờ chuyến, kiểm tra chồng lấn bỏ qua assignment cùng chuyến (task 06). Cần duyệt trước khi làm 06.
+- **Quan hệ chuyến và Stop:** đã chốt (23/10/2026) mỗi Stop một assignment cùng tài nguyên và khung giờ chuyến, kiểm tra chồng lấn bỏ qua assignment cùng chuyến (task 06; task 20 gom lương theo chuyến, task 09 tách chặng Drop/Hook).
 - **Ma trận quyền:** role nào ghi danh mục, tạo và import giá, duyệt phụ phí giờ chờ, duyệt kỳ lương, khóa kỳ kế toán (task 02, 03, 14, 20, 21). Mỗi task đề xuất trong Plan mode.
 - **Schema còn thiếu cột:** khóa đăng nhập sai 5 lần, chứng chỉ hàng nguy hiểm, khối lượng đầu kéo, giờ geofence, dung tích bình dầu, bảng đối soát và thông báo. Task nào cần thì thêm cột, sửa spec 02 và ghi `decisions.md`.
 - **Thiết kế khác spec:** loại cont 20GP/40GP (thiết kế) hay 20DC/40DC (spec 02); đăng nhập chỉ email (thiết kế) hay email hoặc SĐT (spec); "giữ hay áp giá mới" khi tính lại giá (thiết kế) hay tự tính lại (spec 06).

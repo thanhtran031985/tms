@@ -28,6 +28,14 @@ Nhiều Điều vận viên (Dispatchers) cùng kéo thả trên một bảng Ka
 8. **[BỔ SUNG] Timeout khóa:** đặt `innodb_lock_wait_timeout` ngắn (ví dụ 5 giây) cho transaction điều vận; khi timeout trả lỗi `RESOURCE_BUSY_RETRY` để UI rollback optimistic và báo người dùng thử lại.
 9. **[BỔ SUNG] Khóa lạc quan cho thao tác sửa chuyến:** client gửi kèm `version` đã đọc; `UPDATE ... WHERE id = ? AND version = ?` không ảnh hưởng dòng nào → trả `STALE_DATA` và UI tải lại thẻ.
 
+### Ghi chú cài đặt (task 06, chốt 23/10/2026)
+- **Assignment theo Stop:** mỗi Stop của container trong chuyến có một dòng `dispatch_assignments` cùng bộ tài nguyên và cùng khung giờ chuyến (`stopId` NOT NULL). Kiểm tra chồng lấn bỏ qua các dòng cùng `consolidatedTripId`. Lương (task 20) phải gom theo chuyến; Drop & Hook (task 09) tách chặng từ các dòng này. Gán lại chuyến: hủy dòng cũ (`CANCELLED`) rồi tạo dòng mới trong cùng transaction. Stop chưa có giờ kế hoạch riêng nên mọi dòng dùng `plannedStart/plannedEnd` của chuyến; Rule 8 so `plannedEnd` của chuyến với `order.cutOffAt`.
+- **Mã lỗi:** `*_NOT_AVAILABLE` = không tồn tại / khác tenant / `INACTIVE` / xóa mềm / tài xế `OFF_DUTY` (luôn chặn) / status không `AVAILABLE` khi chuyến bắt đầu trong 30 phút / bảo dưỡng chồng lấn (`details.reason`); `RESOURCE_TIME_CONFLICT` = chồng lấn assignment (`details.conflictTripCode`). Mã mới: `REEFER_REQUIRES_GENSET` (Rule 5), `DG_CERTIFICATE_REQUIRED` (Rule 6), `PORT_NOT_READY` (Rule 7), `PAYLOAD_EXCEEDED` và `WEIGHT_CONFIRMATION_REQUIRED` (Rule 2; xác nhận bằng cờ `confirmMissingWeight`), `DRIVING_HOURS_EXCEEDED`, `DRIVING_HOURS_OVERRIDE_FORBIDDEN`, `CONTAINER_ALREADY_IN_TRIP`, `ORDER_NOT_CONFIRMED`. Lỗi MariaDB 1205 (hết giờ chờ khóa) và 1213 (deadlock) đều trả `RESOURCE_BUSY_RETRY`.
+- **Giờ lái:** chỉ áp giới hạn tổng giờ kế hoạch mỗi ngày dương lịch theo múi giờ tenant (`tenants.settings.dispatch.maxDrivingHoursPerDay`, mặc định 10; chuyến qua nửa đêm chia theo ngày). Mốc "liên tục 4 giờ" cần dữ liệu GPS nên để task 13/14. Vượt giờ trả `DRIVING_HOURS_EXCEEDED`; `ADMIN` gửi lại kèm `overrideDrivingHours.reason` thì gán được, audit ghi lý do; role khác gửi cờ này nhận `DRIVING_HOURS_OVERRIDE_FORBIDDEN`.
+- **Rule 2:** bảng `tractors` chưa có cột tự trọng đầu kéo nên phép kiểm tra bỏ phần này và trả cảnh báo `TRACTOR_TARE_NOT_COUNTED`. Không có VGM thì dùng khối lượng hàng + vỏ chuẩn (20ft 2,3 t; 40/45ft 3,8 t; cont lạnh +1,2 t).
+- **Rule 7:** `HOLD_CUSTOMS`/`HOLD_LINE` luôn chặn; Order Nhập cần `READY_EDO`, Order Xuất cần `READY_EMPTY_RELEASE`, Order nội địa bỏ qua; chỉ áp khi Stop đầu ở địa điểm loại `PORT`/`DEPOT`. Chặn ở `dispatchTrip` (PLANNED → DISPATCHED); `dispatchTrip` chỉ đổi trạng thái chuyến, container giữ `PLANNED`.
+- **Sự kiện:** `dispatch.updated` phát sau commit lên kênh Redis `tenant:{tenantId}:dispatch` với `{ type, tenantId, tripId, version, orderContainerIds }`.
+
 ## 2. Ràng buộc Vật lý đối với Ghép Cont (TWIN_20) & Kết hợp 2 chiều (COMBINED)
 Khi tạo hoặc gán tài nguyên vào consolidated_trips, Service phải kiểm tra các Hard Rules sau:
 
@@ -58,7 +66,7 @@ Khi tài xế kéo cont tới kho khách nhưng khách giữ lại đóng/rút h
 - **[BỔ SUNG]** Màn hình "Rơ moóc đang thả" liệt kê rơ moóc `DROPPED` kèm số giờ đã nằm tại kho để Điều vận đòi phí lưu rơ moóc (nếu có thỏa thuận với khách).
 
 ## 4. Hủy & Tách chuyến [BỔ SUNG]
-- **Hủy assignment:** chuyển `CANCELLED`, không xóa. Nếu tài nguyên đang `IN_USE`/`ON_DUTY` vì assignment này thì trả về `AVAILABLE`.
+- **Hủy assignment:** chuyển `CANCELLED`, không xóa. Nếu tài nguyên đang `IN_USE`/`ON_DUTY` vì assignment này thì trả về `AVAILABLE`. **[task 06]** `cancelAssignment` hủy mọi assignment hoạt động của một chuyến `PLANNED`/`DISPATCHED`, xóa `primary*`, chuyến về `PLANNED`; tài nguyên chỉ về `AVAILABLE` khi không còn assignment hoạt động nào khác giữ chúng.
 - **Tách chuyến ghép (un-consolidate):** gỡ 1 container khỏi `trip_containers`, đổi `tripMode` về `SINGLE` nếu chỉ còn 1 cont, và phát sự kiện `pricing.reprice_required` cho các container bị ảnh hưởng (xem file 06 mục 4). Nếu Kế toán đã sửa tay phân bổ của chuyến thì phân bổ bị đặt lại về số hệ thống và báo cho Kế toán.
 - **Hủy container / hủy Order [SỬA]:** Hủy được từng container (`order_containers.status = CANCELLED`) mà không hủy cả Order. Container chỉ hủy tự do khi chưa có Stop nào `COMPLETED`; nếu đã chạy một phần thì phải nhập phí hủy (`CANCELLATION_FEE`) và lý do. Hủy Order = hủy mọi container chưa hoàn thành; Order chỉ chuyển `CANCELLED` khi không còn container nào đang hoạt động.
 - **Phí hủy nhà xe ngoài:** nếu assignment `SUB_CONTRACTOR` bị hủy sau khi đã xác nhận, cho phép ghi chi phí hủy vào `trip_costs`.
