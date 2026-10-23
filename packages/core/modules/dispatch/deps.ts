@@ -10,7 +10,7 @@ import type { RequestContext } from '../../lib/context';
 import { consolidatedTrips } from '../../lib/db/schema';
 import type { TenantDb } from '../../lib/db/tenant-db';
 import { can, type Permission } from '../identity/permissions';
-import type { DispatchEvent } from '../../lib/redis/publish';
+import type { DispatchEvent, PricingEvent } from '../../lib/redis/publish';
 import type { TripRow } from './repo';
 
 export type DispatchDeps = {
@@ -18,6 +18,8 @@ export type DispatchDeps = {
   now: () => Date;
   loadSettings: (ctx: RequestContext) => Promise<unknown>;
   publish: (event: DispatchEvent) => Promise<void>;
+  /** Báo worker tính lại giá (task 08); bỏ trống thì chỉ dựa vào cờ repriceRequired và job quét. */
+  publishPricing?: (event: PricingEvent) => Promise<void>;
 };
 
 /** Chờ khóa dòng tối đa ngần này giây rồi trả RESOURCE_BUSY_RETRY (spec 03 mục 1 bước 8). */
@@ -80,5 +82,19 @@ export async function emit(deps: DispatchDeps, event: DispatchEvent): Promise<vo
     await deps.publish(event);
   } catch {
     // Kanban sẽ đồng bộ lại khi tải trang; không ném lỗi cho người gọi.
+  }
+}
+
+/** Phát sự kiện tính lại giá SAU commit khi có container bị đánh dấu. Lỗi phát không ảnh hưởng: job quét sẽ nhặt cờ treo. */
+export async function emitReprice(
+  deps: DispatchDeps,
+  tenantId: string,
+  orderContainerIds: string[],
+): Promise<void> {
+  if (orderContainerIds.length === 0 || !deps.publishPricing) return;
+  try {
+    await deps.publishPricing({ type: 'pricing.reprice_required', tenantId, orderContainerIds });
+  } catch {
+    // Job quét cờ treo sẽ xử lý.
   }
 }

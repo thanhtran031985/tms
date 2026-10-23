@@ -50,6 +50,7 @@ describe('removeContainerFromTrip: tách chuyến TWIN_20', () => {
   it('còn 1 cont thì chuyến về SINGLE, assignment của cont bị tách CANCELLED (không xóa), cả hai cont cần tính lại giá', async () => {
     const { a, b, trip } = await w.newTwinTrip();
     w.published.length = 0;
+    w.pricingPublished.length = 0;
 
     const result = await remove(trip.id, trip.version, b.container.id, dispatcher, 'Khách đổi lịch');
     expect(result.trip.tripMode).toBe('SINGLE');
@@ -78,6 +79,7 @@ describe('removeContainerFromTrip: tách chuyến TWIN_20', () => {
 
     const audits = await listAuditForEntity(w.tdb(A), 'consolidated_trips', trip.id);
     expect(audits.map((x) => x.action)).toContain('REMOVE_CONTAINER');
+    expect(w.pricingPublished.at(-1)?.orderContainerIds.sort()).toEqual([a.container.id, b.container.id].sort());
     const event = w.published.find((e) => e.tripId === trip.id);
     expect([...(event?.orderContainerIds ?? [])].sort()).toEqual([a.container.id, b.container.id].sort());
   });

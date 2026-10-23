@@ -20,7 +20,7 @@ import type {
   UpdateTripTimesInput,
 } from '@shared/schemas/dispatch';
 import type { RequestContext } from '../../lib/context';
-import type { DispatchEvent } from '../../lib/redis/publish';
+import type { DispatchEvent, PricingEvent } from '../../lib/redis/publish';
 import type { TenantDb } from '../../lib/db/tenant-db';
 import type { DispatchDeps } from './deps';
 import type { AssignmentRow, TripRow } from './repo';
@@ -48,6 +48,8 @@ export type DispatchServiceOptions = {
   loadSettings?: (ctx: RequestContext) => Promise<unknown>;
   /** Phát sự kiện sau khi transaction commit (Redis Pub/Sub); lỗi publish không làm hỏng thao tác đã commit. */
   publish?: (event: DispatchEvent) => Promise<void>;
+  /** Báo worker tính lại giá sau khi ghép hoặc tách chuyến (task 08). */
+  publishPricing?: (event: PricingEvent) => Promise<void>;
 };
 
 export type TripResult = {
@@ -122,6 +124,7 @@ export function createDispatchService(options: DispatchServiceOptions): Dispatch
     now: options.now ?? (() => new Date()),
     loadSettings: options.loadSettings ?? (async () => ({})),
     publish: options.publish ?? (async () => {}),
+    ...(options.publishPricing ? { publishPricing: options.publishPricing } : {}),
   };
   const trips = createTripService(deps);
   const assign = createAssignService(deps);

@@ -7,8 +7,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | 1 | Test ma trận Rule 1 đến 8 và tách chuyến (đỏ) | ✅ | 4bfa40f |
 | 2 | Ghép TWIN_20 và chọn tripMode doanh thu | ✅ | c2da49e |
 | 3 | COMBINED và Street Turn | ✅ | 02c2d5a |
-| 4 | Tách chuyến và hủy Order có chuyến | ✅ | |
-| 5 | Tính lại giá | ⬜ | |
+| 4 | Tách chuyến và hủy Order có chuyến | ✅ | 3e2e021 |
+| 5 | Tính lại giá | ✅ | |
 | 6 | Server Action và thao tác trên màn Điều vận | ⬜ | |
 | 7 | Hoàn tất | ⬜ | |
 
@@ -41,3 +41,10 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - `split.service.ts`: `removeContainerFromTrip` (khóa chuyến rồi container, chỉ chuyến PLANNED hoặc DISPATCHED, `TRIP_LAST_CONTAINER` khi tách cont cuối) và `detachContainersFromTrips` (module Order gọi trong transaction hủy). Gỡ container: hủy assignment của Stop thuộc cont đó (CANCELLED, không xóa), bỏ dòng `trip_containers`, cont về PENDING, chuyến còn 1 cont thì về SINGLE, chuyến hết cont thì CANCELLED; cont đang tính giá ghép (`appliedTripMode` khác SINGLE) chuyển về SINGLE và đặt `repriceRequired`; phân bổ Kế toán sửa tay được đặt lại về số hệ thống, `allocationMethod` khỏi MANUAL, `allocationReviewRequired = true`, audit `RESET_ALLOCATION` và `REMOVE_CONTAINER`.
 - `orders/service.ts`: `cancelContainerRow` gọi `detachFromTrips` trước khi hủy (đọc lại container mới nhất), `cancelContainer` và `cancelOrder` phát `dispatch.updated` sau commit qua `publishDispatch`. Không truyền hai tùy chọn thì hủy như task 04. Container nằm trên chuyến đang chạy (IN_TRANSIT) thì chặn hủy với `INVALID_STATUS_TRANSITION`.
 - Kiểm tra: `split.service.int.test.ts` 12/12 và `orders/cancel.int.test.ts` 19/19 xanh; eslint và `tsc` core sạch.
+
+### Bước 5 — 23/10/2026
+- `billing/reprice.service.ts`: `repriceContainer` (khóa Order rồi container; bỏ qua cont đã hủy; giá tay giữ giá và xóa cờ; có `order_fees.invoiceId` giữ giá và giữ cờ; còn lại tra lại giá cước theo `appliedTripMode` và phụ phí TARIFF, cập nhật dòng cùng mã hoặc thêm mã mới, không đụng MANUAL và DEM/DET; ghi audit `REPRICE` giá cũ và mới kèm tariff; đồng bộ tổng Order) và `repriceFlagged` (quét cờ treo, lỗi từng cont thành `FAILED` mà không dừng cả lượt). Chạy lại nhiều lần an toàn (hết cờ thì `UNCHANGED`). Không tìm thấy giá: `TARIFF_NOT_FOUND`, giữ giá cũ và cờ.
+- `lib/redis/publish.ts`: `PricingEvent`, kênh `tenant:{id}:pricing`, `publishPricingEvent`. Dispatch phát `pricing.reprice_required` sau commit khi ghép, ghép thêm và tách chuyến (qua dependency `publishPricing`).
+- Worker (`apps/worker`): queue `pricing.reprice`, `jobs/reprice.ts` (`processRepriceJob`, `subscribePricingEvents` đăng ký `tenant:*:pricing` rồi đẩy job, `scheduleRepriceSweeps` mỗi 5 phút cho từng tenant ACTIVE), nối vào `startWorker` và dừng êm. Không thêm package (worker kiểm tra sự kiện bằng tay thay vì zod).
+- Giới hạn đã biết: hủy container/Order đã gỡ khỏi chuyến chỉ đặt cờ, không phát sự kiện giá; job quét sẽ nhặt trong tối đa 5 phút. Phụ phí TARIFF không còn áp dụng theo bảng phí mới không bị xóa, chỉ cập nhật và thêm.
+- Kiểm tra: `reprice.service.int.test.ts` 9/9 và `apps/worker` `reprice.int.test.ts` 5/5 xanh; `consolidate.rules` và `split.service` thêm kiểm tra phát sự kiện giá, 57/57 xanh; typecheck và eslint sạch.

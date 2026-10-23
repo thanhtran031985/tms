@@ -8,6 +8,12 @@ import {
   processDocumentExpiryJob,
   scheduleDocumentExpiryJobs,
 } from './jobs/document-expiry';
+import {
+  processRepriceJob,
+  type RepriceJobData,
+  scheduleRepriceSweeps,
+  subscribePricingEvents,
+} from './jobs/reprice';
 import { defaultJobOptions, QUEUE_NAMES } from './queues';
 
 export type StartWorkerOptions = {
@@ -98,8 +104,32 @@ export async function startWorker(options: StartWorkerOptions): Promise<RunningW
     logger.warn('Thiếu DATABASE_URL: chưa đăng ký lịch cảnh báo giấy tờ fleet.document-expiry');
   }
 
+  // Tính lại giá khi ghép hoặc tách chuyến (task 08): job theo sự kiện Redis và job quét cờ treo định kỳ.
+  const repriceQueue = new Queue<RepriceJobData>(QUEUE_NAMES.reprice, { connection, defaultJobOptions });
+  const repriceWorker = new Worker<RepriceJobData>(
+    QUEUE_NAMES.reprice,
+    async (job) => {
+      await processRepriceJob(job.data, { db: getDatabase(), logger });
+    },
+    { connection },
+  );
+  repriceWorker.on('failed', (job, error) => {
+    logger.error({ queue: QUEUE_NAMES.reprice, jobId: job?.id, err: error }, 'job tính lại giá lỗi');
+  });
+  await repriceWorker.waitUntilReady();
+  const pricingSubscription = await subscribePricingEvents({ redisUrl, queue: repriceQueue, logger });
+  if (options.db || process.env.DATABASE_URL) {
+    const sweeps = await scheduleRepriceSweeps({ db: getDatabase(), queue: repriceQueue });
+    logger.info({ queue: QUEUE_NAMES.reprice, ...sweeps }, 'đã đăng ký lịch quét tính lại giá');
+  } else {
+    logger.warn('Thiếu DATABASE_URL: chưa đăng ký lịch quét tính lại giá pricing.reprice');
+  }
+
   logger.info(
-    { queues: [QUEUE_NAMES.heartbeat, QUEUE_NAMES.documentExpiry], heartbeatEveryMs },
+    {
+      queues: [QUEUE_NAMES.heartbeat, QUEUE_NAMES.documentExpiry, QUEUE_NAMES.reprice],
+      heartbeatEveryMs,
+    },
     'worker ready',
   );
 
@@ -110,8 +140,11 @@ export async function startWorker(options: StartWorkerOptions): Promise<RunningW
         if (resyncTimer) clearInterval(resyncTimer);
         await worker.close();
         await docExpiryWorker.close();
+        await repriceWorker.close();
+        await pricingSubscription.close();
         await queue.close();
         await docExpiryQueue.close();
+        await repriceQueue.close();
         await connection.quit();
         logger.info('worker đã dừng');
       })();

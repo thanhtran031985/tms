@@ -19,7 +19,7 @@ import { seedOrders } from '../../lib/db/seeds/orders';
 import { SEED_ORDERS } from '../../lib/db/seeds/orders.test-data';
 import { seedTariffs } from '../../lib/db/seeds/tariffs';
 import { getTenantDb } from '../../lib/db/tenant-db';
-import { publishDispatchEvent, type DispatchEvent } from '../../lib/redis/publish';
+import { publishDispatchEvent, type DispatchEvent, type PricingEvent } from '../../lib/redis/publish';
 import { startTestInfra, type TestInfra } from '../../test/containers';
 import { createTariffRepo } from '../billing/repo';
 import { createFleetRepo } from '../fleet/repo';
@@ -147,6 +147,7 @@ export async function createWorld(options: { redis?: boolean } = {}) {
   const orders = (tenantId = A) => createOrderRepo(tdb(tenantId));
 
   const published: DispatchEvent[] = [];
+  const pricingPublished: PricingEvent[] = [];
   /** Cấu hình tenant (tenants.settings) mà service đọc; đổi bằng setSettings, nhớ trả về {} sau test. */
   let settings: unknown = {};
   const setSettings = (value: unknown) => {
@@ -161,6 +162,9 @@ export async function createWorld(options: { redis?: boolean } = {}) {
     now: () => NOW,
     loadSettings: async () => settings,
     publish,
+    publishPricing: async (event) => {
+      pricingPublished.push(event);
+    },
   });
   /** Service Order nối với điều vận: hủy container/Order gỡ container khỏi chuyến (task 08). */
   const orderService = createOrderService({
@@ -354,6 +358,7 @@ export async function createWorld(options: { redis?: boolean } = {}) {
     service,
     orderService,
     published,
+    pricingPublished,
     setSettings,
     tdb,
     repo,

@@ -21,6 +21,7 @@ import { patchContainerForTrip } from './container-patch';
 import {
   authorize,
   emit,
+  emitReprice,
   INACTIVE_ASSIGNMENT_STATUSES,
   isActiveAssignment,
   LOCK_WAIT_TIMEOUT_SECONDS,
@@ -289,6 +290,7 @@ export function createSplitService(deps: DispatchDeps) {
       version: outcome.trip.version,
       orderContainerIds: outcome.affectedContainerIds,
     });
+    await emitReprice(deps, ctx.tenantId, outcome.repriceContainerIds);
     return {
       trip: outcome.trip,
       assignments: outcome.assignments,

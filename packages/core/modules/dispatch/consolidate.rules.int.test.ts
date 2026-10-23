@@ -507,6 +507,21 @@ describe('Doanh thu khi ghép: appliedTripMode và cờ tính lại giá (spec 0
     }
   });
 
+  it('phát pricing.reprice_required cho cont bị đánh dấu, không phát khi khác khách', async () => {
+    const pair = await w.newTwinPair();
+    w.pricingPublished.length = 0;
+    await ghep('TWIN_20', pair, await resources());
+    expect(w.pricingPublished).toHaveLength(1);
+    expect([...w.pricingPublished[0]!.orderContainerIds].sort()).toEqual(pair.map((p) => p.container.id).sort());
+
+    const otherOrder = await w.newOrder({ customerId: CUSTOMER.phucThinh });
+    const a = await w.newContainer({ containerType: '20DC', status: 'PENDING' });
+    const b = await w.newContainer({ containerType: '20DC', status: 'PENDING', order: otherOrder });
+    w.pricingPublished.length = 0;
+    await ghep('TWIN_20', [a, b], await resources());
+    expect(w.pricingPublished).toEqual([]);
+  });
+
   it('ghi audit CREATE cho chuyến và phát dispatch.updated kèm cả hai container', async () => {
     const pair = await w.newTwinPair();
     w.published.length = 0;

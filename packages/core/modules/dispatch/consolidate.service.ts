@@ -28,6 +28,7 @@ import {
   ACTIVE_TRIP_STATUSES,
   authorize,
   emit,
+  emitReprice,
   invalid,
   LOCK_WAIT_TIMEOUT_SECONDS,
   lockTrip,
@@ -97,8 +98,9 @@ async function enterTrip(
     tripId: string;
     shareDiscount: boolean;
   },
-): Promise<void> {
+): Promise<string[]> {
   const shares = sharesTripDiscount(input.context.containers, input.context.orders, input.shareDiscount);
+  const flagged: string[] = [];
   for (const container of input.containers) {
     if (container.status !== 'PLANNED') assertContainerTransition(container.status, 'PLANNED');
     await patchContainerForTrip(
@@ -111,7 +113,9 @@ async function enterTrip(
       },
       input.tripId,
     );
+    if (shares) flagged.push(container.id);
   }
+  return flagged;
 }
 
 function firstError(result: { errors: { code: AppError['code']; message: string; details?: Record<string, string | number> }[] }) {
@@ -183,7 +187,7 @@ export function createConsolidateService(deps: DispatchDeps) {
           });
           firstError(shape);
 
-          await enterTrip(tx, ctx, {
+          const flagged = await enterTrip(tx, ctx, {
             containers,
             context,
             tripMode: input.tripMode,
@@ -215,6 +219,7 @@ export function createConsolidateService(deps: DispatchDeps) {
               ...applied,
               warnings: [...shape.warnings, ...applied.warnings],
               orderContainerIds: containers.map((c) => c.id),
+              repriceIds: flagged,
             };
           }
           return {
@@ -222,6 +227,7 @@ export function createConsolidateService(deps: DispatchDeps) {
             assignments: [],
             warnings: shape.warnings,
             orderContainerIds: containers.map((c) => c.id),
+            repriceIds: flagged,
           };
         },
         { lockWaitTimeoutSec: LOCK_WAIT_TIMEOUT_SECONDS },
@@ -241,6 +247,7 @@ export function createConsolidateService(deps: DispatchDeps) {
       version: outcome.trip.version,
       orderContainerIds: outcome.orderContainerIds,
     });
+    await emitReprice(deps, ctx.tenantId, outcome.repriceIds);
     return { trip: outcome.trip, assignments: outcome.assignments, warnings: outcome.warnings };
   }
 
@@ -289,7 +296,7 @@ export function createConsolidateService(deps: DispatchDeps) {
           });
           firstError(shape);
 
-          await enterTrip(tx, ctx, {
+          const flagged = await enterTrip(tx, ctx, {
             containers: [added!],
             context,
             tripMode: input.tripMode,
@@ -304,6 +311,7 @@ export function createConsolidateService(deps: DispatchDeps) {
           );
           if (shares) {
             for (const existing of context.containers.filter((c) => c.id !== added!.id)) {
+              flagged.push(existing.id);
               await patchContainerForTrip(
                 tx,
                 ctx,
@@ -346,6 +354,7 @@ export function createConsolidateService(deps: DispatchDeps) {
             ...result,
             warnings: [...shape.warnings, ...result.warnings],
             orderContainerIds: context.orderContainerIds,
+            repriceIds: flagged,
           };
         },
         { lockWaitTimeoutSec: LOCK_WAIT_TIMEOUT_SECONDS },
@@ -365,6 +374,7 @@ export function createConsolidateService(deps: DispatchDeps) {
       version: outcome.trip.version,
       orderContainerIds: outcome.orderContainerIds,
     });
+    await emitReprice(deps, ctx.tenantId, outcome.repriceIds);
     return { trip: outcome.trip, assignments: outcome.assignments, warnings: outcome.warnings };
   }
 
