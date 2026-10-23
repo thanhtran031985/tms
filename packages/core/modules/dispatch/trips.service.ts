@@ -325,6 +325,18 @@ export function createTripService(deps: DispatchDeps) {
             if (blocking) throw new AppError(blocking.code, blocking.message, blocking.details);
           }
 
+          // Rule 3: cont đảo vỏ Street Turn phải có số chấp thuận của hãng tàu trước khi chuyến sang DISPATCHED.
+          const unapproved = context.containers.filter(
+            (c) => c.linkedContainerId && !c.streetTurnApprovalRef,
+          );
+          if (unapproved.length > 0) {
+            const labels = unapproved.map((c) => c.containerNo ?? `dòng ${c.lineNo}`).join(', ');
+            throw new AppError(
+              'STREET_TURN_NOT_APPROVED',
+              `Street Turn của ${labels} chưa có số chấp thuận của hãng tàu nên chưa điều được. Nhập số chấp thuận rồi điều lại.`,
+            );
+          }
+
           await updateTripWithVersion(tx, before, { status: 'DISPATCHED' });
           const repo = createDispatchRepo(tx);
           const active = (

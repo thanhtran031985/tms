@@ -5,8 +5,8 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 | Bước | Nội dung | Trạng thái | Commit |
 |---|---|---|---|
 | 1 | Test ma trận Rule 1 đến 8 và tách chuyến (đỏ) | ✅ | 4bfa40f |
-| 2 | Ghép TWIN_20 và chọn tripMode doanh thu | ✅ | |
-| 3 | COMBINED và Street Turn | ⬜ | |
+| 2 | Ghép TWIN_20 và chọn tripMode doanh thu | ✅ | c2da49e |
+| 3 | COMBINED và Street Turn | ✅ | |
 | 4 | Tách chuyến và hủy Order có chuyến | ⬜ | |
 | 5 | Tính lại giá | ⬜ | |
 | 6 | Server Action và thao tác trên màn Điều vận | ⬜ | |
@@ -30,3 +30,9 @@ Trạng thái: ⬜ chưa làm · 🔄 đang làm · ❓ có code chưa rà soát
 - `consolidate.service.ts`: `createConsolidatedTrip` (có hoặc không `resources`) và `addContainerToTrip`; khóa chuyến, drivers, tractors, trailers rồi order_containers theo id tăng dần. `container-patch.ts` đặt `appliedTripMode` và `repriceRequired` chỉ cho cặp cùng khách khi `shareTwinDiscountWithCustomer` bật (mặc định bật), ghi audit `MARK_REPRICE`; phát `dispatch.updated` kèm cả hai container.
 - Kiểm tra: `consolidate.rules.int.test.ts` 33/44 xanh, gồm Rule 1, 2, 5, 6, 7, 8, tra giá, quyền, tenant, `addContainerToTrip` và ghép chéo; 11 test còn đỏ đều thuộc Street Turn và COMBINED (bước 3). Test song song chạy 3 lượt × 5 vòng không deadlock. Test cũ của dispatch (9 file, 120 test) vẫn xanh sau khi tách `applyAssignment`. `pnpm typecheck` và eslint thư mục dispatch sạch.
 - Chưa làm: `dispatchTrip` kiểm Street Turn và Rule 4 (bước 3).
+
+### Bước 3 — 23/10/2026
+- `rules/street-turn.ts` (Rule 3: cùng hãng, cùng loại, hãng cho phép, UNSTUFFING kết thúc trước STUFFING bắt đầu; thiếu giờ thì cảnh báo `SEQUENCE_NOT_VERIFIED`), `rules/combined-sequence.ts` (Rule 4: hai khoảng ở trên rơ moóc chồng nhau chỉ hợp lệ khi cả hai là cont 20 feet; cặp Street Turn coi như một vỏ).
+- `street-turn.service.ts`: `linkStreetTurn` (khóa hai container theo id tăng dần, liên kết hai chiều, chép số cont, chuyển `detFreeUntil` sang cont Xuất, Stop `RETURN_EMPTY` chưa làm của cont Nhập thành `SKIPPED`, audit), `setStreetTurnApproval` (ghi số chấp thuận cho cả cặp), `listStreetTurns` (có `pendingOnly`), phí `STREET_TURN_FEE` theo `settings.dispatch.streetTurnFee` (khóa idempotency theo cont Xuất, nhập lại chỉ cập nhật dòng cũ), tổng Order đồng bộ qua `orders/order-totals.ts` (`syncOrderTotals`, dùng lại ở bước 4, 5).
+- `trips.service.ts`: `dispatchTrip` chặn `STREET_TURN_NOT_APPROVED` khi cont đảo vỏ chưa có số chấp thuận.
+- Kiểm tra: `consolidate.rules.int.test.ts` 44/44 xanh và `rules/consolidation.test.ts` 20/20 xanh, nghĩa là cả 8 Rule đều có test chặn và test cho phép; sau Street Turn, cont Xuất mang số cont của cont Nhập và Stop `RETURN_EMPTY` của cont Nhập là `SKIPPED`. `pnpm typecheck` và eslint core sạch.
